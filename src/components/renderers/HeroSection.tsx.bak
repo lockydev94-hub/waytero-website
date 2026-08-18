@@ -1,0 +1,193 @@
+"use client";
+
+import { ArrowRight, MapPin, Search } from "lucide-react";
+import { Container, IconBox } from "@/components/ui";
+import { MotionFadeIn } from "@/components/ui";
+import { pick } from "@/types/cms";
+import type { ServiceType } from "@/types/cms";
+
+interface HeroSectionProps {
+  variant: Record<string, unknown>;
+  serviceType?: ServiceType | null;
+}
+
+export default function HeroSection({ variant, serviceType }: HeroSectionProps) {
+  // ── Map backend field names to component values ──────────────────────────
+  // Backend sends: headline, subheadline, body_text, cta_text, cta_link,
+  //   background_image_url, variant_tag, service_type (all inside variant{})
+
+  // "headline" matches — no rename needed
+  const headline = pick<string>(variant, "headline", "Reliable Cabs. Every Journey.");
+
+  // Backend field is "subheadline", not "subline"
+  const subline = pick<string>(variant, "subheadline",
+    "Cabs, hotels, and tour packages across India — instantly booked, reliably delivered.");
+
+  // Eyebrow: use variant_tag first, then fall back to default
+  const eyebrow = pick<string>(variant, "variant_tag", "India's Travel Operating System");
+
+  // Primary CTA: backend stores flat cta_text + cta_link, not an object
+  const ctaText = pick<string>(variant, "cta_text", "Book a Cab Now");
+  const ctaLink = pick<string>(variant, "cta_link", "/cabs");
+  const primaryCta = { label: ctaText, href: ctaLink };
+
+  // Secondary CTA: no DB field — always hardcoded
+  const secondaryCta = { label: "Explore Tour Packages", href: "/tours" };
+
+  // Stats: no DB field — always hardcoded
+  const stats = [
+    { value: "50K+", label: "Happy Travelers" },
+    { value: "1,200+", label: "Partner Hotels" },
+    { value: "800+", label: "Verified Drivers" },
+    { value: "30+", label: "Cities" },
+  ];
+
+  // Background image: backend field is "background_image_url", not "background_image"
+  const bgImage = pick<string | null>(variant, "background_image_url", null);
+
+  // service_type lives inside variant (backend puts it there), not on section prop
+  const resolvedServiceType: ServiceType =
+    (pick<string | null>(variant, "service_type", null) as ServiceType | null)
+    ?? serviceType
+    ?? "CAB";
+
+  return (
+    <section className="relative isolate overflow-hidden bg-gradient-to-br from-ink-900 via-primary-900 to-primary-700 text-white">
+      {/* background image overlay */}
+      {bgImage && (
+        <img
+          src={bgImage}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-overlay"
+        />
+      )}
+      {/* gradient blobs */}
+      <div aria-hidden className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary-500/40 blur-3xl" />
+      <div aria-hidden className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-accent-500/20 blur-3xl" />
+      {/* dotted overlay */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            "url(\"data:image/svg+xml;charset=utf-8,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")",
+        }}
+      />
+
+      <Container size="xl" className="relative pt-20 pb-28 lg:pt-28 lg:pb-36">
+        <MotionFadeIn className="mx-auto max-w-3xl text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] backdrop-blur-md">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-500 animate-pulse" aria-hidden />
+            {eyebrow}
+          </span>
+        </MotionFadeIn>
+
+        <MotionFadeIn delay={0.1} className="mx-auto mt-7 max-w-4xl text-center">
+          <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold leading-[1.05] tracking-tight">
+            {headline.split("|").map((part, i, arr) => (
+              <span key={i}>
+                {part}
+                {i < arr.length - 1 && (
+                  <>
+                    {" "}
+                    <span className="bg-gradient-to-r from-accent-400 to-accent-500 bg-clip-text text-transparent">{arr[i + 1]}</span>
+                  </>
+                )}
+              </span>
+            ))}
+          </h1>
+          <p className="mt-5 text-base sm:text-lg text-white/75 leading-relaxed max-w-2xl mx-auto">
+            {subline}
+          </p>
+        </MotionFadeIn>
+
+        <MotionFadeIn delay={0.2} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <a
+            href={primaryCta.href}
+            className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-semibold shadow-wt-accent transition-all hover:-translate-y-0.5"
+          >
+            {primaryCta.label}
+            <ArrowRight className="h-4 w-4" />
+          </a>
+          <a
+            href={secondaryCta.href}
+            className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold border border-white/20 backdrop-blur-md transition-all"
+          >
+            {secondaryCta.label}
+          </a>
+        </MotionFadeIn>
+
+        {/* inline search form */}
+        <MotionFadeIn delay={0.3} className="mt-12 lg:mt-16">
+          <InlineSearchForm defaultService={resolvedServiceType} />
+        </MotionFadeIn>
+
+        {/* stats */}
+        <MotionFadeIn delay={0.4} className="mt-14 lg:mt-20">
+          <dl className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-0 lg:divide-x lg:divide-white/10 max-w-4xl mx-auto">
+            {stats.map((s, i) => (
+              <div key={i} className="text-center px-4">
+                <dt className="sr-only">{s.label}</dt>
+                <dd>
+                  <div className="text-3xl lg:text-4xl font-extrabold bg-gradient-to-br from-accent-400 to-accent-500 bg-clip-text text-transparent">
+                    {s.value}
+                  </div>
+                  <div className="mt-1 text-sm text-white/65">{s.label}</div>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </MotionFadeIn>
+      </Container>
+    </section>
+  );
+}
+
+/* ── Inline search form — picks the matching form by service type ─── */
+function InlineSearchForm({ defaultService }: { defaultService?: ServiceType | null }) {
+  const initial: ServiceType = (defaultService && ["CAB", "HOTEL", "TOUR"].includes(defaultService)) ? defaultService : "CAB";
+  return (
+    <div className="mx-auto max-w-5xl rounded-3xl bg-white/10 backdrop-blur-xl border border-white/15 p-2 shadow-wt-xl">
+      <div className="flex items-center gap-1 border-b border-white/10 px-2">
+        {[
+          { id: "CAB", label: "Cabs", icon: <MapPin className="h-4 w-4" /> },
+          { id: "HOTEL", label: "Hotels", icon: <MapPin className="h-4 w-4" /> },
+          { id: "TOUR", label: "Tours", icon: <MapPin className="h-4 w-4" /> },
+        ].map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-sm font-semibold rounded-lg ${
+              initial === t.id ? "text-white bg-white/10" : "text-white/65 hover:text-white"
+            }`}
+          >
+            {t.icon} {t.label}
+          </button>
+        ))}
+      </div>
+      <form className="grid grid-cols-1 md:grid-cols-12 gap-2 p-3">
+        <input
+          placeholder={initial === "CAB" ? "Pickup location" : initial === "HOTEL" ? "City or hotel" : "Destination"}
+          className="md:col-span-5 h-12 rounded-xl bg-white text-ink placeholder:text-ink-5 px-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+        />
+        <input
+          type={initial === "TOUR" ? "date" : initial === "HOTEL" ? "date" : "datetime-local"}
+          className="md:col-span-3 h-12 rounded-xl bg-white text-ink px-4 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500"
+        />
+        <select className="md:col-span-2 h-12 rounded-xl bg-white text-ink px-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent-500">
+          <option>1 Passenger</option>
+          <option>2 Passengers</option>
+          <option>3 Passengers</option>
+          <option>4+ Passengers</option>
+        </select>
+        <button
+          type="button"
+          className="md:col-span-2 h-12 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-semibold inline-flex items-center justify-center gap-2 shadow-wt-accent"
+        >
+          <Search className="h-4 w-4" /> Search
+        </button>
+      </form>
+    </div>
+  );
+}
