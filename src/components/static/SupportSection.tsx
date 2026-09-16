@@ -6,6 +6,8 @@
 import { Phone, Mail, MessageCircle, Car, Hotel, Map, Wallet, CreditCard, ShieldCheck, Search } from "lucide-react";
 import { Container, Section, PageHeader, SectionHeader, IconBox, Card, ButtonLink, MotionGlow, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import FaqAccordion, { type FaqItem } from "@/components/static/FaqAccordion";
+import { publicCmsService } from "@/services/publicCms";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 
 // ── Hero ────────────────────────────────────────────────────────────────
 export function SupportHero() {
@@ -88,7 +90,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "How do I change my check-in date after booking?",
-    answer: "Contact support before the hotel's change window closes. Date changes are subject to availability and the rate difference; call us on 1800-WAYTERO for the fastest help.",
+    answer: "Contact support before the hotel's change window closes. Date changes are subject to availability and the rate difference; call us on 8480889870 for the fastest help.",
   },
   {
     question: "When will my refund appear in my wallet?",
@@ -100,11 +102,18 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
-export function SupportFaq() {
+export async function SupportFaq() {
+  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
+  // Keep the FAQ answer's phone in sync with the admin-configured number.
+  const items = FAQ_ITEMS.map((item) =>
+    item.answer.includes("8480889870")
+      ? { ...item, answer: item.answer.replace("8480889870", supportPhone) }
+      : item,
+  );
   return (
     <FaqAccordion
       id="faq"
-      items={FAQ_ITEMS}
+      items={items}
       eyebrow="Popular questions"
       title="Frequently asked questions"
       subtitle="The answers travelers ask us most."
@@ -112,14 +121,15 @@ export function SupportFaq() {
   );
 }
 
-// ── Contact channels ────────────────────────────────────────────────────
-const CHANNELS = [
-  { icon: Phone, title: "Call us", value: "1800-WAYTERO", desc: "Toll-free, 24/7. Real humans, no IVR maze.", tone: "primary" as const },
-  { icon: MessageCircle, title: "WhatsApp", value: "+91 90000 00001", desc: "Fastest for trip changes while traveling.", tone: "success" as const },
-  { icon: Mail, title: "Email", value: "support@waytero.com", desc: "We reply within 4 hours, day or night.", tone: "accent" as const },
-];
+// ── Contact channels (module-level static channels moved into SupportChannels) ──
 
-export function SupportChannels() {
+export async function SupportChannels() {
+  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
+  const CHANNELS = [
+    { icon: Phone, title: "Call us", value: supportPhone, href: telHref(supportPhone), desc: "24/7. Real humans, no IVR maze.", tone: "primary" as const },
+    { icon: MessageCircle, title: "WhatsApp", value: "+91 90000 00001", href: undefined, desc: "Fastest for trip changes while traveling.", tone: "success" as const },
+    { icon: Mail, title: "Email", value: "support@waytero.com", href: undefined, desc: "We reply within 4 hours, day or night.", tone: "accent" as const },
+  ];
   return (
     <Section bg="muted" pad="lg" overlay="grid">
       <Container size="lg">
@@ -144,7 +154,11 @@ export function SupportChannels() {
                       <IconBox icon={<Icon />} tone={c.tone} size="lg" gradient glow className="group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300" />
                     </div>
                     <h3 className="font-bold text-ink mt-4 mb-1 group-hover:text-primary-700 transition-colors">{c.title}</h3>
-                    <div className="text-primary-600 font-bold text-sm mb-1.5">{c.value}</div>
+                    {c.href ? (
+                      <a href={c.href} className="text-primary-600 font-bold text-sm mb-1.5 block hover:opacity-80 transition-opacity">{c.value}</a>
+                    ) : (
+                      <div className="text-primary-600 font-bold text-sm mb-1.5">{c.value}</div>
+                    )}
                     <p className="text-xs text-ink-3">{c.desc}</p>
                   </Card>
                 </MotionGlow>

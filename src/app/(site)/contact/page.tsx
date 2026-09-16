@@ -4,9 +4,10 @@ import { useState } from "react";
 import { Mail, Phone, MapPin, MessageCircle, Clock, Building2, CheckCircle2, Loader2 } from "lucide-react";
 import { Container, Section, PageHeader, Card, IconBox, Input, Textarea, Button, MotionGlow } from "@/components/ui";
 import { publicLeadsService } from "@/services/publicLeads";
+import { useSupportPhone } from "@/hooks/useSupportPhone";
+import { telHref } from "@/lib/supportPhone";
 
 const CHANNELS = [
-  { icon: Phone, title: "Phone support", value: "1800-WAYTERO", desc: "Toll-free, 24/7 — real humans, no IVR maze.", tone: "primary" as const },
   { icon: Mail, title: "Email", value: "support@waytero.com", desc: "We reply within 4 hours.", tone: "accent" as const },
   { icon: MessageCircle, title: "WhatsApp", value: "+91 90000 00001", desc: "Fastest channel for trip changes.", tone: "success" as const },
   { icon: Building2, title: "Head office", value: "Bhubaneswar, Odisha", desc: "Mon–Sat, 10am–7pm IST.", tone: "info" as const },
@@ -19,6 +20,19 @@ export default function ContactPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
+  const supportPhone = useSupportPhone();
+  // Phone support card — dynamic admin number (fallback built into the hook).
+  const channels = [
+    {
+      icon: Phone,
+      title: "Phone support",
+      value: supportPhone,
+      href: telHref(supportPhone),
+      desc: "Toll-free, 24/7 — real humans, no IVR maze.",
+      tone: "primary" as const,
+    },
+    ...CHANNELS.map((c) => ({ ...c, href: undefined })),
+  ];
 
   const update = (key: keyof typeof initialForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [key]: e.target.value }));
@@ -56,7 +70,7 @@ export default function ContactPage() {
       <Section bg="white" pad="lg" overlay="dots">
         <Container size="lg">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {CHANNELS.map((c) => {
+            {channels.map((c) => {
               const Icon = c.icon;
               const glowColor = ((c.tone as string) === "info" ? "primary" : c.tone) as "primary" | "accent" | "success" | "danger";
               return (
@@ -76,7 +90,16 @@ export default function ContactPage() {
                         <h3 className="text-base font-bold text-ink mb-1 group-hover:text-primary-700 transition-colors">
                           {c.title}
                         </h3>
-                        <div className="text-gradient-primary font-semibold mb-1">{c.value}</div>
+                        {c.href ? (
+                          <a
+                            href={c.href}
+                            className="text-gradient-primary font-semibold mb-1 block hover:opacity-80 transition-opacity"
+                          >
+                            {c.value}
+                          </a>
+                        ) : (
+                          <div className="text-gradient-primary font-semibold mb-1">{c.value}</div>
+                        )}
                         <p className="text-sm text-ink-3">{c.desc}</p>
                       </div>
                     </div>

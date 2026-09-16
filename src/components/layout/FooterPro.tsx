@@ -2,10 +2,11 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Facebook, Twitter, Instagram, Linkedin, Youtube,
-  Smartphone, Globe, ShieldCheck, ArrowRight, Mail,
+  Smartphone, Globe, ShieldCheck, ArrowRight, Mail, Phone,
 } from "lucide-react";
 import { Container, MotionGlow } from "@/components/ui";
 import type { SiteFooterData } from "@/types/cms";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 
 // ── Fallback data ──────────────────────────────────────────────
 const DEFAULT_COLUMNS = [
@@ -292,6 +293,14 @@ export default function Footer({ cmsData }: Props) {
           <span className="hidden sm:inline">Built in Bhubaneswar, Odisha</span>
         </div>
         <div className="flex items-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+          <a
+            href={telHref(displayPhone(cmsData?.support_phone))}
+            className="inline-flex items-center gap-1.5 transition-colors duration-300 hover:!text-white"
+          >
+            <Phone className="h-3.5 w-3.5" />
+            {displayPhone(cmsData?.support_phone)}
+          </a>
+          <span className="text-white/15">·</span>
           <span className="inline-flex items-center gap-1.5">
             <Globe className="h-3.5 w-3.5" /> English (India)
           </span>

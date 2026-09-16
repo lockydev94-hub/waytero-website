@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { publicCmsService } from "@/services/publicCms";
+import { displayPhone } from "@/lib/supportPhone";
 
 // ── Global SEO defaults (overridden per page) ────────────────────────────────
 // Static base metadata — favicon + OG image are filled in at request time by
@@ -112,35 +113,52 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="relative">
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] bg-noise opacity-[0.4] mix-blend-overlay" />
-        {/* ── Global JSON-LD: Organization + WebSite (server-rendered on every page) ── */}
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{
-            __html: JSON.stringify({
-              "@context": "https://schema.org",
-              "@graph": [
-                {
-                  "@type": "Organization",
-                  "@id": "https://waytero.com/#organization",
-                  name: "WayTero",
-                  url: "https://waytero.com",
-                  logo: "https://res.cloudinary.com/jsrlg7ye/image/upload/v1787077754/waytero/platform/favicon_1787077753.png",
-                  sameAs: ["https://twitter.com/waytero"],
-                },
-                {
-                  "@type": "WebSite",
-                  "@id": "https://waytero.com/#website",
-                  url: "https://waytero.com",
-                  name: "WayTero",
-                  publisher: { "@id": "https://waytero.com/#organization" },
-                  inLanguage: "en-IN",
-                },
-              ],
-            }),
-          }}
-        />
+        <RootJsonLd />
         <Providers>{children}</Providers>
       </body>
     </html>
+  );
+}
+
+/**
+ * Organization + WebSite JSON-LD with the admin-configured support phone
+ * (Settings → Platform Details) as the Organization contact number.
+ * Server component; the profile fetch is ISR-cached (5 min).
+ */
+async function RootJsonLd() {
+  const profile = await publicCmsService.getPlatformProfile();
+  const rawPhone = displayPhone(profile.support_phone);
+  const telephone = rawPhone.startsWith("+")
+    ? rawPhone
+    : `+91-${rawPhone.replace(/\D/g, "")}`;
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@graph": [
+            {
+              "@type": "Organization",
+              "@id": "https://waytero.com/#organization",
+              name: "WayTero",
+              url: "https://waytero.com",
+              logo: "https://res.cloudinary.com/jsrlg7ye/image/upload/v1787077754/waytero/platform/favicon_1787077753.png",
+              telephone,
+              sameAs: ["https://twitter.com/waytero"],
+            },
+            {
+              "@type": "WebSite",
+              "@id": "https://waytero.com/#website",
+              url: "https://waytero.com",
+              name: "WayTero",
+              publisher: { "@id": "https://waytero.com/#organization" },
+              inLanguage: "en-IN",
+            },
+          ],
+        }),
+      }}
+    />
   );
 }

@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { tourService, PublicTourPackage } from "@/services/tourService";
+import { useSupportPhone } from "@/hooks/useSupportPhone";
+import { telHref } from "@/lib/supportPhone";
 import BookingAuthGate from "@/components/booking/BookingAuthGate";
 import TourBookingReviewModal from "@/components/booking/TourBookingReviewModal";
 import TourBookingSuccessModal from "@/components/booking/TourBookingSuccessModal";
@@ -40,6 +42,7 @@ export default function TourDetailPage({
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
   const router = useRouter();
+  const supportPhone = useSupportPhone();
   // Prefill from the hero search: /tours/{slug}?date=YYYY-MM-DD&persons=N
   const searchParams = useSearchParams();
   const heroDate = searchParams?.get("date") ?? "";
@@ -406,7 +409,7 @@ export default function TourDetailPage({
               <p className="text-sm text-ink-3">Our team is available 7 days a week.</p>
             </div>
             <div className="relative flex gap-2">
-              <a href="tel:+910000000000" className="group inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-wt hover:shadow-wt-sm hover:-translate-y-0.5 transition-all">
+              <a href={telHref(supportPhone)} className="group inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-bold text-primary-700 shadow-wt hover:shadow-wt-sm hover:-translate-y-0.5 transition-all">
                 <Phone className="h-4 w-4 group-hover:scale-110 transition-transform" /> Call
               </a>
               <Link href="/contact" className="group inline-flex items-center gap-2 rounded-full bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 bg-[length:200%_200%] px-4 py-2 text-sm font-bold text-white shadow-wt-primary hover:bg-[position:100%_0] hover:shadow-wt-glow-primary transition-all">

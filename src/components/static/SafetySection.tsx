@@ -6,6 +6,8 @@
 import { ShieldCheck, BadgeCheck, MapPin, CreditCard, Headphones, Siren, Phone } from "lucide-react";
 import { Container, Section, PageHeader, SectionHeader, IconBox, Card, ButtonLink, MotionGlow, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import FaqAccordion, { type FaqItem } from "@/components/static/FaqAccordion";
+import { publicCmsService } from "@/services/publicCms";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 
 // ── Hero ────────────────────────────────────────────────────────────────
 export function SafetyHero() {
@@ -70,7 +72,8 @@ export function SafetyPillars() {
 }
 
 // ── Emergency band ──────────────────────────────────────────────────────
-export function EmergencyBand() {
+export async function EmergencyBand() {
+  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
   return (
     <Section bg="muted" pad="lg" overlay="grid">
       <Container size="lg">
@@ -94,11 +97,11 @@ export function EmergencyBand() {
           </div>
           <div className="flex flex-wrap gap-3 relative">
             <a
-              href="tel:1800WAYTERO"
+              href={telHref(supportPhone)}
               className="group/cta inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-bold transition-all duration-300 ease-[var(--ease-wt)] shadow-wt-accent hover:-translate-y-0.5 hover:shadow-wt-accent overflow-hidden relative"
             >
               <span aria-hidden className="pointer-events-none absolute inset-y-0 w-1/3 bg-white/25 blur-md animate-shine" />
-              <Phone className="h-4 w-4 relative" /> <span className="relative">1800-WAYTERO</span>
+              <Phone className="h-4 w-4 relative" /> <span className="relative">{supportPhone}</span>
             </a>
             <ButtonLink href="/support" variant="ghost" size="lg" className="text-white border-white/25 hover:bg-white/10">
               Help center
@@ -118,7 +121,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "What if something goes wrong during my trip?",
-    answer: "Call 1800-WAYTERO — our 24/7 desk can reassign a cab, move your booking, or escalate to emergency services. Every trip has a support thread from pickup to drop.",
+    answer: "Call 8480889870 — our 24/7 desk can reassign a cab, move your booking, or escalate to emergency services. Every trip has a support thread from pickup to drop.",
   },
   {
     question: "Is my payment data safe?",
@@ -130,11 +133,18 @@ const FAQ_ITEMS: FaqItem[] = [
   },
 ];
 
-export function SafetyFaq() {
+export async function SafetyFaq() {
+  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
+  // Keep the FAQ answer's phone in sync with the admin-configured number.
+  const items = FAQ_ITEMS.map((item) =>
+    item.answer.includes("8480889870")
+      ? { ...item, answer: item.answer.replace("8480889870", supportPhone) }
+      : item,
+  );
   return (
     <FaqAccordion
       id="safety-faq"
-      items={FAQ_ITEMS}
+      items={items}
       eyebrow="Questions"
       title="Safety questions, answered"
     />

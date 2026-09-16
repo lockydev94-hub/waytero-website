@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Container } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
 import type { SiteHeaderData } from "@/types/cms";
 
@@ -44,7 +45,6 @@ const SECONDARY = [
   { label: "Contact",         href: "/contact" },
 ];
 
-const DEFAULT_SUPPORT_PHONE = "1800-WAYTERO";
 const DEFAULT_TAGLINE       = "India's Travel OS";
 const PARTNER_CTA           = { label: "Become a Partner", href: "/partner" };
 
@@ -140,7 +140,10 @@ export default function Header({ cmsData, heroHasMedia = false }: Props) {
   const logoUrl      = cmsData?.logo_url      ?? null;
   const logoAlt      = cmsData?.logo_alt_text ?? "WayTero";
   const tagline      = cmsData?.tagline       ?? DEFAULT_TAGLINE;
-  const supportPhone = cmsData?.support_phone ?? DEFAULT_SUPPORT_PHONE;
+  // Phone: admin Settings → Platform Details overrides the CMS value
+  // server-side (see backend build_public_homepage); displayPhone falls
+  // back to the site-wide default when neither is set.
+  const supportPhone = displayPhone(cmsData?.support_phone);
   const showLogin    = cmsData?.show_login_button ?? true;
 
   // Over-hero = transparent mode (when the homepage hero has a bg image/video
@@ -239,11 +242,14 @@ export default function Header({ cmsData, heroHasMedia = false }: Props) {
         />
         <Container size="xl" className="relative flex items-center justify-between h-9">
           <div className="flex items-center gap-5 text-white/80 text-xs font-medium">
-            <span className="inline-flex items-center gap-1.5">
+            <a
+              href={telHref(supportPhone)}
+              className="inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+            >
               <Phone className="h-3 w-3 text-[#F5713A]" aria-hidden />
               <span className="text-white/60">24/7 support</span>
               <span className="text-[#F5713A] font-semibold">{supportPhone}</span>
-            </span>
+            </a>
             <span className="hidden sm:block text-white/30">·</span>
             <span className="hidden sm:block text-white/70">{tagline}</span>
           </div>

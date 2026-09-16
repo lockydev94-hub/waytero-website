@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
+import CallNowButton from "@/components/chat/CallNowButton";
 import { publicCmsService } from "@/services/publicCms";
 import type { SiteHeaderData, SiteFooterData } from "@/types/cms";
 
@@ -37,6 +38,8 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <Footer cmsData={cms?.footer ?? null} />
       {/* Live support chat — smart-routed to online admin agents */}
       <ChatWidget />
+      {/* Floating Call Now — stacked left of the chat launcher, no overlap */}
+      <CallNowButton />
     </>
   );
 }

@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { useSupportPhone } from "@/hooks/useSupportPhone";
+import { telHref } from "@/lib/supportPhone";
 import { Search, MapPin, Phone, MessageCircle, Car, Hotel, Map, Loader2, User, Navigation, CalendarDays, IndianRupee } from "lucide-react";
 import { Container, Section, PageHeader, Card, Input, Button, Badge, MotionGlow, MotionStagger, MotionStaggerItem, IconBox } from "@/components/ui";
 import { publicLeadsService, TrackedBooking } from "@/services/publicLeads";
@@ -46,6 +48,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function TrackPage() {
+  const supportPhone = useSupportPhone();
   const [bookingNumber, setBookingNumber] = useState("");
   const [mobile, setMobile] = useState("");
   const [email, setEmail] = useState("");
@@ -233,7 +236,7 @@ export default function TrackPage() {
         </MotionStagger>
 
         <div className="mt-10 text-center text-sm text-ink-3">
-          Need help? <a href="/contact" className="text-primary-600 font-semibold">Contact support</a> or <a href="tel:1800-WAYTERO" className="text-primary-600 font-semibold">call 1800-WAYTERO</a>.
+          Need help? <a href="/contact" className="text-primary-600 font-semibold">Contact support</a> or <a href={telHref(supportPhone)} className="text-primary-600 font-semibold">call {supportPhone}</a>.
         </div>
       </Container>
     </Section>

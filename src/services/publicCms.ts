@@ -16,6 +16,8 @@ export interface PlatformProfile {
   logo_url: string;
   favicon_url: string;
   og_image_url: string;
+  /** Admin Settings → Platform Details (SUPPORT_PHONE). Empty when unset. */
+  support_phone: string;
 }
 
 export interface LegalSection {
@@ -57,6 +59,22 @@ export interface LiveCancellationPolicy {
 
 export const publicCmsService = {
   /**
+   * Server-side helper: the admin-configured support phone
+   * (Settings → Platform Details → SUPPORT_PHONE) with the site-wide
+   * fallback applied. Used by server components (safety/support pages,
+   * footer). ISR-cached via getPlatformProfile (5 min).
+   */
+  async getSupportPhone(): Promise<string> {
+    const { displayPhone } = await import("@/lib/supportPhone");
+    try {
+      const profile = await this.getPlatformProfile();
+      return displayPhone(profile.support_phone);
+    } catch {
+      return displayPhone("");
+    }
+  },
+
+  /**
    * Fetch the public homepage payload (header + footer + ordered sections).
    * Returns `null` on failure so callers fall back to hardcoded defaults.
    */
@@ -84,7 +102,12 @@ export const publicCmsService = {
    * bundled static assets.
    */
   async getPlatformProfile(): Promise<PlatformProfile> {
-    const empty: PlatformProfile = { logo_url: "", favicon_url: "", og_image_url: "" };
+    const empty: PlatformProfile = {
+      logo_url: "",
+      favicon_url: "",
+      og_image_url: "",
+      support_phone: "",
+    };
     try {
       const res = await fetch(`${BASE_URL}/public/platform-profile`, {
         next: { revalidate: 300 }, // 5 min — admin uploads are rare
@@ -95,6 +118,8 @@ export const publicCmsService = {
         logo_url: typeof json.logo_url === "string" ? json.logo_url : "",
         favicon_url: typeof json.favicon_url === "string" ? json.favicon_url : "",
         og_image_url: typeof json.og_image_url === "string" ? json.og_image_url : "",
+        support_phone:
+          typeof json.support_phone === "string" ? json.support_phone.trim() : "",
       };
     } catch {
       return empty;

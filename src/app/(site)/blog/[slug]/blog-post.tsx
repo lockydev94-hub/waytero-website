@@ -10,6 +10,8 @@ import {
   Phone,
 } from "lucide-react";
 import { Container, Section, Card, Badge, ButtonLink, Skeleton, MotionGlow, MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { useSupportPhone } from "@/hooks/useSupportPhone";
+import { telHref } from "@/lib/supportPhone";
 import { publicBlogService, BlogPostDetail, BlogPostSummary } from "@/services/publicBlog";
 
 const SHARE_OPTIONS = [
@@ -104,6 +106,7 @@ export default function BlogDetailPage({
   const [error, setError] = useState(false);
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
+  const supportPhone = useSupportPhone();
 
   // Reading progress bar
   useEffect(() => {
@@ -266,8 +269,6 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
   }
 
   const readTime = readTimeOf(post.content);
-
-  const SUPPORT_PHONE = "1800-WAYTERO";
 
   return (
     <>
@@ -497,10 +498,10 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
                     Book a cab <ArrowRight size={15} />
                   </ButtonLink>
                   <a
-                    href={`tel:${SUPPORT_PHONE}`}
+                    href={telHref(supportPhone)}
                     className="flex items-center justify-center gap-2 h-11 px-5 text-sm rounded-xl font-semibold bg-white/10 hover:bg-white/20 border border-white/25 backdrop-blur transition-colors"
                   >
-                    <Phone size={15} /> {SUPPORT_PHONE}
+                    <Phone size={15} /> {supportPhone}
                   </a>
                 </div>
               </div>
