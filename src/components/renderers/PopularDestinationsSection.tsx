@@ -95,7 +95,7 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
             const name = d.name ?? d.city_name ?? "";
             if (!name) return null;
             const image = d.image_url ?? d.hero_image_url ?? null;
-            const href = `/tours?destination=${encodeURIComponent(name)}`;
+            const href = `/destinations/${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
             return (
               <MotionStaggerItem key={d.city_id} className="h-full">
                 <MotionGlow color="primary" intensity={0.2} size={240} className="h-full rounded-2xl">

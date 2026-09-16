@@ -658,7 +658,12 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   const [tripTypes, setTripTypes] = useState<PublicTripType[]>([]);
   const useCityMode               = !mapsKey || !mapsReady;
 
-  const [tripType, setTripType]   = useState<string>("");
+  // Deep-link preselect: /cabs?trip_type=AIRPORT (used by the /cabs/{trip}
+  // landing pages' CTAs and the sitemap-linked trip pages).
+  const [tripType, setTripType] = useState<string>(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("trip_type") ?? "";
+  });
   const [pickup, setPickup]       = useState<LocationValue>({ label: "" });
   const [drop, setDrop]           = useState<LocationValue>({ label: "" });
   const [pax, setPax]             = useState(1);

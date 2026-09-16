@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import TourDetailPage from "./tour-detail";
 import type { PublicTourPackage } from "@/services/tourService";
 import { STATIC_SEO, toMetadata, type SeoContent } from "@/services/seoService";
@@ -94,6 +94,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function TourDetailsPage({ params }: Props) {
   const { slug } = await params;
   const tour = await fetchTourPayload(slug);
+
+  // Legacy code-style slugs (…-tp-20260913-0001) still resolve via the
+  // backend's package_code fallback — 301 them to the clean canonical URL
+  // so link equity consolidates on the SEO-friendly form.
+  if (tour?.slug && tour.slug !== slug) {
+    permanentRedirect(`/tours/${tour.slug}`);
+  }
   if (!tour?.package_name) notFound();
 
   // Product JSON-LD — server-rendered, only with real price data (never
