@@ -2,19 +2,31 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import HotelDetailPage from "./hotel-detail";
-import { hotelService, type PublicHotelDetails } from "@/services/hotelService";
+import type { PublicHotelDetails } from "@/services/hotelService";
 import { STATIC_SEO, toMetadata, type SeoContent } from "@/services/seoService";
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 // ── Page-level SEO (SSR) — DB-driven with static fallback ────────────────
 // Uses the hotel's own seo_title/seo_description/seo_keywords (admin →
 // hotel → SEO tab). When the admin hasn't set them (or the API is down),
 // falls back to the hotel name + city and finally the static HOTEL page.
+//
+// Raw fetch with ISR caching — hotelService.getDetails is `no-store`, and
+// a no-store fetch on an on-demand static page triggers Next 15's
+// static-to-dynamic runtime error (observed as a 500 in production).
+// 60s revalidation is plenty for name/photos/room metadata; live
+// availability for chosen dates is fetched client-side anyway.
 async function loadHotel(slug: string): Promise<PublicHotelDetails | null> {
   try {
-    return await hotelService.getDetails(slug);
+    const res = await fetch(
+      `${API_BASE}/public/hotel/${encodeURIComponent(slug)}`,
+      { next: { revalidate: 60 } },
+    );
+    if (!res.ok) return null; // 404/4xx/5xx → no bookable hotel → hard 404
+    return (await res.json()) as PublicHotelDetails;
   } catch {
-    // getDetails throws on non-OK responses — 404/4xx/5xx all mean
-    // "no bookable hotel here" → hard 404 (SEO: no soft-404s).
     return null;
   }
 }
