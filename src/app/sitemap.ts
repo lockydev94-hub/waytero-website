@@ -39,6 +39,11 @@ interface DestinationRow {
   city_id: number;
   name: string;
 }
+interface HotelCityRow {
+  id: number;
+  name: string;
+  hotel_count?: number;
+}
 
 const TRIP_SLUGS: Record<string, string> = {
   LOCAL: "local",
@@ -99,6 +104,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
+  // ── Hotel city category pages (cities with active partner hotels) ──
+  const hotelCities = await fetchJson<HotelCityRow[]>(`${API_BASE}/public/hotel/cities`);
+  const hotelCityUrls: MetadataRoute.Sitemap = (hotelCities ?? [])
+    .filter((c) => c.name)
+    .map((c) => ({
+      url: `${appUrl}/hotels/city/${c.name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+
   // ── Hotels (partner-added; page through the search feed) ──
   const hotelRows: HotelRow[] = [];
   for (let page = 1; page <= 10; page++) {
@@ -146,5 +162,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     }));
 
-  return [...staticUrls, ...tripUrls, ...destinationUrls, ...hotelUrls, ...tourUrls, ...blogUrls];
+  return [
+    ...staticUrls,
+    ...tripUrls,
+    ...destinationUrls,
+    ...hotelCityUrls,
+    ...hotelUrls,
+    ...tourUrls,
+    ...blogUrls,
+  ];
 }

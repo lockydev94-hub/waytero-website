@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Clock, MapPin, Users, ArrowRight, Compass } from "lucide-react";
-import { Container, Section, SectionHeader } from "@/components/ui";
+import { Container, Section, SectionHeader, Breadcrumb } from "@/components/ui";
 import { MotionFadeIn, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import TourCard from "@/components/tours/TourCard";
+import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
+import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
 import type { PublicTourPackage } from "@/services/tourService";
 
 // ============================================================
@@ -97,36 +99,53 @@ export default async function DestinationPage({
   const name = destination.name;
   const pretty = name.replace(/\b\w/g, (c) => c.toUpperCase());
 
-  // JSON-LD — ItemList of real, visible packages (SEO audit §4).
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: `${pretty} Tour Packages`,
-    numberOfItems: packages.length,
-    itemListElement: packages.slice(0, 10).map((p, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      url: `https://waytero.com/tours/${p.slug}`,
-      name: p.package_name,
-    })),
-  };
+  const faqs: FaqItem[] = [
+    { question: `What tour packages are available in ${pretty}?`, answer: `${packages.length} verified package${packages.length === 1 ? "" : "s"} are live right now, each with a day-by-day itinerary, inclusions/exclusions, and upfront per-person pricing shown on its detail page.` },
+    { question: `How do I book a ${pretty} tour package?`, answer: "Pick a package, choose your travel date and group size, and the price updates instantly. Confirm with sign-in — the booking is managed end-to-end by WayTero and the verified operator." },
+    { question: `What is included in the package price?`, answer: "Every package lists its own inclusions and exclusions on the detail page — typically transport, driver allowances and stay as noted. Anything excluded is clearly marked before you pay." },
+    { question: `When is the best time to visit ${pretty}?`, answer: `${pretty} is best planned around weather and festival seasons — each package page notes ideal travel windows, and customer care can advise for your dates.` },
+  ];
+
+  // JSON-LD — ItemList of real packages + FAQPage + BreadcrumbList (SEO §4).
+  const jsonLd: Array<Record<string, unknown>> = [
+    {
+      "@context": "https://schema.org",
+      "@type": "ItemList",
+      name: `${pretty} Tour Packages`,
+      numberOfItems: packages.length,
+      itemListElement: packages.slice(0, 10).map((p, i) => ({
+        "@type": "ListItem",
+        position: i + 1,
+        url: `https://waytero.com/tours/${p.slug}`,
+        name: p.package_name,
+      })),
+    },
+    faqPageSchema(faqs),
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: "https://waytero.com/" },
+        { "@type": "ListItem", position: 2, name: "Tours", item: "https://waytero.com/tours" },
+        { "@type": "ListItem", position: 3, name: pretty, item: `https://waytero.com/destinations/${city}` },
+      ],
+    },
+  ];
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      {jsonLd.map((s, i) => (
+        <JsonLd key={i} data={s} />
+      ))}
 
       {/* ── Hero ─────────────────────────────────────────────── */}
       <Section bg="white" pad="lg" className="bg-gradient-to-b from-accent-50/60 via-white to-white">
         <Container size="lg">
           <MotionFadeIn>
-            <nav className="mb-4 text-xs text-ink-4">
-              <Link href="/tours" className="hover:text-primary-600">Tours</Link>
-              <span className="mx-1.5">/</span>
-              <span className="text-ink-3">{pretty}</span>
-            </nav>
+            <Breadcrumb
+              className="mb-4"
+              items={[{ label: "Tours", href: "/tours" }, { label: pretty }]}
+            />
             <span className="inline-flex items-center gap-2 rounded-full border border-accent-100 bg-accent-50 px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-accent-600">
               <Compass className="h-3.5 w-3.5" /> Destination
             </span>
@@ -163,6 +182,13 @@ export default async function DestinationPage({
           </div>
         </Container>
       </Section>
+
+      {/* ── FAQ (visible + FAQPage JSON-LD above) ─────────────── */}
+      <PageFaq
+        faqs={faqs}
+        eyebrow={`${pretty} travel FAQs`}
+        subtitle={`What travelers ask before booking a ${pretty} package.`}
+      />
     </>
   );
 }
