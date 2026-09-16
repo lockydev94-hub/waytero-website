@@ -2,6 +2,7 @@ import { Container } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import HeroSearchForm from "@/components/sections/HeroSearchForm";
 import HotelExploreSection, { HotelPopularCityChips } from "@/components/sections/HotelExploreSection";
+import ComingSoon from "@/components/sections/ComingSoon";
 import { CtaSection } from "@/components/renderers";
 
 // ── Page-level SEO (SSR) — DB-driven with static fallback ────────────────
@@ -19,6 +20,26 @@ export default async function HotelsPage() {
   // Hero/banner image configured by the admin (Settings → Service Types → HOTEL).
   const serviceSeo = await getServiceTypeSeo();
   const hotelImage = serviceSeo.HOTEL?.image_url ?? null;
+
+  // Server-side catalogue check: when the DB has no active hotels the page
+  // renders a "Coming soon" panel instead of an empty explorer grid
+  // (customer-web restriction: only DB content is ever shown).
+  const API_BASE =
+    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  let catalogueEmpty = false;
+  try {
+    const res = await fetch(`${API_BASE}/public/hotel/search?page=1&page_size=1`, {
+      next: { revalidate: 120 },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as { items?: unknown[] };
+      catalogueEmpty = (data.items ?? []).length === 0;
+    } else {
+      catalogueEmpty = true;
+    }
+  } catch {
+    catalogueEmpty = true;
+  }
 
   return (
     <>
@@ -88,7 +109,13 @@ export default async function HotelsPage() {
       </section>
 
       {/* ── Live hotel explorer (data from the database) ───────────── */}
-      <HotelExploreSection />
+      {catalogueEmpty ? (
+        <Container size="lg" className="py-10">
+          <ComingSoon service="hotels" compact />
+        </Container>
+      ) : (
+        <HotelExploreSection />
+      )}
 
       <CtaSection
         variant={{

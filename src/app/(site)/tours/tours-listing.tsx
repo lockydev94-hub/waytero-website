@@ -16,10 +16,18 @@ import { Container } from "@/components/ui";
 import { CtaSection } from "@/components/renderers";
 import TourFilters, { readFiltersFromParams } from "@/components/tours/TourFilters";
 import TourCard from "@/components/tours/TourCard";
+import ComingSoon from "@/components/sections/ComingSoon";
 import { Loader2, MapPin, Sparkles, SearchX, Search as SearchIcon, RefreshCcw, Filter } from "lucide-react";
 import { tourService, type PublicTourPackage, type PublicTourDestination } from "@/services/tourService";
 
-export default function ToursListingPage({ heroImage }: { heroImage?: string | null }) {
+export default function ToursListingPage({
+  heroImage,
+  catalogueEmpty = false,
+}: {
+  heroImage?: string | null;
+  /** Server-side: DB has no active tour packages → render Coming Soon. */
+  catalogueEmpty?: boolean;
+}) {
   const router = useRouter();
   const rawParams = useSearchParams();
   const params = useMemo(() => rawParams ?? new URLSearchParams(), [rawParams]);
@@ -93,6 +101,31 @@ export default function ToursListingPage({ heroImage }: { heroImage?: string | n
   };
 
   const hasMore = items.length < total;
+
+  // DB has no active packages → honest Coming Soon state (server-decided).
+  // Still rendered inside the page shell so the hero/nav stay consistent.
+  if (catalogueEmpty) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-accent-50/50 via-white to-white">
+        {/* ── Header strip (kept for nav context) ─────────────── */}
+        <div className="relative bg-ink text-white overflow-hidden">
+          <Container size="xl" className="relative pt-8 pb-7">
+            <nav className="text-xs text-white/60 mb-3">
+              <button type="button" onClick={() => router.push("/")} className="hover:text-white transition-colors">
+                Home
+              </button>
+              <span className="mx-2">/</span>
+              <span className="text-white/90">Tours</span>
+            </nav>
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Tour Packages</h1>
+          </Container>
+        </div>
+        <Container size="lg" className="py-10">
+          <ComingSoon service="tours" />
+        </Container>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-accent-50/50 via-white to-white">
