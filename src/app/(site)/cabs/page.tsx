@@ -2,7 +2,7 @@ import { Car, Clock, ShieldCheck, Wallet, MapPin } from "lucide-react";
 import { Container, PageHeader, IconBox, MotionGlow, Card } from "@/components/ui";
 import { Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
-import { PopularDestinationsSection, CtaSection } from "@/components/renderers";
+import { CtaSection } from "@/components/renderers";
 import CabSearchForm from "@/components/sections/CabSearchForm";
 
 // ── Page-level SEO (SSR) — DB-driven with static fallback ────────────────
@@ -87,7 +87,10 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <PopularDestinationsSection variant={{ eyebrow: "Top outstation routes", subtitle: "Most-booked cab routes this season." }} />
+      {/* NOTE: the old "Top outstation routes" destination strip was removed —
+          it rendered hardcoded fake destinations with From-₹ prices that don't
+          exist in the DB. Cab routes will get a dedicated DB-backed section
+          once route/pricing data is seeded (BRD Part 3 §36). */}
       <CtaSection variant={{ title: "Ready to ride?", subtitle: "Your next journey is one tap away.", primary_cta: { label: "Book a Cab", href: "/cabs" } }} />
     </>
   );

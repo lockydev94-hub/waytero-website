@@ -6,16 +6,18 @@ interface PartnersSectionProps {
   variant: Record<string, unknown>;
 }
 
-const DEFAULT_PARTNERS = [
-  "OYO", "Taj", "Lemon Tree", "Marriott", "Radisson", "Hyatt",
-  "Cleartrip", "MakeMyTrip", "Razorpay", "Paytm",
-];
+const DEFAULT_PARTNERS: string[] = [];
 
 export default function PartnersSection({ variant }: PartnersSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Trusted partners"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Backed by India's Best"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "We work with the brands you trust — hotels, banks, and payment partners."));
+  // Only partner brands configured by the admin (CMS → partners variant) are
+  // shown. The old hardcoded brand wall (OYO/Taj/Marriott/Radisson…) implied
+  // partnerships that don't exist — the section stays hidden until the admin
+  // adds real partners.
   const partners = pick<string[]>(variant, "partners", DEFAULT_PARTNERS);
+  if (partners.length === 0) return null;
   const cta = pick<{ label: string; href: string }>(variant, "cta", { label: "Become a Partner", href: "/partner" });
 
   const strip = [...partners, ...partners];
