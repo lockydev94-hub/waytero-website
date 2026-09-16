@@ -32,7 +32,11 @@ import { MotionStagger, MotionStaggerItem, MotionFadeIn, IconBox } from "@/compo
 
 const INR = (n: number) => `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-export default function TourDetailPage() {
+export default function TourDetailPage({
+  initialTour,
+}: {
+  initialTour?: PublicTourPackage | null;
+}) {
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
   const router = useRouter();
@@ -42,13 +46,13 @@ export default function TourDetailPage() {
   const heroPersons = Number(searchParams?.get("persons") ?? "") || 0;
   const auth = useAuth();
   const { accessToken, user } = auth;
-  const [tour, setTour] = useState<PublicTourPackage | null>(null);
+  const [tour, setTour] = useState<PublicTourPackage | null>(initialTour ?? null);
   const [related, setRelated] = useState<PublicTourPackage[]>([]);
   const [pax, setPax]         = useState(2);
   const [paxTouched, setPaxTouched] = useState(false); // user changed travellers manually
   const [date, setDate]       = useState("");
   const [quote, setQuote] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialTour);
   const [booking, setBooking] = useState(false);
   // Booking flow: auth gate → profile completion → review → success
   const [authOpen, setAuthOpen] = useState(false);
@@ -60,9 +64,22 @@ export default function TourDetailPage() {
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [showTerms, setShowTerms] = useState(false);
 
-  // Load tour
+  // Load tour — the server-fetched payload (SSR) short-circuits the client
+  // fetch so the package name/description are in the initial HTML.
   useEffect(() => {
     if (!slug) return;
+    if (initialTour && initialTour.slug === slug) {
+      setTour(initialTour);
+      setLoading(false);
+      setMessage("");
+      if (initialTour.city_id) {
+        tourService
+          .related(initialTour.slug, initialTour.city_id)
+          .then(setRelated)
+          .catch(() => {});
+      }
+      return;
+    }
     setLoading(true);
     setMessage("");
     tourService
@@ -76,7 +93,7 @@ export default function TourDetailPage() {
       })
       .catch(() => setMessage("This tour package is no longer available."))
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, initialTour]);
 
   // Prefill date + traveller count from the hero search (only when they
   // haven't already been set by the user).

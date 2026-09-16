@@ -91,12 +91,16 @@ function annotateHeadings(content: string, toc: TocItem[]): string {
   });
 }
 
-export default function BlogDetailPage() {
+export default function BlogDetailPage({
+  initialPost,
+}: {
+  initialPost?: BlogPostDetail | null;
+}) {
   const params = useParams();
   const slug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
-  const [post, setPost] = useState<BlogPostDetail | null>(null);
+  const [post, setPost] = useState<BlogPostDetail | null>(initialPost ?? null);
   const [related, setRelated] = useState<BlogPostSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialPost);
   const [error, setError] = useState(false);
   const [progress, setProgress] = useState(0);
   const [copied, setCopied] = useState(false);
@@ -119,7 +123,10 @@ export default function BlogDetailPage() {
     let cancelled = false;
     async function load(slugArg: string) {
       try {
-        const result = await publicBlogService.getPost(slugArg);
+        // Server-fetched post (SSR) short-circuits the client fetch — the
+        // article body is already in the HTML; the client fetch below only
+        // runs for on-demand ISR renders that missed the initial payload.
+        const result = initialPost ?? (await publicBlogService.getPost(slugArg));
         if (cancelled) return;
         if (result) {
           setPost(result);
@@ -156,7 +163,7 @@ export default function BlogDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, initialPost]);
 
   const shareUrl = useMemo(() => {
     if (typeof window === "undefined") return "";

@@ -112,6 +112,33 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en">
       <body className="relative">
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] bg-noise opacity-[0.4] mix-blend-overlay" />
+        {/* ── Global JSON-LD: Organization + WebSite (server-rendered on every page) ── */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "Organization",
+                  "@id": "https://waytero.com/#organization",
+                  name: "WayTero",
+                  url: "https://waytero.com",
+                  logo: "https://res.cloudinary.com/jsrlg7ye/image/upload/v1787077754/waytero/platform/favicon_1787077753.png",
+                  sameAs: ["https://twitter.com/waytero"],
+                },
+                {
+                  "@type": "WebSite",
+                  "@id": "https://waytero.com/#website",
+                  url: "https://waytero.com",
+                  name: "WayTero",
+                  publisher: { "@id": "https://waytero.com/#organization" },
+                  inLanguage: "en-IN",
+                },
+              ],
+            }),
+          }}
+        />
         <Providers>{children}</Providers>
       </body>
     </html>

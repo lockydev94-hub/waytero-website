@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { notFound } from "next/navigation";
 import BlogPostPage from "./blog-post";
 import { publicBlogService } from "@/services/publicBlog";
 import { STATIC_SEO, toMetadata, type SeoContent } from "@/services/seoService";
@@ -29,6 +30,17 @@ async function seoForPost(slug: string): Promise<SeoContent> {
   }
 }
 
+// ── SSR content ──────────────────────────────────────────────────────────
+// Published slugs are prerendered at build time (ISR revalidates the fetches
+// every 60s); unknown slugs render on demand and return a real 404 instead
+// of an indexable "Article not found" soft-404. The server-fetched post is
+// passed into the client component so title, body and JSON-LD are all in
+// the initial HTML — crawlers never depend on the client-side fetch.
+export async function generateStaticParams() {
+  const res = await publicBlogService.listPosts({ page: 1, per_page: 50 });
+  return (res?.data ?? []).map((p) => ({ slug: p.slug }));
+}
+
 type Props = { params: Promise<{ slug: string }> };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -37,10 +49,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return toMetadata(seo, `/blog/${slug}`);
 }
 
-export default function BlogPostDetailsPage() {
+export default async function BlogPostDetailsPage({ params }: Props) {
+  const { slug } = await params;
+  const post = await publicBlogService.getPost(slug);
+  if (!post) notFound();
   return (
     <Suspense fallback={null}>
-      <BlogPostPage />
+      <BlogPostPage initialPost={post} />
     </Suspense>
   );
 }

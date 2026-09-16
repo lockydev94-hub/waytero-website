@@ -8,51 +8,6 @@ interface BlogSectionProps {
   variant: Record<string, unknown>;
 }
 
-const FALLBACK_POSTS: BlogPostSummary[] = [
-  {
-    id: 1,
-    title: "10 Must-Visit Hill Stations for a Monsoon Escape",
-    slug: "hill-stations-monsoon-escape",
-    excerpt: "From misty Munnar to pine-laden Manali — plan the perfect rainy-season getaway.",
-    featured_image_url: null,
-    author_name: "WayTero Travel Desk",
-    author_avatar_url: null,
-    tags: ["Destinations"],
-    is_published: true,
-    published_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "A First-Timer's Guide to Booking Outstation Cabs",
-    slug: "first-timer-outstation-cabs",
-    excerpt: "Fare breakdowns, driver tips and what to check before you hit the road.",
-    featured_image_url: null,
-    author_name: "WayTero Travel Desk",
-    author_avatar_url: null,
-    tags: ["Cabs"],
-    is_published: true,
-    published_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    title: "5 Hidden Gems Near Jaipur for a Weekend Trip",
-    slug: "hidden-gems-near-jaipur",
-    excerpt: "Skip the usual forts — these lesser-known spots are perfect for a short break.",
-    featured_image_url: null,
-    author_name: "WayTero Travel Desk",
-    author_avatar_url: null,
-    tags: ["Tours"],
-    is_published: true,
-    published_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
-
 function formatDate(iso: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
@@ -69,7 +24,11 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
   const ctaLink = pick<string>(variant, "cta_link", "/blog");
 
   const res = await publicBlogService.listPosts({ per_page: 3 });
-  const posts = res?.data?.length ? res.data.slice(0, 3) : FALLBACK_POSTS;
+  // Only real, published posts are shown. No hardcoded fallbacks — fake
+  // article links create soft-404s (SEO audit §3.2). When the blog is empty
+  // the whole section is skipped instead of advertising phantom content.
+  const posts = res?.data?.length ? res.data.slice(0, 3) : [];
+  if (posts.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="blog" overlay="dots">
