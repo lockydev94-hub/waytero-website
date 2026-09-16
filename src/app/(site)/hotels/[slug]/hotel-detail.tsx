@@ -55,7 +55,11 @@ const MEAL_LABELS: Record<string, string> = {
   AP: "All meals included",
 };
 
-function HotelContent() {
+function HotelContent({
+  initialHotel,
+}: {
+  initialHotel?: PublicHotelDetails | null;
+}) {
   const router = useRouter();
   const params = useParams();
   const searchParams = useSearchParams() ?? new URLSearchParams();
@@ -76,8 +80,8 @@ function HotelContent() {
   const [guests, setGuests] = useState(Number(searchParams.get("guests") ?? "2"));
   const [roomsCount, setRoomsCount] = useState(Number(searchParams.get("rooms") ?? "1"));
 
-  const [hotel, setHotel] = useState<PublicHotelDetails | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [hotel, setHotel] = useState<PublicHotelDetails | null>(initialHotel ?? null);
+  const [loading, setLoading] = useState(!initialHotel);
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
 
@@ -91,6 +95,14 @@ function HotelContent() {
   const [successBooking, setSuccessBooking] = useState<HotelBookingSuccessData | null>(null);
 
   const fetchHotel = useCallback(() => {
+    // Server-fetched hotel (SSR) short-circuits the client fetch so name,
+    // photos and room data are in the initial HTML.
+    if (initialHotel) {
+      setHotel(initialHotel);
+      setActiveImage((prev) => prev ?? initialHotel.images[0] ?? null);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError(null);
     hotelService
@@ -101,7 +113,7 @@ function HotelContent() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load hotel"))
       .finally(() => setLoading(false));
-  }, [slug, checkIn, checkOut]);
+  }, [slug, checkIn, checkOut, initialHotel]);
 
   useEffect(() => { fetchHotel(); }, [fetchHotel]);
 
@@ -604,14 +616,18 @@ function PolicyRow({ icon, label, value }: { icon: React.ReactNode; label: strin
   );
 }
 
-export default function HotelDetailsPage() {
+export default function HotelDetailsPage({
+  initialHotel,
+}: {
+  initialHotel?: PublicHotelDetails | null;
+}) {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-white">
         <Loader2 className="h-6 w-6 animate-spin text-primary-600" />
       </div>
     }>
-      <HotelContent />
+      <HotelContent initialHotel={initialHotel} />
     </Suspense>
   );
 }
