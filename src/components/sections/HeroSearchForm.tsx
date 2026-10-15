@@ -32,6 +32,7 @@ import { cabService, type PublicCity, type PublicTripType } from "@/services/cab
 import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
 import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
 import { outOfServiceArea } from "@/lib/serviceArea";
+import { carryOfferContext } from "@/lib/offerParams";
 import type { ServiceKey } from "@/lib/availability";
 import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
 import type { PublicTourSuggestion } from "@/services/tourService";
@@ -839,6 +840,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
       params.set("distance_km", String(defaultKm));
     }
 
+    carryOfferContext(params);
     router.push(`/cabs/results?${params.toString()}`);
   };
 
@@ -1237,6 +1239,7 @@ function TourPanel() {
     if (selected) {
       if (date) params.set("date", date.toISOString().slice(0, 10));
       if (pax && pax !== 2) params.set("persons", String(pax));
+      carryOfferContext(params);
       const qs = params.toString();
       router.push(`/tours/${selected.slug}${qs ? `?${qs}` : ""}`);
       return;

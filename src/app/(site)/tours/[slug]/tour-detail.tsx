@@ -48,6 +48,12 @@ export default function TourDetailPage({
   const searchParams = useSearchParams();
   const heroDate = searchParams?.get("date") ?? "";
   const heroPersons = Number(searchParams?.get("persons") ?? "") || 0;
+  // Offer ride-through (carried from /offers/{slug} CTAs): slug is the
+  // attribution hint sent to the booking; coupon auto-applies in the review
+  // modal; name is display-only.
+  const offerSlug = searchParams?.get("offer") ?? "";
+  const offerCoupon = searchParams?.get("coupon") ?? "";
+  const offerName = searchParams?.get("offer_name") ?? "";
   const auth = useAuth();
   const { accessToken, user } = auth;
   const [tour, setTour] = useState<PublicTourPackage | null>(initialTour ?? null);
@@ -188,6 +194,7 @@ export default function TourDetailPage({
         // Server re-validates the code against the recomputed total and
         // records the funding split — never trust the previewed discount.
         coupon_code: opts.coupon_code?.trim() || undefined,
+        offer_slug: offerSlug || undefined,
         participants: [{
           participant_name: opts.traveller_name.trim(),
           mobile: opts.traveller_mobile?.trim() || undefined,
@@ -652,6 +659,8 @@ export default function TourDetailPage({
         pax={pax}
         quote={quote}
         submitting={booking}
+        initialCoupon={offerCoupon || undefined}
+        offerTitle={offerName || undefined}
         onConfirm={confirmBooking}
       />
 

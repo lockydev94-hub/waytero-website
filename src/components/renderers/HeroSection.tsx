@@ -11,15 +11,20 @@ import type { ServiceType } from "@/types/cms";
 import type { ServiceKey } from "@/lib/availability";
 import CabSearchForm from "@/components/sections/CabSearchForm";
 import HeroSearchForm from "@/components/sections/HeroSearchForm";
+import HeroOfferSlider from "@/components/sections/HeroOfferSlider";
+import type { PublicOfferSlide } from "@/services/publicCms";
 
 interface HeroSectionProps {
   variant: Record<string, unknown>;
   serviceType?: ServiceType | null;
   /** Verticals hidden site-wide — the hero search drops their tabs. */
   hiddenServices?: ServiceKey[];
+  /** Live coupon-backed offers for the hero slider. Empty (default) keeps
+   *  the current zero-offer design byte-for-byte. */
+  offers?: PublicOfferSlide[];
 }
 
-export default function HeroSection({ variant, hiddenServices = [] }: HeroSectionProps) {
+export default function HeroSection({ variant, hiddenServices = [], offers = [] }: HeroSectionProps) {
   // ── Map backend field names to component values ──────────────────────────
   const headline = pick<string>(variant, "headline", "");
   const subline   = pick<string>(variant, "subheadline", "");
@@ -195,10 +200,25 @@ export default function HeroSection({ variant, hiddenServices = [] }: HeroSectio
           </MotionFadeIn>
         )}
 
-        {/* Search — premium glass form with Cab/Hotel/Tour tabs */}
-        <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
-          <HeroSearchForm hiddenServices={hiddenServices} />
-        </MotionFadeIn>
+        {/* Search — premium glass form with Cab/Hotel/Tour tabs.
+            With live offers it shares a 3-col grid (form 2/3, circular
+            offer slider 1/3); without, the current full-width design. */}
+        {offers.length > 0 ? (
+          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-8 items-center">
+              <div className="lg:col-span-2">
+                <HeroSearchForm hiddenServices={hiddenServices} />
+              </div>
+              <div className="lg:col-span-1">
+                <HeroOfferSlider offers={offers} />
+              </div>
+            </div>
+          </MotionFadeIn>
+        ) : (
+          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
+            <HeroSearchForm hiddenServices={hiddenServices} />
+          </MotionFadeIn>
+        )}
       </Container>
     </section>
   );

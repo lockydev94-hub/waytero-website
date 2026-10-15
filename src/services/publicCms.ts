@@ -71,6 +71,19 @@ export interface LiveCancellationPolicy {
   hotel: { note: string };
 }
 
+/** One hero-slider offer (migration 0077). Server-gated: only live,
+ *  published offers with an active backing coupon are returned. */
+export interface PublicOfferSlide {
+  slug: string;
+  title: string;
+  service_type: "CAB" | "HOTEL" | "TOUR";
+  image_url: string;
+  coupon_code: string;
+  badge: string;
+  /** YYYY-MM-DD — end of the offer window. */
+  valid_to: string;
+}
+
 export const publicCmsService = {
   /**
    * Server-side helper: the admin-configured support phone
@@ -216,6 +229,28 @@ export const publicCmsService = {
       return json;
     } catch {
       return null;
+    }
+  },
+
+  /**
+   * Live coupon-backed offers for the hero slider. Mirrors backend
+   * `GET /public/offers` (raw array). Returns [] on failure so the hero
+   * keeps its zero-offer design unchanged.
+   */
+  async getOffers(): Promise<PublicOfferSlide[]> {
+    try {
+      const res = await fetch(`${BASE_URL}/public/offers`, {
+        next: { revalidate: 60 },
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as unknown;
+      if (!Array.isArray(json)) return [];
+      return json.filter(
+        (o): o is PublicOfferSlide =>
+          !!o && typeof (o as PublicOfferSlide).slug === "string",
+      );
+    } catch {
+      return [];
     }
   },
 

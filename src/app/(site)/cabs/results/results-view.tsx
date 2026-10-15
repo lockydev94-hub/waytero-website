@@ -115,6 +115,12 @@ function ResultsContent() {
   const returnTime = params.get("return_time") ?? "";
   const pax = Number(params.get("pax") ?? "1");
   const distanceParam = params.get("distance_km");
+  // Offer ride-through (carried from /offers/{slug} CTAs): slug is the
+  // attribution hint sent to create-booking; coupon auto-applies in the
+  // review modal; name is display-only.
+  const offerSlug = params.get("offer") ?? "";
+  const offerCoupon = params.get("coupon") ?? "";
+  const offerName = params.get("offer_name") ?? "";
 
   // Trip type lives in state, mirrored to the URL so deep-links still work
   // and the back button stays sane. One-shot mount-effect keeps them in sync.
@@ -333,6 +339,7 @@ function ResultsContent() {
           coupon_code && discount_amount && discount_amount > 0
             ? discount_amount
             : undefined,
+        offer_slug: offerSlug || undefined,
       });
       setCreated(res);
       setReviewOpen(false);
@@ -833,6 +840,8 @@ function ResultsContent() {
           pickupTimeLabel={time || undefined}
           passengerCount={pax}
           submitting={submitting}
+          initialCoupon={offerCoupon || undefined}
+          offerTitle={offerName || undefined}
           onConfirm={async ({ coupon_code, discount_amount }) => {
             // Coupon preview is wired to the server: create-booking
             // re-validates against the recomputed amount and persists

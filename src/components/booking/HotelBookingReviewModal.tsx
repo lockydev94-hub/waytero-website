@@ -16,7 +16,7 @@ import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   X, Tag, Calendar, Users, BedDouble, Hotel as HotelIcon, Loader2,
-  CheckCircle2, AlertCircle, Info, ShieldCheck,
+  CheckCircle2, AlertCircle, Info, ShieldCheck, Sparkles,
 } from "lucide-react";
 import type { HotelQuoteOut } from "@/services/hotelService";
 import { cabService } from "@/services/cabService";
@@ -32,6 +32,9 @@ export interface HotelBookingReviewModalProps {
   hotelId: number;
   hotelName: string;
   categoryName: string;
+  /** Room category being booked — sent to coupon preview so the server's
+   *  offer-scope check agrees with what the customer sees. */
+  roomCategoryId?: number;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -40,6 +43,11 @@ export interface HotelBookingReviewModalProps {
   /** Server-computed quote for the stay (may be null while loading). */
   quote: HotelQuoteOut | null;
   submitting: boolean;
+  /** Coupon code carried from an offer page (?coupon=) — pre-filled and
+   *  auto-validated once per open. Server still re-validates at booking. */
+  initialCoupon?: string;
+  /** Offer title carried from the offer page — display-only context chip. */
+  offerTitle?: string;
   onConfirm: (opts: { guest_name: string; guest_mobile?: string; coupon_code?: string; discount_amount?: number }) => Promise<void> | void;
 }
 
@@ -49,6 +57,7 @@ export default function HotelBookingReviewModal({
   hotelId,
   hotelName,
   categoryName,
+  roomCategoryId,
   checkIn,
   checkOut,
   nights,
@@ -56,6 +65,8 @@ export default function HotelBookingReviewModal({
   guests,
   quote,
   submitting,
+  initialCoupon,
+  offerTitle,
   onConfirm,
 }: HotelBookingReviewModalProps) {
   const [coupon, setCoupon] = useState("");
@@ -85,10 +96,8 @@ export default function HotelBookingReviewModal({
     ? Math.max(0, Number(couponResult.final_amount))
     : subtotal;
 
-  if (!open) return null;
-
-  const handleApplyCoupon = async () => {
-    const code = coupon.trim();
+  const applyCouponCode = async (rawCode: string) => {
+    const code = rawCode.trim();
     if (!code || !quote) return;
     const request = ++couponRequest.current;
     setApplyingCoupon(true);
@@ -99,6 +108,7 @@ export default function HotelBookingReviewModal({
         coupon_code: code,
         service_type: "HOTEL",
         hotel_id: hotelId,
+        hotel_room_category_id: roomCategoryId,
         booking_amount: subtotal,
       });
       if (request !== couponRequest.current) return;
@@ -116,6 +126,26 @@ export default function HotelBookingReviewModal({
       if (request === couponRequest.current) setApplyingCoupon(false);
     }
   };
+
+  // Offer ride-through: seed + auto-validate the carried coupon once per
+  // open (retried once the server quote lands). An invalid code surfaces
+  // through the normal inline error — never silently dropped.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      seeded.current = false;
+      return;
+    }
+    if (!initialCoupon || seeded.current || !quote) return;
+    seeded.current = true;
+    setCoupon(initialCoupon.toUpperCase());
+    void applyCouponCode(initialCoupon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialCoupon, quote]);
+
+  if (!open) return null;
+
+  const handleApplyCoupon = () => applyCouponCode(coupon);
 
   const handleConfirm = () => {
     if (!guestName.trim()) {
@@ -238,8 +268,13 @@ export default function HotelBookingReviewModal({
           {/* Coupon */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-3 mb-1.5">
-              Coupon (optional)
+              {offerTitle ? "Coupon from your offer" : "Coupon (optional)"}
             </label>
+            {offerTitle && !couponResult?.valid && (
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-600/15 px-2.5 py-1 text-[11px] font-bold text-primary-700">
+                <Sparkles size={12} /> Via Offer: {offerTitle}
+              </div>
+            )}
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4" />

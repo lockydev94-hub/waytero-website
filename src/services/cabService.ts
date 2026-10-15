@@ -102,6 +102,10 @@ export interface CreateCabBookingIn {
   /** Discount amount (₹) computed during the coupon preview. Best-effort —
    *  the server's re-validation is authoritative. */
   coupon_discount?: number;
+  /** Offer the customer came through (slug from /offers/{slug} CTAs).
+   *  Attribution hint only — the server resolves the real offer and books
+   *  normally with NULL when it doesn't match. */
+  offer_slug?: string;
 }
 
 export interface GoogleMapsKeyOut {
@@ -149,6 +153,7 @@ export interface CouponApplyIn {
   vehicle_category_id?: number;
   city_id?: number;
   hotel_id?: number;
+  hotel_room_category_id?: number;
   tour_package_id?: number;
   pickup_datetime?: string;
   return_datetime?: string;

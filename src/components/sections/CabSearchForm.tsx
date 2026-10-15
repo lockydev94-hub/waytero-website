@@ -26,6 +26,7 @@ import { cabService, type PublicCity, type PublicTripType } from "@/services/cab
 import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
 import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
 import { outOfServiceArea } from "@/lib/serviceArea";
+import { carryOfferContext } from "@/lib/offerParams";
 import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -883,6 +884,10 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
       }
       params.set("distance_km", String(defaultKm));
     }
+
+    // Carry offer context (?offer / ?coupon / ?offer_name) through a
+    // re-search so the offer coupon still auto-applies on the results page.
+    carryOfferContext(params);
 
     router.push(`/cabs/results?${params.toString()}`);
   };

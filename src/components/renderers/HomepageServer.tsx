@@ -1,5 +1,5 @@
 import type { PublicHomepage } from "@/types/cms";
-import { publicCmsService } from "@/services/publicCms";
+import { publicCmsService, type PublicOfferSlide } from "@/services/publicCms";
 import {
   HeroSection,
   ServicesSection,
@@ -38,9 +38,10 @@ const SECTION_SERVICE: Record<string, ServiceKey> = {
  * down or returns nothing.
  */
 export default async function HomepageServer() {
-  const [data, av] = await Promise.all([
+  const [data, av, offers] = await Promise.all([
     publicCmsService.getHomepage(),
     getAvailability(),
+    publicCmsService.getOffers(),
   ]);
   const hidden = hiddenServices(av);
   const sections = (data?.sections?.length ? data.sections : defaultSections()) as HomepageSection[];
@@ -48,13 +49,13 @@ export default async function HomepageServer() {
   return (
     <>
       {sections.map((s) => (
-        <SectionSwitch key={s.id} section={s} hidden={hidden} />
+        <SectionSwitch key={s.id} section={s} hidden={hidden} offers={offers} />
       ))}
     </>
   );
 }
 
-function SectionSwitch({ section, hidden }: { section: HomepageSection; hidden: ServiceKey[] }) {
+function SectionSwitch({ section, hidden, offers }: { section: HomepageSection; hidden: ServiceKey[]; offers: PublicOfferSlide[] }) {
   const v = section.variant || {};
   // CMS can bind a section to a service type; the section keys above are
   // bound implicitly by their data source. Either way: hidden vertical →
@@ -71,7 +72,7 @@ function SectionSwitch({ section, hidden }: { section: HomepageSection; hidden: 
     case "HERO":
       return (
         <>
-          <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} />
+          <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} offers={offers} />
           {/* Inline airport/station nudge — client reads local intent. */}
           <IntentBanner />
         </>

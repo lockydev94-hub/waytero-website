@@ -45,6 +45,11 @@ export interface TourBookingReviewModalProps {
   quote: { total_amount: number; commission_percent?: number } | null;
   submitting: boolean;
   bookingError?: string;
+  /** Coupon code carried from an offer page (?coupon=) — pre-filled and
+   *  auto-validated once per open. Server still re-validates at booking. */
+  initialCoupon?: string;
+  /** Offer title carried from the offer page — display-only context chip. */
+  offerTitle?: string;
   onConfirm: (opts: { traveller_name: string; traveller_mobile?: string; coupon_code?: string }) => Promise<void> | void;
 }
 
@@ -61,6 +66,8 @@ export default function TourBookingReviewModal({
   pax,
   quote,
   submitting,
+  initialCoupon,
+  offerTitle,
   onConfirm,
 }: TourBookingReviewModalProps) {
   const [travellerName, setTravellerName] = useState("");
@@ -88,8 +95,6 @@ export default function TourBookingReviewModal({
     return () => { couponRequest.current += 1; };
   }, [open, bookingKey]);
 
-  if (!open) return null;
-
   const total = quote?.total_amount ?? 0;
   const perPerson = total > 0 && pax > 0 ? Math.round(total / pax) : 0;
   const discount = couponResult?.valid ? Number(couponResult.discount_amount) : 0;
@@ -98,8 +103,8 @@ export default function TourBookingReviewModal({
     ? Math.max(0, Number(couponResult.final_amount))
     : total;
 
-  const handleApplyCoupon = async () => {
-    const code = coupon.trim();
+  const applyCouponCode = async (rawCode: string) => {
+    const code = rawCode.trim();
     if (!code || !quote) return;
     const request = ++couponRequest.current;
     setApplyingCoupon(true);
@@ -126,6 +131,26 @@ export default function TourBookingReviewModal({
       if (request === couponRequest.current) setApplyingCoupon(false);
     }
   };
+
+  // Offer ride-through: seed + auto-validate the carried coupon once per
+  // open (retried once the server quote lands). An invalid code surfaces
+  // through the normal inline error — never silently dropped.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      seeded.current = false;
+      return;
+    }
+    if (!initialCoupon || seeded.current || !quote) return;
+    seeded.current = true;
+    setCoupon(initialCoupon.toUpperCase());
+    void applyCouponCode(initialCoupon);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialCoupon, quote]);
+
+  if (!open) return null;
+
+  const handleApplyCoupon = () => applyCouponCode(coupon);
 
   const handleConfirm = () => {
     if (!travellerName.trim()) {
@@ -237,8 +262,13 @@ export default function TourBookingReviewModal({
           {/* Coupon */}
           <div>
             <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-3 mb-1.5">
-              Coupon (optional)
+              {offerTitle ? "Coupon from your offer" : "Coupon (optional)"}
             </label>
+            {offerTitle && !couponResult?.valid && (
+              <div className="mb-2 inline-flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-600/15 px-2.5 py-1 text-[11px] font-bold text-primary-700">
+                <Sparkles size={12} /> Via Offer: {offerTitle}
+              </div>
+            )}
             <div className="flex gap-2">
               <div className="flex-1 relative">
                 <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4" />

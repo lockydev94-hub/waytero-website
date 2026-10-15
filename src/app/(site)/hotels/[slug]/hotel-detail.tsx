@@ -81,6 +81,13 @@ function HotelContent({
   const [guests, setGuests] = useState(Number(searchParams.get("guests") ?? "2"));
   const [roomsCount, setRoomsCount] = useState(Number(searchParams.get("rooms") ?? "1"));
 
+  // Offer ride-through (carried from /offers/{slug} CTAs): slug is the
+  // attribution hint sent to create-booking; coupon auto-applies in the
+  // review modal; name is display-only.
+  const offerSlug = searchParams.get("offer") ?? "";
+  const offerCoupon = searchParams.get("coupon") ?? "";
+  const offerName = searchParams.get("offer_name") ?? "";
+
   const [hotel, setHotel] = useState<PublicHotelDetails | null>(initialHotel ?? null);
   const [loading, setLoading] = useState(!initialHotel);
   const [error, setError] = useState<string | null>(null);
@@ -187,6 +194,7 @@ function HotelContent({
           primary_guest_mobile: opts.guest_mobile,
           estimated_amount: quote.total_amount,
           coupon_code: opts.coupon_code || undefined,
+          offer_slug: offerSlug || undefined,
         });
         setReviewOpen(false);
         setSelectedCat(null);
@@ -198,7 +206,7 @@ function HotelContent({
         setSubmitting(false);
       }
     },
-    [selectedCat, quote, hotel, checkIn, checkOut, guests, roomsCount],
+    [selectedCat, quote, hotel, checkIn, checkOut, guests, roomsCount, offerSlug],
   );
 
   const stayDatesValid = checkIn && checkOut && new Date(checkOut) > new Date(checkIn);
@@ -583,6 +591,7 @@ function HotelContent({
         hotelId={hotel.id}
         hotelName={hotel.hotel_name}
         categoryName={selectedCat?.category_name ?? ""}
+        roomCategoryId={selectedCat?.id}
         checkIn={checkIn}
         checkOut={checkOut}
         nights={quote?.nights ?? nights}
@@ -590,6 +599,8 @@ function HotelContent({
         guests={guests}
         quote={quote}
         submitting={submitting}
+        initialCoupon={offerCoupon || undefined}
+        offerTitle={offerName || undefined}
         onConfirm={confirmBooking}
       />
       <HotelBookingSuccessModal

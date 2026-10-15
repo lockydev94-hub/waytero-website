@@ -200,6 +200,10 @@ export interface CreateHotelBookingIn {
   estimated_amount?: number;
   coupon_code?: string;
   coupon_id?: number;
+  /** Offer the customer came through (slug from /offers/{slug} CTAs).
+   *  Attribution hint only — the server resolves the real offer and books
+   *  normally with NULL when it doesn't match. */
+  offer_slug?: string;
 }
 
 export interface CreateHotelBookingOut {

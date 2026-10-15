@@ -28,6 +28,7 @@ import {
   ArrowRight,
   CheckCircle2,
   AlertCircle,
+  Sparkles,
 } from "lucide-react";
 import { cabService } from "@/services/cabService";
 import type {
@@ -51,6 +52,11 @@ export interface BookingReviewModalProps {
   pickupTimeLabel?: string;
   passengerCount: number;
   submitting: boolean;
+  /** Coupon code carried from an offer page (?coupon=) — pre-filled and
+   *  auto-validated once per open. Server still re-validates at booking. */
+  initialCoupon?: string;
+  /** Offer title carried from the offer page — display-only context chip. */
+  offerTitle?: string;
   onConfirm: (opts: { coupon_code?: string; discount_amount?: number }) => Promise<void> | void;
 }
 
@@ -65,6 +71,8 @@ export default function BookingReviewModal({
   pickupTimeLabel,
   passengerCount,
   submitting,
+  initialCoupon,
+  offerTitle,
   onConfirm,
 }: BookingReviewModalProps) {
   const [coupon, setCoupon] = useState("");
@@ -92,10 +100,8 @@ export default function BookingReviewModal({
     ? Math.max(0, Number(couponResult.final_amount))
     : subtotal;
 
-  if (!open) return null;
-
-  const handleApplyCoupon = async () => {
-    const code = coupon.trim();
+  const applyCouponCode = async (rawCode: string) => {
+    const code = rawCode.trim();
     if (!code) return;
     const request = ++couponRequest.current;
     setApplyingCoupon(true);
@@ -126,6 +132,27 @@ export default function BookingReviewModal({
       if (request === couponRequest.current) setApplyingCoupon(false);
     }
   };
+
+  // Offer ride-through: seed + auto-validate the carried coupon once per
+  // open. An invalid code surfaces through the normal inline error — never
+  // silently dropped.
+  const seeded = useRef(false);
+  useEffect(() => {
+    if (!open) {
+      seeded.current = false;
+      return;
+    }
+    if (initialCoupon && !seeded.current) {
+      seeded.current = true;
+      setCoupon(initialCoupon.toUpperCase());
+      void applyCouponCode(initialCoupon);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialCoupon]);
+
+  if (!open) return null;
+
+  const handleApplyCoupon = () => applyCouponCode(coupon);
 
   const handleRemoveCoupon = () => {
     setCoupon("");
@@ -224,9 +251,14 @@ export default function BookingReviewModal({
             <div className="flex items-center gap-2 mb-3">
               <Tag className="h-4 w-4 text-primary-600" />
               <span className="text-xs font-bold uppercase tracking-wider text-ink-3">
-                Have a coupon?
+                {offerTitle ? "Coupon from your offer" : "Have a coupon?"}
               </span>
             </div>
+            {offerTitle && !couponResult?.valid && (
+              <div className="mb-3 inline-flex items-center gap-1.5 rounded-lg bg-primary-50 border border-primary-600/15 px-2.5 py-1 text-[11px] font-bold text-primary-700">
+                <Sparkles className="h-3 w-3" /> Via Offer: {offerTitle}
+              </div>
+            )}
             {couponResult?.valid ? (
               <div className="flex items-center justify-between rounded-xl bg-emerald-50 border border-emerald-200 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm">
