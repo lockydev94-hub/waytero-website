@@ -1,8 +1,17 @@
+import Link from "next/link";
 import { Container, PageHeader, Card, Badge, MotionGlow } from "@/components/ui";
 import { Section, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { publicCmsService, LiveCancellationPolicy } from "@/services/publicCms";
+import { pageMetadata } from "@/services/seoService";
 
-export const metadata = { title: "Refund Policy", description: "WayTero's tiered refund policy for cab, hotel, and tour bookings." };
+export async function generateMetadata() {
+  return pageMetadata("refund", "/refund", {
+    title: "Refund & Cancellation Policy",
+    description:
+      "WayTero's tiered refund policy for cab, hotel, and tour bookings — live values from the platform policy engine.",
+    keywords: ["refund policy", "cancellation policy", "WayTero", "travel booking India"],
+  });
+}
 
 // Static fallback matching the engine defaults (BRD Part 3 §46, BRD Part 5 §119) —
 // used only when the backend is unreachable. The live values from
@@ -134,18 +143,16 @@ export default async function RefundPage() {
           {/* ── Hotel ──────────────────────────────────────── */}
           <Card variant="premium" padded className="mb-10">
             <h2 className="font-extrabold text-lg text-ink mb-2">Hotel bookings</h2>
-            <p className="text-sm text-ink-3 leading-relaxed">
-              Each hotel sets its own cancellation ladder — typically free up to 72 hours before
-              check-in, 75% up to 48 hours, 50% up to 24 hours, and no refund on the day.
-              The exact policy is shown on the hotel page before you book, and in the refund
-              preview before you cancel.
+            <p className="text-sm text-ink-3 leading-relaxed whitespace-pre-line">
+              {live.hotel.note?.trim() ||
+                "Each hotel sets its own cancellation rules. The exact policy for your stay is shown on the hotel page before you book, and in the refund preview before you cancel."}
             </p>
           </Card>
 
           <div className="text-center">
-            <a href="/bookings" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white font-bold text-sm px-6 py-3 shadow-wt-sm hover:shadow-wt-md transition-shadow">
+            <Link href="/bookings" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-primary-600 to-primary-700 text-white font-bold text-sm px-6 py-3 shadow-wt-sm hover:shadow-wt-md transition-shadow">
               Cancel a booking
-            </a>
+            </Link>
           </div>
         </Container>
       </Section>

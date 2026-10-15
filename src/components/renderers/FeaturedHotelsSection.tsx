@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Star, MapPin, Waves, Clock, ChevronRight } from "lucide-react";
+import { Star, MapPin, Waves, ChevronRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, MotionTilt } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
@@ -24,7 +24,7 @@ interface FeaturedHotelsSectionProps {
 export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Where to stay"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Featured Hotels"));
-  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Top-rated stays handpicked by our travel team."));
+  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Partner stays with transparent, GST-inclusive pricing."));
 
   let hotels: PublicHotelSearchItem[] = [];
   try {
@@ -42,39 +42,9 @@ export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsS
     hotels = [];
   }
 
-  // Empty catalogue → Coming Soon (no fake hotels, ever).
-  if (hotels.length === 0) {
-    return (
-      <Section bg="muted" pad="lg" id="hotels" overlay="dots">
-        <Container size="lg">
-          <SectionHeader
-            eyebrow={eyebrow}
-            title={title}
-            subtitle={subtitle}
-            accent="primary"
-            underline
-            animatedEyebrow
-          />
-          <div className="relative overflow-hidden rounded-3xl border border-ink-7 bg-white p-10 text-center shadow-wt-sm">
-            <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary-500/10 blur-3xl" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-accent-500/10 blur-3xl" />
-            <div className="relative">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-500/10 px-3.5 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-accent-600">
-                <Clock className="h-3.5 w-3.5" /> Coming soon
-              </span>
-              <h3 className="mt-5 text-2xl font-extrabold tracking-tight text-ink">
-                Hotel bookings are coming soon
-              </h3>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-3">
-                Our team is onboarding verified hotels right now. Once partners add
-                their properties, you'll be able to book them here directly.
-              </p>
-            </div>
-          </div>
-        </Container>
-      </Section>
-    );
-  }
+  // Empty catalogue → omit the section entirely (owner rule: no
+  // "coming soon" fakery for a vertical with no real supply).
+  if (hotels.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="hotels" overlay="dots">

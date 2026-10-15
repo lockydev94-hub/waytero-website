@@ -15,7 +15,7 @@
  * coupon state and the onConfirm handler that hits createBooking.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   X,
@@ -33,7 +33,9 @@ import { cabService } from "@/services/cabService";
 import type {
   CreateCabBookingIn,
   FareBreakdownItem,
+  CouponApplyOut,
 } from "@/services/cabService";
+import { COUPON_FUNDING_LABELS } from "@/services/cabService";
 
 export interface BookingReviewModalProps {
   open: boolean;
@@ -67,57 +69,61 @@ export default function BookingReviewModal({
 }: BookingReviewModalProps) {
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [couponResult, setCouponResult] = useState<
-    { valid: boolean; discount_amount: number; final_amount: number; message: string } | null
-  >(null);
+  const [couponResult, setCouponResult] = useState<CouponApplyOut | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
 
-  // Reset coupon state whenever we re-open with a different selection.
+  const couponRequest = useRef(0);
+  const bookingKey = JSON.stringify([bookingDraft, passengerCount, selected.vehicle_category_id, selected.total]);
+  // A changed trip invalidates both the preview and any in-flight response.
   useEffect(() => {
-    if (open) {
-      setCoupon("");
-      setCouponResult(null);
-      setCouponError(null);
-    }
-  }, [open, selected.vehicle_category_id]);
+    couponRequest.current += 1;
+    setCoupon("");
+    setCouponResult(null);
+    setCouponError(null);
+    setApplyingCoupon(false);
+    return () => { couponRequest.current += 1; };
+  }, [open, bookingKey]);
 
   const subtotal = useMemo(() => Number(selected.total ?? 0), [selected.total]);
   const discount = couponResult?.valid ? Number(couponResult.discount_amount) : 0;
-  const finalAmount = Math.max(0, subtotal - discount);
+  // Server owns the payable total — booking creation re-validates with the
+  // same rules, so never recompute the discount client-side.
+  const finalAmount = couponResult?.valid
+    ? Math.max(0, Number(couponResult.final_amount))
+    : subtotal;
 
   if (!open) return null;
 
   const handleApplyCoupon = async () => {
     const code = coupon.trim();
     if (!code) return;
+    const request = ++couponRequest.current;
     setApplyingCoupon(true);
+    setCouponResult(null);
     setCouponError(null);
     try {
-      // /coupons/validate needs customer_id. For new Firebase accounts we
-      // won't have a customer row yet — it's lazily created on first
-      // booking creation. Use 0 as a sentinel; the backend treats it as
-      // "no per-customer limit to check" for new accounts. (If admin later
-      // requires whitelist enforcement we can swap to the real id once the
-      // booking has been created and the parent passes the new id in.)
       const res = await cabService.applyCoupon({
         coupon_code: code,
         service_type: "CAB",
         vehicle_category_id: selected.vehicle_category_id,
         city_id: bookingDraft.city_id,
+        pickup_datetime: bookingDraft.pickup_datetime,
+        return_datetime: bookingDraft.return_datetime,
         booking_amount: subtotal,
-        customer_id: 0,
       });
+      if (request !== couponRequest.current) return;
       if (res.valid) {
         setCouponResult(res);
-        toast.success(`Coupon applied — you save ₹${res.discount_amount}`);
+        toast.success(`Coupon applied — you save ${INR(res.discount_amount)}`);
       } else {
-        setCouponResult(null);
         setCouponError(res.message || "Coupon not valid for this booking");
       }
     } catch (e) {
-      setCouponError(e instanceof Error ? e.message : "Couldn't apply coupon");
+      if (request === couponRequest.current) {
+        setCouponError(e instanceof Error ? e.message : "Couldn't apply coupon");
+      }
     } finally {
-      setApplyingCoupon(false);
+      if (request === couponRequest.current) setApplyingCoupon(false);
     }
   };
 
@@ -228,6 +234,11 @@ export default function BookingReviewModal({
                   <div>
                     <div className="font-bold text-emerald-800">{coupon.toUpperCase()} applied</div>
                     <div className="text-xs text-emerald-700">{couponResult.message}</div>
+                    {couponResult.coupon_type !== "PLATFORM" && (
+                      <div className="text-[11px] text-emerald-600/80 mt-0.5">
+                        {COUPON_FUNDING_LABELS[couponResult.coupon_type]}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
@@ -312,7 +323,7 @@ export default function BookingReviewModal({
                   : {},
               )
             }
-            disabled={submitting}
+            disabled={submitting || applyingCoupon}
             className="w-full h-12 rounded-xl text-white font-bold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(240,90,34,0.40)] disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
           >

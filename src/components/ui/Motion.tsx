@@ -19,6 +19,27 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 const EASE = [0.22, 1, 0.36, 1] as const;
 const SPRING = { type: "spring" as const, stiffness: 260, damping: 26 };
 
+/**
+ * usePrefersReducedMotion — OS-level "reduce motion" setting.
+ *
+ * MotionConfig reducedMotion="user" only covers declarative transform/opacity
+ * animations; it does not stop JS-driven motion (scroll counters, useScroll
+ * parallax, mouse-follow springs). Every wrapper below short-circuits to
+ * static markup when this returns true. Defaults to false on the server so
+ * hydration stays byte-stable; the swap happens after mount.
+ */
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
 /* ── Existing primitives ───────────────────────────────────── */
 
 /**
@@ -41,6 +62,8 @@ export function MotionFadeIn({
   as?: keyof JSX.IntrinsicElements;
 }) {
   const Comp = motion[As as keyof typeof motion] as any;
+  const reduced = usePrefersReducedMotion();
+  if (reduced) return <As className={className}>{children}</As>;
   return (
     <Comp
       initial={{ opacity: 0, y }}
@@ -77,6 +100,7 @@ export function MotionStagger({
   as?: keyof JSX.IntrinsicElements;
 }) {
   const Comp = motion[As as keyof typeof motion] as any;
+  if (usePrefersReducedMotion()) return <As className={className}>{children}</As>;
   return (
     <Comp initial="hidden" whileInView="show" viewport={{ once: true, margin: "-80px" }} variants={container} className={className}>
       {children}
@@ -85,6 +109,7 @@ export function MotionStagger({
 }
 
 export function MotionStaggerItem({ children, className = "" }: { children: ReactNode; className?: string }) {
+  if (usePrefersReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <motion.div variants={item} className={className}>
       {children}
@@ -124,6 +149,14 @@ export function MotionGlow({
     danger: `rgba(239, 68, 68, ${intensity})`,
   };
 
+  // Hooks must run on every render — resolve them before the reduced-motion
+  // branch, which would otherwise skip them and break hook order.
+  const left = useTransform(springX, (v) => `calc(${v * 100}% - ${size / 2}px)`);
+  const top = useTransform(springY, (v) => `calc(${v * 100}% - ${size / 2}px)`);
+  const reduced = usePrefersReducedMotion();
+
+  if (reduced) return <div className={className}>{children}</div>;
+
   return (
     <div
       ref={ref}
@@ -141,8 +174,8 @@ export function MotionGlow({
         style={{
           width: size,
           height: size,
-          left: useTransform(springX, (v) => `calc(${v * 100}% - ${size / 2}px)`),
-          top: useTransform(springY, (v) => `calc(${v * 100}% - ${size / 2}px)`),
+          left,
+          top,
           background: `radial-gradient(circle, ${COLORS[color]} 0%, transparent 70%)`,
           filter: "blur(40px)",
         }}
@@ -173,6 +206,7 @@ export function MotionParallax({
   // Map 0..1 to 0..(speed*100)px translation
   const range = speed * 120;
   const y = useTransform(scrollYProgress, [0, 1], [-range, range]);
+  if (usePrefersReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <div ref={ref} className={className}>
       <motion.div style={{ y }}>{children}</motion.div>
@@ -201,6 +235,7 @@ export function MotionTilt({
   const rotateX = useSpring(useTransform(my, [0, 1], [max, -max]), SPRING as any);
   const rotateY = useSpring(useTransform(mx, [0, 1], [-max, max]), SPRING as any);
 
+  if (usePrefersReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <div
       ref={ref}
@@ -238,6 +273,7 @@ export function MotionShine({
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const [shouldShine, setShouldShine] = useState(false);
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
     if (trigger === "view" && isInView) setShouldShine(true);
@@ -250,7 +286,7 @@ export function MotionShine({
       onMouseEnter={() => trigger === "hover" && setShouldShine(true)}
     >
       {children}
-      {shouldShine && (
+      {shouldShine && !reduced && (
         <motion.div
           aria-hidden
           className="pointer-events-none absolute inset-0 z-20"
@@ -290,12 +326,22 @@ export function MotionScrollCounter({
   const isInView = useInView(ref, { once: true, margin: "-40px" });
   const motionVal = useMotionValue(0);
   const formatted = useTransform(motionVal, (v) => `${prefix}${Number(v).toFixed(decimals)}${suffix}`);
+  const reduced = usePrefersReducedMotion();
 
   useEffect(() => {
-    if (!isInView) return;
+    if (reduced || !isInView) return;
     const controls = animate(motionVal, value, { duration, ease: EASE });
     return () => controls.stop();
-  }, [isInView, value, duration, motionVal]);
+  }, [isInView, value, duration, motionVal, reduced]);
+
+  if (reduced)
+    return (
+      <span ref={ref} className={className}>
+        {prefix}
+        {Number(value).toFixed(decimals)}
+        {suffix}
+      </span>
+    );
 
   return <motion.span ref={ref} className={className}>{formatted as any}</motion.span>;
 }
@@ -334,6 +380,7 @@ export function MotionReveal({
     scale: { opacity: 1, scale: 1 },
     blur:  { opacity: 1, filter: "blur(0px)" },
   };
+  if (usePrefersReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <motion.div
       initial={HIDDEN[direction]}
@@ -366,6 +413,7 @@ export function MotionMagnetic({
   const sx = useSpring(x, { stiffness: 220, damping: 18 });
   const sy = useSpring(y, { stiffness: 220, damping: 18 });
 
+  if (usePrefersReducedMotion()) return <div className={className}>{children}</div>;
   return (
     <div
       ref={ref}

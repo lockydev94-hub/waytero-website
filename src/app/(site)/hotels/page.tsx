@@ -2,8 +2,9 @@ import { Container } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import HeroSearchForm from "@/components/sections/HeroSearchForm";
 import HotelExploreSection, { HotelPopularCityChips } from "@/components/sections/HotelExploreSection";
-import ComingSoon from "@/components/sections/ComingSoon";
 import { CtaSection } from "@/components/renderers";
+import { notFound } from "next/navigation";
+import { getAvailability, serviceVisible } from "@/lib/availability";
 
 // ── Page-level SEO (SSR) — DB-driven with static fallback ────────────────
 // Reads the HOTEL service type's seo_title/seo_description/seo_keywords
@@ -17,29 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HotelsPage() {
+  // Hard availability gate (owner decision): HOTEL disabled or zero real
+  // supply in the DB → the page 404s site-wide, no "coming soon" fakery.
+  const av = await getAvailability();
+  if (!serviceVisible(av, "HOTEL")) notFound();
+
   // Hero/banner image configured by the admin (Settings → Service Types → HOTEL).
   const serviceSeo = await getServiceTypeSeo();
   const hotelImage = serviceSeo.HOTEL?.image_url ?? null;
-
-  // Server-side catalogue check: when the DB has no active hotels the page
-  // renders a "Coming soon" panel instead of an empty explorer grid
-  // (customer-web restriction: only DB content is ever shown).
-  const API_BASE =
-    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-  let catalogueEmpty = false;
-  try {
-    const res = await fetch(`${API_BASE}/public/hotel/search?page=1&page_size=1`, {
-      next: { revalidate: 120 },
-    });
-    if (res.ok) {
-      const data = (await res.json()) as { items?: unknown[] };
-      catalogueEmpty = (data.items ?? []).length === 0;
-    } else {
-      catalogueEmpty = true;
-    }
-  } catch {
-    catalogueEmpty = true;
-  }
 
   return (
     <>
@@ -109,18 +95,12 @@ export default async function HotelsPage() {
       </section>
 
       {/* ── Live hotel explorer (data from the database) ───────────── */}
-      {catalogueEmpty ? (
-        <Container size="lg" className="py-10">
-          <ComingSoon service="hotels" compact />
-        </Container>
-      ) : (
-        <HotelExploreSection />
-      )}
+      <HotelExploreSection />
 
       <CtaSection
         variant={{
           title: "Plan your next getaway",
-          subtitle: "Find stays at the best prices, guaranteed — compare rates across 30+ cities.",
+          subtitle: "Handpicked partner hotels in and around Bhubaneswar — transparent, GST-inclusive pricing.",
           cta_text: "Explore all hotels",
           cta_link: "/hotels/results",
         }}

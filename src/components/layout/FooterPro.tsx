@@ -2,11 +2,13 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   Facebook, Twitter, Instagram, Linkedin, Youtube,
-  Smartphone, Globe, ShieldCheck, ArrowRight, Mail, Phone,
+  Smartphone, Globe, ShieldCheck, Phone,
 } from "lucide-react";
 import { Container, MotionGlow } from "@/components/ui";
 import type { SiteFooterData } from "@/types/cms";
 import { displayPhone, telHref } from "@/lib/supportPhone";
+import { BRAND_SOCIALS } from "@/lib/brand";
+import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 // ── Fallback data ──────────────────────────────────────────────
 const DEFAULT_COLUMNS = [
@@ -63,18 +65,27 @@ const SOCIAL_META = [
 
 const DEFAULT_DESCRIPTION =
   "India's Travel Operating System — connecting customers, partners, drivers, hotels, and tour operators on one seamless platform.";
-const DEFAULT_COPYRIGHT = `© ${new Date().getFullYear()} WayTero Travel Technologies Pvt Ltd · CIN U63090OR2023PTC`;
+const DEFAULT_COPYRIGHT = `© ${new Date().getFullYear()} WayTero · waytero.com · All rights reserved.`;
 
 interface Props {
   cmsData?: SiteFooterData | null;
+  /** Verticals hidden site-wide (disabled or no real supply) — computed
+   *  server-side from GET /public/availability in the (site) layout. */
+  hiddenServices?: ServiceKey[];
+  /** Published PLACE_CABS pages for the "Popular Places" internal-link
+   *  column (SEO). Server layout supplies these from the landing feed;
+   *  column is omitted when empty. */
+  places?: Array<{ label: string; href: string }>;
 }
 
-export default function Footer({ cmsData }: Props) {
+export default function Footer({ cmsData, hiddenServices = [], places = [] }: Props) {
   const logoUrl     = cmsData?.logo_url      ?? null;
   const description = cmsData?.description   ?? DEFAULT_DESCRIPTION;
   const copyright   = cmsData?.copyright_text ?? DEFAULT_COPYRIGHT;
-  const androidLink = cmsData?.app_store_links?.android ?? "#";
-  const iosLink     = cmsData?.app_store_links?.ios     ?? "#";
+  const appLinks = [
+    { label: "App Store", sub: "Download on", href: cmsData?.app_store_links?.ios?.trim() },
+    { label: "Google Play", sub: "Get it on", href: cmsData?.app_store_links?.android?.trim() },
+  ].filter((link) => link.href && /^https:\/\//i.test(link.href));
   const socialMap   = (cmsData?.social_links ?? {}) as Record<string, string>;
 
   const quickLinks = cmsData?.quick_links && cmsData.quick_links.length > 0
@@ -87,6 +98,14 @@ export default function Footer({ cmsData }: Props) {
     quickLinks.length > 0 || legalLinks.length > 0
       ? [...quickLinks, ...DEFAULT_COLUMNS.slice(1, 3), ...legalLinks]
       : DEFAULT_COLUMNS;
+
+  // Drop links into hidden verticals (disabled or zero supply), then drop
+  // columns left empty; the "Popular Places" column is appended below.
+  const columns = footerColumns
+    .map((col) => ({ ...col, links: col.links.filter((l) => !isHiddenHref(l.href, hiddenServices)) }))
+    .filter((col) => col.links.length > 0);
+  const showPlaces =
+    places.length > 0 && !isHiddenHref("/cabs", hiddenServices);
 
   return (
     <footer
@@ -115,41 +134,6 @@ export default function Footer({ cmsData }: Props) {
       >
         <span aria-hidden className="hidden" />
       </MotionGlow>
-
-      {/* ── Newsletter ── */}
-      <div className="relative border-b border-white/[0.06]">
-        <Container size="xl" className="py-12 lg:py-14 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8">
-          <div className="max-w-lg">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold mb-3"
-              style={{ background: "rgba(245,158,11,0.12)", color: "#F05A22", border: "1px solid rgba(245,158,11,0.2)" }}>
-              ✦ Travel smarter
-            </div>
-            <h3 className="text-white text-2xl font-bold tracking-tight leading-snug">
-              Handpicked deals, route tips &<br className="hidden sm:block" /> destination guides.
-            </h3>
-            <p className="text-white/40 mt-2 text-sm">Once a month. No spam. Unsubscribe any time.</p>
-          </div>
-          <div className="flex w-full lg:w-auto items-center gap-0 max-w-sm rounded-xl overflow-hidden"
-            style={{ border: "1px solid rgba(255,255,255,0.08)", background: "rgba(255,255,255,0.04)" }}>
-            <div className="flex items-center gap-2 flex-1 px-4">
-              <Mail className="h-4 w-4 text-white/30 flex-shrink-0" />
-              <input
-                type="email"
-                placeholder="you@example.com"
-                className="flex-1 h-12 bg-transparent text-sm text-white placeholder:text-white/30 focus:outline-none min-w-0"
-                aria-label="Email address"
-              />
-            </div>
-            <button
-              type="button"
-              className="flex-shrink-0 h-12 px-5 text-sm font-bold text-ink-900 transition-all duration-200 hover:brightness-110 flex items-center gap-1.5"
-              style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
-            >
-              Subscribe <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </Container>
-      </div>
 
       {/* ── Main grid ── */}
       <Container size="xl" className="relative py-14 lg:py-16">
@@ -184,16 +168,13 @@ export default function Footer({ cmsData }: Props) {
               {description}
             </p>
 
-            {/* App badges */}
+            {appLinks.length > 0 && (
             <div className="flex flex-col gap-2 mb-7">
               <p className="text-[10px] font-bold uppercase tracking-[0.18em]" style={{ color: "rgba(255,255,255,0.25)" }}>
                 Get the App
               </p>
               <div className="flex gap-2">
-                {[
-                  { label: "App Store", sub: "Download on", href: iosLink },
-                  { label: "Google Play", sub: "Get it on", href: androidLink },
-                ].map((b) => (
+                {appLinks.map((b) => (
                   <a
                     key={b.label}
                     href={b.href}
@@ -213,15 +194,19 @@ export default function Footer({ cmsData }: Props) {
                 ))}
               </div>
             </div>
+            )}
 
-            {/* Social icons */}
+            {/* Social icons — DB-set URLs, owner-confirmed BRAND_SOCIALS as
+                fallback; keys with no URL (e.g. Twitter/LinkedIn until the
+                admin adds them) render nothing. */}
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.18em] mb-3" style={{ color: "rgba(255,255,255,0.25)" }}>
                 Follow us
               </p>
               <div className="flex items-center gap-2">
                 {SOCIAL_META.map(({ icon: Icon, label, key }) => {
-                  const href = socialMap[key] || `https://${key}.com/waytero`;
+                  const href = socialMap[key] ?? BRAND_SOCIALS[key];
+                  if (!href) return null;
                   return (
                     <a
                       key={label}
@@ -249,7 +234,7 @@ export default function Footer({ cmsData }: Props) {
           </div>
 
           {/* Link columns */}
-          {footerColumns.map((col) => (
+          {columns.map((col) => (
             <div key={col.title}>
               <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] mb-4"
                 style={{ color: "rgba(255,255,255,0.35)" }}>
@@ -278,6 +263,38 @@ export default function Footer({ cmsData }: Props) {
               </ul>
             </div>
           ))}
+
+          {/* Popular Places — published PLACE_CABS pages, internal SEO links.
+              Omitted entirely when there are none or CAB is hidden. */}
+          {showPlaces && (
+            <div className="col-span-2">
+              <h4 className="text-[11px] font-bold uppercase tracking-[0.2em] mb-4"
+                style={{ color: "rgba(255,255,255,0.35)" }}>
+                Popular Places
+              </h4>
+              <ul className="space-y-2.5">
+                {places.map((l) => (
+                  <li key={l.href}>
+                    <Link
+                      href={l.href}
+                      className="group relative inline-flex items-center gap-1 text-sm transition-colors duration-300 ease-[var(--ease-wt)]"
+                      style={{ color: "rgba(255,255,255,0.5)" }}
+                    >
+                      <span className="relative pb-0.5">
+                        <span className="group-hover:text-white group-hover:translate-x-0.5 transition-all duration-300 ease-[var(--ease-wt)]">
+                          {l.label}
+                        </span>
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute left-0 -bottom-0.5 h-px w-0 bg-gradient-to-r from-primary-400 via-accent-400 to-accent-500 group-hover:w-full transition-all duration-500 ease-[var(--ease-wt)]"
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </Container>
 
@@ -292,7 +309,7 @@ export default function Footer({ cmsData }: Props) {
           <span className="hidden sm:inline text-white/15">·</span>
           <span className="hidden sm:inline">Built in Bhubaneswar, Odisha</span>
         </div>
-        <div className="flex items-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
+        <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
           <a
             href={telHref(displayPhone(cmsData?.support_phone))}
             className="inline-flex items-center gap-1.5 transition-colors duration-300 hover:!text-white"

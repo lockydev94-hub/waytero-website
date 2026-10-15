@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
   Clock, ArrowRight, Mail, Calendar, User, Search, Sparkles, BookOpen,
@@ -242,9 +243,11 @@ export default function BlogPage() {
                     </p>
                     <div className="mt-6 flex items-center gap-3">
                       {featured.author_avatar_url ? (
-                        <img
+                        <Image
                           src={featured.author_avatar_url}
                           alt={featured.author_name || "Author"}
+                          width={40}
+                          height={40}
                           className="h-10 w-10 rounded-full object-cover ring-2 ring-primary-100 group-hover:ring-primary-300 transition-all"
                         />
                       ) : (
@@ -392,9 +395,11 @@ export default function BlogPage() {
                           <div className="mt-4 pt-4 border-t border-ink-7 flex items-center justify-between">
                             <span className="text-xs text-ink-4 inline-flex items-center gap-1.5">
                               {post.author_avatar_url ? (
-                                <img
+                                <Image
                                   src={post.author_avatar_url}
                                   alt=""
+                                  width={20}
+                                  height={20}
                                   className="h-5 w-5 rounded-full object-cover"
                                 />
                               ) : (

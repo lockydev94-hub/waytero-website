@@ -6,11 +6,19 @@ import {
   PolicySection,
   PolicyList,
 } from "@/components/static/LegalSection";
+import { pageMetadata, type SeoContent } from "@/services/seoService";
+import publicCmsService from "@/services/publicCms";
 
-export const metadata = {
+const FALLBACK: SeoContent = {
   title: "Security — WayTero",
-  description: "How WayTero protects your data, payments, and account — encryption, auth, and compliance.",
+  description:
+    "How WayTero protects your data, payments, and account — encryption, auth, and compliance.",
+  keywords: ["WayTero security", "data protection India", "secure travel booking"],
 };
+
+export async function generateMetadata(): Promise<import("next").Metadata> {
+  return pageMetadata("security", "/security", FALLBACK);
+}
 
 const TRUST = [
   { icon: Lock, title: "Encryption in transit & at rest", tone: "primary" as const },
@@ -19,13 +27,13 @@ const TRUST = [
   { icon: Eye, title: "No card numbers stored", tone: "info" as const },
 ];
 
-export default function SecurityPage() {
+export default async function SecurityPage() {
+  const profile = await publicCmsService.getPlatformProfile();
   return (
     <>
       <LegalPageHeader
         eyebrow="Trust & Safety"
         title="Security at WayTero"
-        meta="Last updated August 10, 2026"
       />
       <Section bg="muted" pad="md" overlay="dots">
         <Container size="md">
@@ -77,8 +85,8 @@ export default function SecurityPage() {
             Bookings are priced server-side, inventory is guarded by database-level oversell
             checks, and every money movement is recorded in an audit trail. If you believe you've
             found a security issue, report it to{" "}
-            <a href="mailto:security@waytero.com" className="text-primary-600 font-semibold">
-              security@waytero.com
+            <a href={`mailto:${profile.support_email}?subject=Security%20issue`} className="text-primary-600 font-semibold">
+              {profile.support_email}
             </a>
             .
           </p>

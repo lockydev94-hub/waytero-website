@@ -5,6 +5,8 @@ import ChatWidget from "@/components/chat/ChatWidget";
 import CallNowButton from "@/components/chat/CallNowButton";
 import { publicCmsService } from "@/services/publicCms";
 import type { SiteHeaderData, SiteFooterData } from "@/types/cms";
+import { getAvailability, hiddenServices } from "@/lib/availability";
+import { getLandingRefs } from "@/lib/landingIndex";
 
 /**
  * Layout shared by every public marketing/utility page under (site).
@@ -20,7 +22,31 @@ import type { SiteHeaderData, SiteFooterData } from "@/types/cms";
  * middleware just to read the URL in a server component.
  */
 export default async function SiteLayout({ children }: { children: ReactNode }) {
-  const cms = await publicCmsService.getHomepage();
+  const [cms, av, landingRefs] = await Promise.all([
+    publicCmsService.getHomepage(),
+    getAvailability(),
+    getLandingRefs(),
+  ]);
+
+  // Verticals disabled or with zero real supply are hidden site-wide:
+  // nav/footer links filtered, homepage sections dropped, URLs 404.
+  const hidden = hiddenServices(av);
+
+  // Footer "Popular Places" internal links (SEO) — published place pages,
+  // labelled with the city for readable anchor text.
+  const places = landingRefs
+    .filter((r) => r.page_type === "PLACE_CABS")
+    .slice(0, 6)
+    .map((r) => {
+      const name = r.scope.display_name;
+      const city = r.scope.city_name ?? "";
+      // Place names often already carry the city ("Bhubaneswar Railway
+      // Station") — don't repeat it in the anchor text.
+      const base = name.toLowerCase().startsWith(city.toLowerCase())
+        ? name
+        : `${city} ${name}`.trim();
+      return { label: `${base} Cabs`, href: r.canonical_path };
+    });
 
   // Determine if the hero section has media. /bookings has its own dark hero
   // block, but it lives below the global header — the header should stay
@@ -33,9 +59,9 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
 
   return (
     <>
-      <Header cmsData={cms?.header ?? null} heroHasMedia={heroHasMedia} />
+      <Header cmsData={cms?.header ?? null} heroHasMedia={heroHasMedia} hiddenServices={hidden} />
       <main>{children}</main>
-      <Footer cmsData={cms?.footer ?? null} />
+      <Footer cmsData={cms?.footer ?? null} hiddenServices={hidden} places={places} />
       {/* Live support chat — smart-routed to online admin agents */}
       <ChatWidget />
       {/* Floating Call Now — stacked left of the chat launcher, no overlap */}

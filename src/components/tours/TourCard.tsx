@@ -8,6 +8,7 @@
  */
 
 import Link from "next/link";
+import Image from "next/image";
 import { Clock3, MapPin, Star, Users, Sparkles, Tag } from "lucide-react";
 import { PublicTourPackage } from "@/services/tourService";
 
@@ -52,11 +53,12 @@ export default function TourCard({ tour }: { tour: PublicTourPackage }) {
       {/* Hero image */}
       <div className="relative aspect-[4/3] overflow-hidden bg-ink-9">
         {hero ? (
-          <img
+          <Image
             src={hero}
             alt={tour.package_name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary-800 to-accent-900">

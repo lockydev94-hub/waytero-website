@@ -13,20 +13,16 @@ interface Stat {
   label: string;
 }
 
-const PLACEHOLDER: Stat[] = [
-  { value: 50000, suffix: "+", label: "Happy Travelers" },
-  { value: 1200, suffix: "+", label: "Partner Hotels" },
-  { value: 800, suffix: "+", label: "Verified Drivers" },
-  { value: 30, suffix: "+", label: "Cities" },
-];
-
 const ICONS = [Users, Hotel, Car, MapPin];
 const TONES = ["primary", "accent", "success", "info"] as const;
 
 export default function StatsSection({ variant }: StatsSectionProps) {
-  const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Trusted across India"));
+  const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "By the numbers"));
   const headline = pick<string>(variant, "headline", "Numbers that speak");
-  const stats = pick<Stat[]>(variant, "stats", PLACEHOLDER);
+  // No fallback numbers — an invented "50,000+ travelers" is exactly the
+  // fake data the owner ruled out. Empty list → section hidden.
+  const stats = pick<Stat[]>(variant, "stats", []);
+  if (stats.length === 0) return null;
 
   return (
     <Section bg="ink" pad="lg" id="stats" className="relative overflow-hidden" overlay="grid">

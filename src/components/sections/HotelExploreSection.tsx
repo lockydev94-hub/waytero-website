@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Star, MapPin, Wifi, Coffee, Waves, Building2, BedDouble, ChevronRight } from "lucide-react";
 import { Container, Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
@@ -53,11 +54,12 @@ function HotelCard({ hotel }: { hotel: PublicHotelSearchItem }) {
     >
       <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-100 via-accent-50 to-primary-50 overflow-hidden">
         {hasImage ? (
-          <img
+          <Image
             src={hotel.primary_image_url!}
             alt={hotel.hotel_name}
+            fill
+            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
@@ -197,7 +199,7 @@ export default function HotelExploreSection() {
     <Section bg="muted" pad="lg" id="hotels">
       <Container size="lg">
         <SectionHeader
-          eyebrow="Stays across India"
+          eyebrow="Stays in cities we serve"
           title={activeCity ? `Hotels in ${cities.find(c => c.id === activeCity)?.name ?? "your city"}` : "Explore hotels"}
           subtitle={`${total} stay${total === 1 ? "" : "s"} available right now${cityCount ? ` across ${cityCount} cities` : ""} — transparent prices, real guest ratings.`}
         />

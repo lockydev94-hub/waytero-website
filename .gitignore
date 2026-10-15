@@ -30,3 +30,6 @@ yarn-error.log*
 *.swp
 .DS_Store
 Thumbs.db
+
+# local QA screenshots (regeneratable)
+_qa/shots/

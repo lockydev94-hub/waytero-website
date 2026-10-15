@@ -9,7 +9,7 @@ interface CtaSectionProps {
 
 export default function CtaSection({ variant }: CtaSectionProps) {
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Ready for your next journey?"));
-  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Join 50,000+ Indian travelers who book smarter with WayTero."));
+  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Book cabs, hotels and tours with upfront, GST-inclusive pricing."));
   // Backend sends flat cta_text + cta_link — compose object
   const ctaText = pick<string>(variant, "cta_text", "Start Booking");
   const ctaLink = pick<string>(variant, "cta_link", "/cabs");

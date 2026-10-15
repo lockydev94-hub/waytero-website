@@ -5,13 +5,9 @@ import { Mail, Phone, MapPin, MessageCircle, Clock, Building2, CheckCircle2, Loa
 import { Container, Section, PageHeader, Card, IconBox, Input, Textarea, Button, MotionGlow } from "@/components/ui";
 import { publicLeadsService } from "@/services/publicLeads";
 import { useSupportPhone } from "@/hooks/useSupportPhone";
+import { usePlatformContacts } from "@/hooks/usePlatformContacts";
 import { telHref } from "@/lib/supportPhone";
-
-const CHANNELS = [
-  { icon: Mail, title: "Email", value: "support@waytero.com", desc: "We reply within 4 hours.", tone: "accent" as const },
-  { icon: MessageCircle, title: "WhatsApp", value: "+91 90000 00001", desc: "Fastest channel for trip changes.", tone: "success" as const },
-  { icon: Building2, title: "Head office", value: "Bhubaneswar, Odisha", desc: "Mon–Sat, 10am–7pm IST.", tone: "info" as const },
-];
+import { waHref } from "@/lib/brand";
 
 const initialForm = { name: "", email: "", mobile: "", subject: "", message: "" };
 
@@ -21,17 +17,42 @@ export default function ContactPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const supportPhone = useSupportPhone();
-  // Phone support card — dynamic admin number (fallback built into the hook).
+  const contacts = usePlatformContacts();
+  // All contact values: system_configurations via /public/platform-profile,
+  // owner-approved brand master as fallback (never invented numbers).
   const channels = [
     {
       icon: Phone,
       title: "Phone support",
       value: supportPhone,
       href: telHref(supportPhone),
-      desc: "Toll-free, 24/7 — real humans, no IVR maze.",
+      desc: "Real humans on the line — no IVR maze.",
       tone: "primary" as const,
     },
-    ...CHANNELS.map((c) => ({ ...c, href: undefined })),
+    {
+      icon: Mail,
+      title: "Email",
+      value: contacts.email,
+      href: `mailto:${contacts.email}`,
+      desc: "Best for detailed requests and documents.",
+      tone: "accent" as const,
+    },
+    {
+      icon: MessageCircle,
+      title: "WhatsApp",
+      value: supportPhone,
+      href: waHref(supportPhone),
+      desc: "Fastest channel for trip changes.",
+      tone: "success" as const,
+    },
+    {
+      icon: Building2,
+      title: "Head office",
+      value: "Bhubaneswar, Odisha",
+      href: undefined,
+      desc: contacts.address,
+      tone: "info" as const,
+    },
   ];
 
   const update = (key: keyof typeof initialForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
@@ -126,7 +147,7 @@ export default function ContactPage() {
                   <IconBox icon={<MapPin />} tone="primary" size="md" gradient />
                   <div>
                     <div className="text-sm font-bold text-ink">Head office</div>
-                    <div className="text-sm text-ink-3">Plot 14, Tech Corridor, Bhubaneswar, Odisha 751024</div>
+                    <div className="text-sm text-ink-3">{contacts.address}</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/80 backdrop-blur-sm border border-ink-7/60 hover:shadow-wt transition-all">

@@ -5,12 +5,15 @@
 // Settings → Platform Details (system_configurations.SUPPORT_PHONE)
 // and exposed publicly via GET /public/platform-profile. Everywhere on
 // the customer website must use the dynamic number; the fallback below
-// is only used when the admin hasn't configured one (or the API is
-// unreachable), so a phone entry point always exists.
+// is the owner-approved brand-master number, used only when the admin
+// hasn't configured one (or the API is unreachable), so a phone entry
+// point always exists.
 // ============================================================
 
+import { BRAND } from "./brand";
+
 /** Fallback contact number shown when no admin-configured number exists. */
-export const FALLBACK_SUPPORT_PHONE = "8480889870";
+export const FALLBACK_SUPPORT_PHONE = BRAND.phone;
 
 /** Digits-only view of a number for `tel:` links (keeps a leading +). */
 export function telHref(raw: string | null | undefined): string {

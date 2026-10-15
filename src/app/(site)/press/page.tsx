@@ -1,27 +1,32 @@
 import { CtaSection } from "@/components/renderers";
-import {
-  PressHero,
-  PressReleaseList,
-  MediaKitBand,
-} from "@/components/static/PressSection";
+import { PressHero, MediaKitBand } from "@/components/static/PressSection";
+import { pageMetadata, type SeoContent } from "@/services/seoService";
+import { BRAND } from "@/lib/brand";
+import publicCmsService from "@/services/publicCms";
 
-export const metadata = {
+const FALLBACK: SeoContent = {
   title: "Press & Media — WayTero",
-  description: "Latest news, announcements, and media resources from WayTero — India's travel operating system.",
+  description:
+    "Media resources and press enquiries for WayTero — write to our team for data, commentary, and founder interviews.",
+  keywords: ["WayTero press", "travel tech India media", "WayTero newsroom"],
 };
 
-export default function PressPage() {
+export async function generateMetadata(): Promise<import("next").Metadata> {
+  return pageMetadata("press", "/press", FALLBACK);
+}
+
+export default async function PressPage() {
+  const profile = await publicCmsService.getPlatformProfile();
   return (
     <>
       <PressHero />
-      <PressReleaseList />
       <MediaKitBand />
       <CtaSection
         variant={{
-          title: "Covering travel-tech in India?",
-          subtitle: "Our press team shares data, commentary, and founder interviews — reach out anytime.",
+          title: "Covering travel-tech?",
+          subtitle: "Our team shares data, commentary, and founder interviews — reach out anytime.",
           cta_text: "Press enquiries",
-          cta_link: "mailto:press@waytero.com",
+          cta_link: `mailto:${profile.support_email || BRAND.email}`,
         }}
       />
     </>

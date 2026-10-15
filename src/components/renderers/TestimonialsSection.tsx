@@ -16,18 +16,15 @@ interface Testimonial {
   avatar?: string;
 }
 
-const PLACEHOLDER: Testimonial[] = [
-  { name: "Priya Sharma", role: "Marketing Manager", city: "Bengaluru", rating: 5, text: "Booked a Kerala package through WayTero — every transfer, hotel and tour was flawless. The transparency on pricing won me over." },
-  { name: "Arjun Mehta", role: "Founder", city: "Mumbai", rating: 5, text: "Outstation cab booking in 30 seconds, driver assigned in 2 minutes, real-time tracking worked perfectly. Best cab experience I've had in India." },
-  { name: "Riya Patel", role: "Software Engineer", city: "Hyderabad", rating: 5, text: "Used WayTero for our Goa honeymoon. Hotels were exactly as shown, tour operator was polite, and support replied on WhatsApp within minutes." },
-  { name: "Karan Singh", role: "Photographer", city: "Delhi", rating: 4, text: "Loved the wallet credit feature when my plans changed — refund was in my wallet before I'd even reached home." },
-];
-
 export default function TestimonialsSection({ variant }: TestimonialsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Loved by travelers"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "What Our Customers Say"));
-  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "4.8 / 5 average rating across 50,000+ verified reviews."));
-  const items = pick<Testimonial[]>(variant, "testimonials", PLACEHOLDER);
+  // "4.8/5 across 50,000+ reviews" was never a fact the DB could back —
+  // the subtitle only appears when the admin writes it. Empty items →
+  // no section (invented testimonials are worse than no testimonials).
+  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", ""));
+  const items = pick<Testimonial[]>(variant, "testimonials", []);
+  if (items.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="testimonials" overlay="dots">

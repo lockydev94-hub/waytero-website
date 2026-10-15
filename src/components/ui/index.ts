@@ -31,4 +31,5 @@ export {
   MotionScrollCounter,
   MotionReveal,
   MotionMagnetic,
+  usePrefersReducedMotion,
 } from "./Motion";

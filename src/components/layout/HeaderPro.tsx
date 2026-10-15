@@ -13,8 +13,10 @@ import {
 import { Container } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
 import { displayPhone, telHref } from "@/lib/supportPhone";
+import { BRAND } from "@/lib/brand";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
 import type { SiteHeaderData } from "@/types/cms";
+import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 // ── Nav icon map ───────────────────────────────────────────────
 const NAV_ICONS: Record<string, React.ReactNode> = {
@@ -45,7 +47,7 @@ const SECONDARY = [
   { label: "Contact",         href: "/contact" },
 ];
 
-const DEFAULT_TAGLINE       = "India's Travel OS";
+const DEFAULT_TAGLINE       = BRAND.tagline;
 const PARTNER_CTA           = { label: "Become a Partner", href: "/partner" };
 
 interface Props {
@@ -54,9 +56,12 @@ interface Props {
    *  the (site) server layout). The over-hero transparent header is only
    *  applied on the homepage itself — this component checks usePathname. */
   heroHasMedia?: boolean;
+  /** Verticals hidden site-wide (disabled or no real supply) — computed
+   *  server-side from GET /public/availability in the (site) layout. */
+  hiddenServices?: ServiceKey[];
 }
 
-export default function Header({ cmsData, heroHasMedia = false }: Props) {
+export default function Header({ cmsData, heroHasMedia = false, hiddenServices = [] }: Props) {
   const pathname            = usePathname() ?? "";
   const auth                = useAuth();
   const [open, setOpen]     = useState(false);
@@ -130,8 +135,8 @@ export default function Header({ cmsData, heroHasMedia = false }: Props) {
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(href + "/");
 
-  const rawCmsNav = (cmsData?.nav_links ?? []).filter((n) => n?.href && n?.label);
-  const navLinks  = rawCmsNav.length > 0 ? rawCmsNav : DEFAULT_NAV;
+  const rawCmsNav = (cmsData?.nav_links ?? []).filter((n) => n?.href && n?.label && !isHiddenHref(n.href, hiddenServices));
+  const navLinks  = (rawCmsNav.length > 0 ? rawCmsNav : DEFAULT_NAV).filter((n) => !isHiddenHref(n.href, hiddenServices));
   const mobileLinks = [
     ...navLinks,
     ...SECONDARY.filter((s) => !navLinks.some((n) => n.href === s.href)),
@@ -463,9 +468,11 @@ export default function Header({ cmsData, heroHasMedia = false }: Props) {
                     style={{ background: "linear-gradient(135deg, #F05A22 0%, #E04A12 100%)" }}
                   >
                     {avatarUrl ? (
-                      <img
+                      <Image
                         src={avatarUrl}
                         alt={displayName}
+                        width={28}
+                        height={28}
                         className="h-full w-full object-cover"
                       />
                     ) : (

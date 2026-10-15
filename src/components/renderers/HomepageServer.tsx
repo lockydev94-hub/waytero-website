@@ -20,6 +20,16 @@ import {
 } from "./index";
 import type { HomepageSection } from "@/types/cms";
 import { Skeleton } from "@/components/ui";
+import IntentBanner from "@/components/sections/IntentBanner";
+import { getAvailability, hiddenServices, type ServiceKey } from "@/lib/availability";
+
+/** Section keys whose content is sourced from a single vertical — hidden
+ *  site-wide when that vertical is disabled or has zero real supply. */
+const SECTION_SERVICE: Record<string, ServiceKey> = {
+  TOUR_PACKAGES: "TOUR",
+  POPULAR_DESTINATIONS: "TOUR",
+  FEATURED_HOTELS: "HOTEL",
+};
 
 /**
  * Server-rendered variant of HomepageRenderer.
@@ -28,25 +38,46 @@ import { Skeleton } from "@/components/ui";
  * down or returns nothing.
  */
 export default async function HomepageServer() {
-  const data = await publicCmsService.getHomepage();
+  const [data, av] = await Promise.all([
+    publicCmsService.getHomepage(),
+    getAvailability(),
+  ]);
+  const hidden = hiddenServices(av);
   const sections = (data?.sections?.length ? data.sections : defaultSections()) as HomepageSection[];
 
   return (
     <>
       {sections.map((s) => (
-        <SectionSwitch key={s.id} section={s} />
+        <SectionSwitch key={s.id} section={s} hidden={hidden} />
       ))}
     </>
   );
 }
 
-function SectionSwitch({ section }: { section: HomepageSection }) {
+function SectionSwitch({ section, hidden }: { section: HomepageSection; hidden: ServiceKey[] }) {
   const v = section.variant || {};
+  // CMS can bind a section to a service type; the section keys above are
+  // bound implicitly by their data source. Either way: hidden vertical →
+  // no section (owner rule: no "coming soon" fakery for unavailable
+  // verticals — the panel disappears entirely).
+  const boundService =
+    SECTION_SERVICE[section.section_key] ??
+    ((section.service_type === "CAB" || section.service_type === "HOTEL" || section.service_type === "TOUR")
+      ? section.service_type
+      : undefined);
+  if (boundService && hidden.includes(boundService)) return null;
+
   switch (section.section_key) {
     case "HERO":
-      return <HeroSection variant={v} serviceType={section.service_type} />;
+      return (
+        <>
+          <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} />
+          {/* Inline airport/station nudge — client reads local intent. */}
+          <IntentBanner />
+        </>
+      );
     case "SERVICES":
-      return <ServicesSection variant={v} />;
+      return <ServicesSection variant={v} hidden={hidden} />;
     case "WHY_US":
       return <WhyUsSection variant={v} />;
     case "TOUR_PACKAGES":
@@ -66,7 +97,7 @@ function SectionSwitch({ section }: { section: HomepageSection }) {
     case "HOW_IT_WORKS":
       return <HowItWorksSection variant={v} />;
     case "OFFERS":
-      return <OffersSection variant={v} />;
+      return <OffersSection variant={v} hidden={hidden} />;
     case "FAQ":
       return <FaqSection variant={v} />;
     case "NEWSLETTER":

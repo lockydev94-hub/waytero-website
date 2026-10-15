@@ -121,7 +121,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "What if something goes wrong during my trip?",
-    answer: "Call 8480889870 — our 24/7 desk can reassign a cab, move your booking, or escalate to emergency services. Every trip has a support thread from pickup to drop.",
+    answer: "Call {{PHONE}} — our safety desk can reassign a cab, move your booking, or escalate to emergency services. Every trip has a support thread from pickup to drop.",
   },
   {
     question: "Is my payment data safe?",
@@ -136,11 +136,10 @@ const FAQ_ITEMS: FaqItem[] = [
 export async function SafetyFaq() {
   const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
   // Keep the FAQ answer's phone in sync with the admin-configured number.
-  const items = FAQ_ITEMS.map((item) =>
-    item.answer.includes("8480889870")
-      ? { ...item, answer: item.answer.replace("8480889870", supportPhone) }
-      : item,
-  );
+  const items = FAQ_ITEMS.map((item) => ({
+    ...item,
+    answer: item.answer.replaceAll("{{PHONE}}", supportPhone),
+  }));
   return (
     <FaqAccordion
       id="safety-faq"

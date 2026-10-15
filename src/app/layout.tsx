@@ -1,9 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { publicCmsService } from "@/services/publicCms";
 import { displayPhone } from "@/lib/supportPhone";
+import { getLandingRefs } from "@/lib/landingIndex";
+import { appUrl } from "@/services/seoService";
+import { BRAND } from "@/lib/brand";
+
+// Self-hosted at build time — no render-blocking request to fonts.gstatic.com,
+// which is a Core Web Vitals (LCP/CLS) cost Google measures.
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 // ── Global SEO defaults (overridden per page) ────────────────────────────────
 // Static base metadata — favicon + OG image are filled in at request time by
@@ -15,11 +27,11 @@ const BASE_METADATA: Metadata = {
     process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com"
   ),
   title: {
-    default: "WayTero — India's Travel Operating System",
+    default: `WayTero — ${BRAND.tagline}`,
     template: "%s | WayTero",
   },
   description:
-    "Book cabs, hotels, and tour packages across India. WayTero connects customers, partners, drivers, and hotels on one seamless travel platform.",
+    "Book cabs, hotels, and tour packages in the cities WayTero serves. We connect customers, partners, drivers, and hotels on one seamless travel platform.",
   keywords: [
     "travel booking India",
     "cab booking",
@@ -27,16 +39,16 @@ const BASE_METADATA: Metadata = {
     "tour packages",
     "WayTero",
   ],
-  authors: [{ name: "WayTero", url: "https://waytero.com" }],
+  authors: [{ name: "WayTero", url: appUrl() }],
   creator: "WayTero",
   openGraph: {
     type: "website",
     locale: "en_IN",
-    url: "https://waytero.com",
+    url: appUrl(),
     siteName: "WayTero",
-    title: "WayTero — India's Travel Operating System",
+    title: `WayTero — ${BRAND.tagline}`,
     description:
-      "Book cabs, hotels, and tour packages across India on one seamless travel platform.",
+      "Book cabs, hotels, and tour packages in the cities WayTero serves, on one seamless travel platform.",
     images: [
       {
         url: "/og-image.png",
@@ -48,10 +60,9 @@ const BASE_METADATA: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "WayTero — India's Travel Operating System",
-    description: "Book cabs, hotels, and tour packages across India.",
+    title: `WayTero — ${BRAND.tagline}`,
+    description: "Book cabs, hotels, and tour packages in the cities WayTero serves.",
     images: ["/og-image.png"],
-    creator: "@waytero",
   },
   robots: {
     index: true,
@@ -90,13 +101,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
   return {
     ...BASE_METADATA,
+    title: { default: `WayTero — ${profile.tagline}`, template: "%s | WayTero" },
     icons,
     openGraph: {
       ...(BASE_METADATA.openGraph as object),
+      title: `WayTero — ${profile.tagline}`,
       images: ogImage,
     },
     twitter: {
       ...(BASE_METADATA.twitter as object),
+      title: `WayTero — ${profile.tagline}`,
       images: profile.og_image_url ? [profile.og_image_url] : BASE_METADATA.twitter?.images,
     },
   };
@@ -110,7 +124,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" className={inter.variable}>
       <body className="relative">
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] bg-noise opacity-[0.4] mix-blend-overlay" />
         <RootJsonLd />
@@ -122,15 +136,29 @@ export default function RootLayout({ children }: { children: ReactNode }) {
 
 /**
  * Organization + WebSite JSON-LD with the admin-configured support phone
- * (Settings → Platform Details) as the Organization contact number.
- * Server component; the profile fetch is ISR-cached (5 min).
+ * (Settings → Platform Details) as the Organization contact number, the
+ * admin-uploaded logo (Settings → Platform Profile) as the ImageObject logo,
+ * and areaServed derived from the published landing pages' cities/states.
+ * Server component; both fetches are ISR-cached (5 min).
  */
 async function RootJsonLd() {
-  const profile = await publicCmsService.getPlatformProfile();
+  const [profile, refs] = await Promise.all([
+    publicCmsService.getPlatformProfile(),
+    getLandingRefs(),
+  ]);
   const rawPhone = displayPhone(profile.support_phone);
   const telephone = rawPhone.startsWith("+")
     ? rawPhone
     : `+91-${rawPhone.replace(/\D/g, "")}`;
+
+  const root = appUrl();
+  const seen = new Set<string>();
+  const areaServed = refs
+    .map((r) => ({
+      "@type": r.scope.kind === "state" ? "State" : "City",
+      name: r.scope.display_name,
+    }))
+    .filter((a) => !seen.has(a.name) && seen.add(a.name));
 
   return (
     <script
@@ -141,23 +169,28 @@ async function RootJsonLd() {
           "@graph": [
             {
               "@type": "Organization",
-              "@id": "https://waytero.com/#organization",
+              "@id": `${root}/#organization`,
               name: "WayTero",
-              url: "https://waytero.com",
-              logo: "https://res.cloudinary.com/jsrlg7ye/image/upload/v1787077754/waytero/platform/favicon_1787077753.png",
+              url: root,
+              ...(profile.logo_url
+                ? { logo: { "@type": "ImageObject", url: profile.logo_url } }
+                : {}),
               telephone,
-              sameAs: ["https://twitter.com/waytero"],
+              ...(areaServed.length ? { areaServed } : {}),
+              sameAs: Object.values(profile.social_links),
             },
             {
               "@type": "WebSite",
-              "@id": "https://waytero.com/#website",
-              url: "https://waytero.com",
+              "@id": `${root}/#website`,
+              url: root,
               name: "WayTero",
-              publisher: { "@id": "https://waytero.com/#organization" },
+              publisher: { "@id": `${root}/#organization` },
               inLanguage: "en-IN",
             },
           ],
-        }),
+        })
+          .replace(/</g, "\\u003c")
+          .replace(/>/g, "\\u003e"),
       }}
     />
   );

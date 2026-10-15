@@ -18,6 +18,7 @@
  */
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { X, Mail, Phone, ShieldCheck, Loader2, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -432,10 +433,12 @@ function AuthImageSlider({ images }: { images: string[] }) {
     <div className="relative h-full w-full min-h-[460px] bg-[#0B1B3B] overflow-hidden">
       {/* Stacked crossfade layers — keep every image mounted for smooth fades */}
       {images.map((src, i) => (
-        <img
+        <Image
           key={src}
           src={src}
           alt=""
+          fill
+          sizes="(max-width: 1024px) 100vw, 50vw"
           draggable={false}
           className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-700 ${
             i === active ? "opacity-100" : "opacity-0"

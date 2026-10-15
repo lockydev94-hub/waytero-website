@@ -29,18 +29,14 @@ const ICONS: Record<string, LucideIcon> = {
   HandHeart,
 };
 
-const PLACEHOLDER: Step[] = [
-  { title: "Search & Compare", description: "Browse cabs, hotels and tour packages across 30+ cities and compare the best options in one place.", icon: "Search" },
-  { title: "Choose Your Trip", description: "Pick the ride, stay or package that fits your budget and dates — with transparent pricing upfront.", icon: "CalendarCheck" },
-  { title: "Pay Securely", description: "Pay online via wallet, UPI, cards or net-banking with 100% secure, GST-compliant billing.", icon: "ShieldCheck" },
-  { title: "Travel with Ease", description: "Track your cab live, check in with a tap and get 24/7 support from start to finish.", icon: "Plane" },
-];
-
 export default function HowItWorksSection({ variant }: HowItWorksSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Simple & transparent");
   const title = pick<string>(variant, "headline", "How WayTero Works");
   const subtitle = pick<string>(variant, "subheadline", "Book your entire trip in four simple steps.");
-  const steps = pick<Step[]>(variant, "steps", PLACEHOLDER);
+  // Admin-authored only — no invented fallback steps (owner rule:
+  // nothing on the site that the database can't back up).
+  const steps = pick<Step[]>(variant, "steps", []);
+  if (steps.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="how-it-works" overlay="grid">

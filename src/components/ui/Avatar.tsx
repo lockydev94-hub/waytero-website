@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 interface AvatarProps {
   name: string;
   src?: string | null;
@@ -41,11 +43,11 @@ export default function Avatar({ name, src, size = "md", className = "" }: Avata
   const tone = pickTone(name);
   return (
     <div
-      className={`inline-flex items-center justify-center rounded-full font-bold overflow-hidden flex-shrink-0 ${SIZE[size]} ${tone} ${className}`}
+      className={`relative inline-flex items-center justify-center rounded-full font-bold overflow-hidden flex-shrink-0 ${SIZE[size]} ${tone} ${className}`}
       aria-label={name}
     >
       {src ? (
-        <img src={src} alt={name} className="h-full w-full object-cover" />
+        <Image src={src} alt={name} fill sizes="40px" className="absolute inset-0 h-full w-full object-cover" />
       ) : (
         <span>{getInitials(name)}</span>
       )}

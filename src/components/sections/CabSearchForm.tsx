@@ -23,6 +23,10 @@ import {
   Users, ArrowRight, Repeat2, Plane, Car, Search,
 } from "lucide-react";
 import { cabService, type PublicCity, type PublicTripType } from "@/services/cabService";
+import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
+import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
+import { outOfServiceArea } from "@/lib/serviceArea";
+import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PlaceSuggestion {
@@ -366,6 +370,8 @@ function LocationInput({
   // Anchor rect for the portal'd dropdown — see HeroSearchForm for the
   // same pattern; this escapes any `overflow-hidden` ancestor.
   const [dropdownRect, setDropdownRect] = useState<{ top: number; left: number; width: number } | null>(null);
+  // Pick resolved to a place outside every serviced city → honest notice.
+  const [outOfArea, setOutOfArea] = useState<string | null>(null);
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -494,16 +500,27 @@ function LocationInput({
         if (status === "OK" && results?.[0]) {
           const loc = results[0].geometry.location;
           const lat = loc.lat(), lng = loc.lng();
-          // Derive city_id from coords so the fare-estimate always loads.
+          // Airport/station picks are remembered locally so the homepage can
+          // offer the matching place page next visit (fire-and-forget).
+          void maybeRecordPlaceIntent(results[0].types, lat, lng);
+          // Derive city_id from coords so the fare-estimate always loads —
+          // but only when the pick is actually within reach of the matched
+          // city. Far-away picks get the honest "not served yet" notice.
           try {
             const city = await cabService.matchNearestCity(lat, lng);
-            onChange({
-              label: s.description,
-              place_id: s.place_id,
-              lat, lng,
-              city_id: city?.id,
-              city_name: city?.name,
-            });
+            if (outOfServiceArea(city, lat, lng)) {
+              setOutOfArea(s.description.split(",")[0]);
+              onChange({ label: s.description, place_id: s.place_id, lat, lng });
+            } else {
+              setOutOfArea(null);
+              onChange({
+                label: s.description,
+                place_id: s.place_id,
+                lat, lng,
+                city_id: city?.id,
+                city_name: city?.name,
+              });
+            }
           } catch {
             onChange({ label: s.description, place_id: s.place_id, lat, lng });
           }
@@ -520,6 +537,7 @@ function LocationInput({
     setLocked(false);
     setSuggestions([]);
     setOpen(false);
+    setOutOfArea(null);
     sessionToken.current = null;
     onChange({ label: "" });
   };
@@ -591,6 +609,13 @@ function LocationInput({
           </button>
         )}
       </div>
+      {outOfArea && (
+        <OutOfServiceAreaNotice
+          area={outOfArea}
+          onDismiss={() => setOutOfArea(null)}
+          className="mt-2"
+        />
+      )}
       {open && suggestions.length > 0 && dropdownRect && typeof document !== "undefined" &&
         createPortal(
           <div
@@ -663,6 +688,13 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   const [tripType, setTripType] = useState<string>(() => {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("trip_type") ?? "";
+  });
+  // /cabs?city_id=5 — landing-page city chips preselect the right city.
+  const [deepLinkCityId] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const raw = new URLSearchParams(window.location.search).get("city_id");
+    const n = raw ? Number(raw) : NaN;
+    return Number.isInteger(n) && n > 0 ? n : null;
   });
   const [pickup, setPickup]       = useState<LocationValue>({ label: "" });
   const [drop, setDrop]           = useState<LocationValue>({ label: "" });
@@ -749,15 +781,16 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     cabService.getCities().then(setCities).catch(() => {});
   }, [useCityMode, cities.length]);
 
-  // Pick a default city once the list arrives — Bhubaneswar if present,
-  // else first city with lat/lng, else first city. Avoids querying Places
-  // with an empty bias while cities load.
+  // Pick a default city once the list arrives — deep-linked city_id first,
+  // then Bhubaneswar, then first city with lat/lng, then first city. Avoids
+  // querying Places with an empty bias while cities load.
   useEffect(() => {
     if (selectedCity || cities.length === 0) return;
+    const linked = deepLinkCityId ? cities.find(c => c.id === deepLinkCityId) : undefined;
     const bbs = cities.find(c => c.city_code === "BBS");
     const withCoords = cities.find(c => c.latitude != null && c.longitude != null);
-    setSelectedCity(bbs ?? withCoords ?? cities[0] ?? null);
-  }, [cities, selectedCity]);
+    setSelectedCity(linked ?? bbs ?? withCoords ?? cities[0] ?? null);
+  }, [cities, selectedCity, deepLinkCityId]);
 
   // Fetch active trip types — these are the only bookable trip types.
   useEffect(() => {
@@ -821,12 +854,13 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     }
 
     // Resolve city_id — value picked in city picker, else backend nearest-city
-    // lookup using pickup coords (reliable, doesn't depend on Maps session state).
+    // lookup using pickup coords. An out-of-range match stays city-less: the
+    // results page shows the honest "not served yet" notice there.
     let cityId = pickup.city_id;
     if (!cityId && pickup.lat && pickup.lng) {
       try {
         const c = await cabService.matchNearestCity(pickup.lat, pickup.lng);
-        cityId = c?.id;
+        if (!outOfServiceArea(c, pickup.lat, pickup.lng)) cityId = c?.id;
       } catch {
         cityId = undefined;
       }
@@ -889,6 +923,10 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
               }}
               className="bg-white rounded-xl shadow-[0_20px_60px_rgba(11,27,59,0.22)] border border-ink-7 overflow-y-auto"
             >
+              <UseMyLocationOption
+                onCity={(c) => setSelectedCity(c)}
+                onClose={() => setCityChipOpen(false)}
+              />
               {cities.map(c => {
                 const active = c.id === selectedCity?.id;
                 return (

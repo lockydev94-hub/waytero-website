@@ -8,6 +8,7 @@ import { Container, Section, PageHeader, SectionHeader, IconBox, Card, ButtonLin
 import FaqAccordion, { type FaqItem } from "@/components/static/FaqAccordion";
 import { publicCmsService } from "@/services/publicCms";
 import { displayPhone, telHref } from "@/lib/supportPhone";
+import { waHref } from "@/lib/brand";
 
 // ── Hero ────────────────────────────────────────────────────────────────
 export function SupportHero() {
@@ -90,7 +91,7 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "How do I change my check-in date after booking?",
-    answer: "Contact support before the hotel's change window closes. Date changes are subject to availability and the rate difference; call us on 8480889870 for the fastest help.",
+    answer: "Contact support before the hotel's change window closes. Date changes are subject to availability and the rate difference; call us on {{PHONE}} for the fastest help.",
   },
   {
     question: "When will my refund appear in my wallet?",
@@ -98,18 +99,21 @@ const FAQ_ITEMS: FaqItem[] = [
   },
   {
     question: "How do I get a GST invoice for my booking?",
-    answer: "Tax invoices are auto-generated for eligible bookings. Find 'Invoice' under the booking details in My Bookings, or email support@waytero.com with your booking number.",
+    answer: "Tax invoices are auto-generated for eligible bookings. Find 'Invoice' under the booking details in My Bookings, or email {{EMAIL}} with your booking number.",
   },
 ];
 
 export async function SupportFaq() {
-  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
-  // Keep the FAQ answer's phone in sync with the admin-configured number.
-  const items = FAQ_ITEMS.map((item) =>
-    item.answer.includes("8480889870")
-      ? { ...item, answer: item.answer.replace("8480889870", supportPhone) }
-      : item,
-  );
+  const profile = await publicCmsService.getPlatformProfile();
+  const supportPhone = displayPhone(profile.support_phone);
+  // Keep the FAQ answers' contact values in sync with the DB (brand master
+  // fallback applied inside getPlatformProfile).
+  const items = FAQ_ITEMS.map((item) => ({
+    ...item,
+    answer: item.answer
+      .replaceAll("{{PHONE}}", supportPhone)
+      .replaceAll("{{EMAIL}}", profile.support_email),
+  }));
   return (
     <FaqAccordion
       id="faq"
@@ -124,11 +128,12 @@ export async function SupportFaq() {
 // ── Contact channels (module-level static channels moved into SupportChannels) ──
 
 export async function SupportChannels() {
-  const supportPhone = displayPhone(await publicCmsService.getSupportPhone());
+  const profile = await publicCmsService.getPlatformProfile();
+  const supportPhone = displayPhone(profile.support_phone);
   const CHANNELS = [
-    { icon: Phone, title: "Call us", value: supportPhone, href: telHref(supportPhone), desc: "24/7. Real humans, no IVR maze.", tone: "primary" as const },
-    { icon: MessageCircle, title: "WhatsApp", value: "+91 90000 00001", href: undefined, desc: "Fastest for trip changes while traveling.", tone: "success" as const },
-    { icon: Mail, title: "Email", value: "support@waytero.com", href: undefined, desc: "We reply within 4 hours, day or night.", tone: "accent" as const },
+    { icon: Phone, title: "Call us", value: supportPhone, href: telHref(supportPhone), desc: "Real humans, no IVR maze.", tone: "primary" as const },
+    { icon: MessageCircle, title: "WhatsApp", value: supportPhone, href: waHref(supportPhone), desc: "Fastest for trip changes while traveling.", tone: "success" as const },
+    { icon: Mail, title: "Email", value: profile.support_email, href: `mailto:${profile.support_email}`, desc: "Best for detailed requests and documents.", tone: "accent" as const },
   ];
   return (
     <Section bg="muted" pad="lg" overlay="grid">

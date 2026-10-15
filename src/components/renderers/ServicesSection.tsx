@@ -17,9 +17,12 @@ interface ServiceItem {
 import { Container, Section, SectionHeader, IconBox, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
+import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 interface ServicesSectionProps {
   variant: Record<string, unknown>;
+  /** Verticals hidden site-wide — cards linking into them are removed. */
+  hidden?: ServiceKey[];
 }
 
 const DEFAULT: ServiceItem[] = [
@@ -29,11 +32,14 @@ const DEFAULT: ServiceItem[] = [
   { icon: MapPin, title: "Live Tracking", desc: "Track your cab, driver, and booking in real-time.", link: "/track", tone: "info" },
 ];
 
-export default function ServicesSection({ variant }: ServicesSectionProps) {
+export default function ServicesSection({ variant, hidden = [] }: ServicesSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "What we offer"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Everything for Your Journey"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "One platform for every travel need — from your first mile to your last check-out."));
-  const items = pick<ServiceItem[]>(variant, "items", DEFAULT);
+  const items = pick<ServiceItem[]>(variant, "items", DEFAULT).filter(
+    (s) => !isHiddenHref(s.link, hidden),
+  );
+  if (items.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="services" overlay="dots">

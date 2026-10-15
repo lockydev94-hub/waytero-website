@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft, CalendarDays, Check, Clock3, MapPin, ShieldCheck, Sparkles, Users,
@@ -167,7 +168,11 @@ export default function TourDetailPage({
     await openReview();
   };
 
-  const confirmBooking = async (opts: { traveller_name: string; traveller_mobile?: string }) => {
+  const confirmBooking = async (opts: {
+    traveller_name: string;
+    traveller_mobile?: string;
+    coupon_code?: string;
+  }) => {
     if (!tour || !date) return;
     if (opts.traveller_name.trim().length < 2) {
       setMessage("Name must be at least 2 characters.");
@@ -180,6 +185,9 @@ export default function TourDetailPage({
         package_id: tour.id,
         travel_start_date: date,
         persons_count: pax,
+        // Server re-validates the code against the recomputed total and
+        // records the funding split — never trust the previewed discount.
+        coupon_code: opts.coupon_code?.trim() || undefined,
         participants: [{
           participant_name: opts.traveller_name.trim(),
           mobile: opts.traveller_mobile?.trim() || undefined,
@@ -248,7 +256,7 @@ export default function TourDetailPage({
                 onClick={() => { setGalleryIndex(0); setLightboxOpen(true); }}
                 className="w-full aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl border border-white/10 group relative"
               >
-                <img src={hero} alt={tour.package_name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                <Image src={hero} alt={tour.package_name} fill priority sizes="(max-width: 1024px) 100vw, 640px" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                 {gallery.length > 1 && (
                   <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/70 px-2.5 py-1 text-[10px] font-extrabold text-white">
                     1 / {gallery.length} · View all
@@ -312,7 +320,7 @@ export default function TourDetailPage({
                     onClick={() => { setGalleryIndex(i); setLightboxOpen(true); }}
                     className={`relative aspect-square overflow-hidden rounded-xl border-2 ${i === galleryIndex ? "border-primary-600" : "border-transparent"}`}
                   >
-                    <img src={m.media_url} alt={m.caption || `image ${i + 1}`} className="h-full w-full object-cover" />
+                    <Image src={m.media_url} alt={m.caption || `image ${i + 1}`} fill sizes="160px" className="absolute inset-0 h-full w-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -535,8 +543,11 @@ export default function TourDetailPage({
       )}
 
       {/* ── Mobile sticky book bar ──────────────────────────── */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink-7 bg-white/95 backdrop-blur md:hidden">
-        <div className="flex items-center justify-between px-4 py-3">
+      <div
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-7 bg-white/95 backdrop-blur md:hidden"
+        style={{ paddingBottom: "calc(0.625rem + env(safe-area-inset-bottom))" }}
+      >
+        <div className="flex items-center justify-between px-4 pt-3 pr-[8.5rem]">
           <div>
             <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Starting from</div>
             <div className="text-lg font-black text-ink">{INR(tour.starting_price || 0)}</div>
@@ -631,6 +642,7 @@ export default function TourDetailPage({
       <TourBookingReviewModal
         open={reviewOpen}
         onClose={() => setReviewOpen(false)}
+        packageId={tour.id}
         packageName={tour.package_name}
         destination={tour.destination}
         startDate={date}

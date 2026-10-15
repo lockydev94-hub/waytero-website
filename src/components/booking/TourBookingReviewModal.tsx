@@ -12,11 +12,13 @@
  * Doc Ref: BRD_PART_5_TOUR_PACKAGE_MANAGEMENT §6, tour/api.py
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   X, CalendarRange, Users, MapPin, Sparkles, Loader2,
-  CheckCircle2, AlertCircle, Info,
+  CheckCircle2, AlertCircle, Info, Tag,
 } from "lucide-react";
+import { cabService, type CouponApplyOut } from "@/services/cabService";
+import { COUPON_FUNDING_LABELS } from "@/services/cabService";
 
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -29,6 +31,7 @@ const fmtDay = (iso: string) => {
 export interface TourBookingReviewModalProps {
   open: boolean;
   onClose: () => void;
+  packageId: number;
   packageName: string;
   destination: string;
   /** YYYY-MM-DD */
@@ -41,12 +44,14 @@ export interface TourBookingReviewModalProps {
   /** Server-computed quote (may be null while loading). */
   quote: { total_amount: number; commission_percent?: number } | null;
   submitting: boolean;
-  onConfirm: (opts: { traveller_name: string; traveller_mobile?: string }) => Promise<void> | void;
+  bookingError?: string;
+  onConfirm: (opts: { traveller_name: string; traveller_mobile?: string; coupon_code?: string }) => Promise<void> | void;
 }
 
 export default function TourBookingReviewModal({
   open,
   onClose,
+  packageId,
   packageName,
   destination,
   startDate,
@@ -61,17 +66,66 @@ export default function TourBookingReviewModal({
   const [travellerName, setTravellerName] = useState("");
   const [travellerMobile, setTravellerMobile] = useState("");
   const [travellerError, setTravellerError] = useState<string | null>(null);
+  const [coupon, setCoupon] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponResult, setCouponResult] = useState<CouponApplyOut | null>(null);
+  const [couponError, setCouponError] = useState<string | null>(null);
 
+  const couponRequest = useRef(0);
+  const bookingKey = JSON.stringify([packageId, startDate, pax, quote?.total_amount]);
   useEffect(() => {
     if (open) {
       setTravellerError(null);
     }
   }, [open]);
+  // A changed trip invalidates both the preview and any in-flight response.
+  useEffect(() => {
+    couponRequest.current += 1;
+    setCoupon("");
+    setCouponResult(null);
+    setCouponError(null);
+    setApplyingCoupon(false);
+    return () => { couponRequest.current += 1; };
+  }, [open, bookingKey]);
 
   if (!open) return null;
 
   const total = quote?.total_amount ?? 0;
   const perPerson = total > 0 && pax > 0 ? Math.round(total / pax) : 0;
+  const discount = couponResult?.valid ? Number(couponResult.discount_amount) : 0;
+  // Server owns the payable total — booking creation re-validates the same way.
+  const payable = couponResult?.valid
+    ? Math.max(0, Number(couponResult.final_amount))
+    : total;
+
+  const handleApplyCoupon = async () => {
+    const code = coupon.trim();
+    if (!code || !quote) return;
+    const request = ++couponRequest.current;
+    setApplyingCoupon(true);
+    setCouponResult(null);
+    setCouponError(null);
+    try {
+      const res = await cabService.applyCoupon({
+        coupon_code: code,
+        service_type: "TOUR",
+        tour_package_id: packageId,
+        booking_amount: total,
+      });
+      if (request !== couponRequest.current) return;
+      if (res.valid) {
+        setCouponResult(res);
+      } else {
+        setCouponError(res.message || "Coupon not valid for this booking");
+      }
+    } catch (e) {
+      if (request === couponRequest.current) {
+        setCouponError(e instanceof Error ? e.message : "Couldn't apply coupon");
+      }
+    } finally {
+      if (request === couponRequest.current) setApplyingCoupon(false);
+    }
+  };
 
   const handleConfirm = () => {
     if (!travellerName.trim()) {
@@ -81,6 +135,7 @@ export default function TourBookingReviewModal({
     onConfirm({
       traveller_name: travellerName.trim(),
       traveller_mobile: travellerMobile.trim() || undefined,
+      coupon_code: couponResult?.valid ? coupon.trim() : undefined,
     });
   };
 
@@ -155,8 +210,20 @@ export default function TourBookingReviewModal({
               <div className="border-t border-ink-8 pt-2 space-y-1 text-xs">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-bold text-ink">Total ({pax} travellers)</span>
-                  <span className="font-extrabold text-ink tabular-nums">{INR(total)}</span>
+                  <span className={`font-extrabold tabular-nums ${discount > 0 ? "text-ink-4 line-through" : "text-ink"}`}>{INR(total)}</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-emerald-600 font-semibold">
+                    <span>Coupon discount</span>
+                    <span className="tabular-nums">−{INR(discount)}</span>
+                  </div>
+                )}
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="font-bold text-ink">Payable</span>
+                    <span className="font-extrabold text-ink tabular-nums">{INR(payable)}</span>
+                  </div>
+                )}
                 {quote.commission_percent != null && (
                   <div className="flex items-center gap-1.5 text-[11px] text-ink-4 pt-1">
                     <CheckCircle2 size={12} className="text-emerald-500" />
@@ -166,6 +233,58 @@ export default function TourBookingReviewModal({
               </div>
             </div>
           )}
+
+          {/* Coupon */}
+          <div>
+            <label className="block text-[11px] font-bold uppercase tracking-wider text-ink-3 mb-1.5">
+              Coupon (optional)
+            </label>
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Tag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-4" />
+                <input
+                  value={coupon}
+                  onChange={(e) => { setCoupon(e.target.value.toUpperCase()); setCouponResult(null); setCouponError(null); }}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleApplyCoupon(); }}
+                  placeholder="Enter coupon code"
+                  disabled={!!couponResult?.valid || submitting}
+                  className="w-full h-10 rounded-xl border border-ink-7 pl-9 pr-3 text-sm uppercase focus:outline-none focus:ring-2 focus:ring-primary-600/15 focus:border-primary-600 disabled:bg-ink-9"
+                />
+              </div>
+              {couponResult?.valid ? (
+                <button
+                  type="button"
+                  onClick={() => { setCoupon(""); setCouponResult(null); }}
+                  className="h-10 px-4 rounded-xl border border-ink-7 text-xs font-bold text-ink-3 hover:bg-ink-9"
+                >
+                  Remove
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleApplyCoupon}
+                  disabled={!coupon.trim() || applyingCoupon || submitting}
+                  className="h-10 px-4 rounded-xl bg-ink text-white text-xs font-bold inline-flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  {applyingCoupon && <Loader2 size={13} className="animate-spin" />}
+                  Apply
+                </button>
+              )}
+            </div>
+            {couponError && <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {couponError}</p>}
+            {couponResult?.valid && (
+              <div className="mt-1.5">
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 size={12} /> You save {INR(couponResult.discount_amount)}!
+                </p>
+                {couponResult.coupon_type !== "PLATFORM" && (
+                  <p className="text-[11px] text-ink-4 mt-0.5">
+                    {COUPON_FUNDING_LABELS[couponResult.coupon_type]}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Primary traveller details */}
           <div className="space-y-3">

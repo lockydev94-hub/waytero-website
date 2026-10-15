@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import HotelDetailPage from "./hotel-detail";
 import type { PublicHotelDetails } from "@/services/hotelService";
-import { STATIC_SEO, toMetadata, type SeoContent } from "@/services/seoService";
+import { getAvailability, serviceVisible } from "@/lib/availability";
+import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -40,7 +41,7 @@ async function seoForHotel(hotel: PublicHotelDetails | null): Promise<SeoContent
       hotel.seo_description?.trim() ||
       hotel.short_description?.trim() ||
       hotel.description?.slice(0, 320) ||
-      `Book ${hotel.hotel_name} in ${hotel.city_name} at the best price with free cancellation.`,
+      `Book ${hotel.hotel_name} in ${hotel.city_name} — live rates and availability on WayTero.`,
     keywords: hotel.seo_keywords
       ? hotel.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
       : [...fallback.keywords, hotel.hotel_name, hotel.city_name],
@@ -82,18 +83,72 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HotelDetailsPage({ params }: Props) {
   const { slug } = await params;
+  // Hard availability gate: HOTEL hidden site-wide when disabled or the DB
+  // has no supply — detail URLs 404 too, not just the listing.
+  const av = await getAvailability();
+  if (!serviceVisible(av, "HOTEL")) notFound();
   const hotel = await loadHotel(slug);
   if (!hotel) notFound();
 
+  // schema.org Hotel — rich results (star rating, price range, geo, rating)
+  const minPrice = Math.min(
+    ...hotel.room_categories.map((r) => r.base_price).filter((p) => p > 0),
+    Number.POSITIVE_INFINITY,
+  );
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Hotel",
+    name: hotel.hotel_name,
+    description: hotel.short_description || hotel.description || undefined,
+    url: `${appUrl()}/hotels/${slug}`,
+    image: hotel.images.length ? hotel.images : undefined,
+    starRating: hotel.star_rating
+      ? { "@type": "Rating", ratingValue: hotel.star_rating, bestRating: 5 }
+      : undefined,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: hotel.address || undefined,
+      addressLocality: hotel.city_name,
+      addressRegion: hotel.state_name || undefined,
+      postalCode: hotel.postal_code || undefined,
+      addressCountry: "IN",
+    },
+    geo:
+      hotel.latitude != null && hotel.longitude != null
+        ? { "@type": "GeoCoordinates", latitude: hotel.latitude, longitude: hotel.longitude }
+        : undefined,
+    amenities: hotel.amenities.length ? hotel.amenities : undefined,
+    priceRange:
+      Number.isFinite(minPrice) ? `₹${Math.round(minPrice)}+ per night` : undefined,
+    aggregateRating:
+      hotel.total_reviews > 0 && hotel.average_rating > 0
+        ? {
+            "@type": "AggregateRating",
+            ratingValue: hotel.average_rating,
+            reviewCount: hotel.total_reviews,
+            bestRating: 5,
+            worstRating: 1,
+          }
+        : undefined,
+  };
+
   return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <span className="h-8 w-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
-        </div>
-      }
-    >
-      <HotelDetailPage initialHotel={hotel} />
-    </Suspense>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
+        }}
+      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen flex items-center justify-center bg-white">
+            <span className="h-8 w-8 rounded-full border-4 border-primary-200 border-t-primary-600 animate-spin" />
+          </div>
+        }
+      >
+        <HotelDetailPage initialHotel={hotel} />
+      </Suspense>
+    </>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useState, useMemo, useCallback } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import DOMPurify from "dompurify";
+import DOMPurify from "isomorphic-dompurify";
 import {
   ArrowLeft, ArrowRight, Calendar, User, Tag, Clock, Share2, Check,
   Mail, Twitter, Facebook, Linkedin, MessageCircle, BookOpen, Car, ListOrdered,
@@ -339,9 +340,11 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-ink-4">
             <span className="inline-flex items-center gap-1.5">
               {post.author_avatar_url ? (
-                <img
+                <Image
                   src={post.author_avatar_url}
                   alt={post.author_name || "Author"}
+                  width={24}
+                  height={24}
                   className="h-6 w-6 rounded-full object-cover ring-2 ring-primary-100"
                 />
               ) : (
@@ -374,11 +377,14 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
             <div className="min-w-0">
               {/* Featured image */}
               {post.featured_image_url && (
-                <div className="rounded-2xl overflow-hidden shadow-wt-lg">
-                  <img
+                <div className="relative h-64 sm:h-80 overflow-hidden rounded-2xl shadow-wt-lg">
+                  <Image
                     src={post.featured_image_url}
                     alt={post.title}
-                    className="w-full h-auto max-h-96 object-cover"
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 760px"
+                    className="absolute inset-0 h-full w-full object-cover"
                   />
                 </div>
               )}
@@ -401,9 +407,11 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
               <div className="mt-12 pt-8 border-t border-ink-7">
                 <div className="rounded-2xl bg-gradient-to-br from-ink-9 to-ink-8 border border-ink-7 p-6 flex flex-col sm:flex-row sm:items-center gap-5">
                   {post.author_avatar_url ? (
-                    <img
+                    <Image
                       src={post.author_avatar_url}
                       alt={post.author_name || "Author"}
+                      width={64}
+                      height={64}
                       className="h-16 w-16 rounded-full object-cover ring-2 ring-primary-100 shadow-wt-sm"
                     />
                   ) : (

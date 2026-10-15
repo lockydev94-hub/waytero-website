@@ -17,7 +17,7 @@ const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 export function useSupportPhone(): string {
-  const [phone, setPhone] = useState(FALLBACK_SUPPORT_PHONE);
+  const [phone, setPhone] = useState<string>(FALLBACK_SUPPORT_PHONE);
 
   useEffect(() => {
     let cancelled = false;

@@ -15,6 +15,11 @@ export interface PublicCity {
   // "Bhubaneswar Airport" doesn't rank "Bihar, India" above it.
   latitude?: number | null;
   longitude?: number | null;
+  // GET /public/cab/cities flags cities with zero configured vehicles;
+  // those are filtered before the dropdowns ever see them (nothing is
+  // bookable there — owner rule: never advertise an unservable city).
+  has_pricing?: boolean;
+  vehicle_count?: number;
 }
 
 export interface PublicVehicleCategory {
@@ -140,12 +145,15 @@ export interface LoginOut {
 
 export interface CouponApplyIn {
   coupon_code: string;
-  service_type?: "CAB";
+  service_type: "CAB" | "HOTEL" | "TOUR";
   vehicle_category_id?: number;
   city_id?: number;
+  hotel_id?: number;
+  tour_package_id?: number;
+  pickup_datetime?: string;
+  return_datetime?: string;
   booking_amount: number;
-  customer_id: number;
-  customer_mobile?: string;
+  // Customer identity and fulfilling partner are resolved by the server.
 }
 
 export interface CouponApplyOut {
@@ -153,7 +161,17 @@ export interface CouponApplyOut {
   discount_amount: number;
   final_amount: number;
   message: string;
+  coupon_id: number | null;
+  coupon_type: "PLATFORM" | "PARTNER_ONLY" | "PLATFORM_PARTNER";
 }
+
+/** Only these funding labels are customer-facing; anything unknown renders
+ *  no label rather than a invented one. */
+export const COUPON_FUNDING_LABELS: Record<CouponApplyOut["coupon_type"], string> = {
+  PLATFORM: "Platform offer",
+  PARTNER_ONLY: "Partner offer — redeemed cabs come from the partner that funds this coupon",
+  PLATFORM_PARTNER: "Partner offer — funded jointly by the platform and partner",
+};
 
 export interface CustomerMeOut {
   id: number;
@@ -188,8 +206,12 @@ async function post<T>(path: string, body: unknown): Promise<T> {
 }
 
 export const cabService = {
-  getCities: (): Promise<PublicCity[]> =>
-    get("/public/cab/cities"),
+  getCities: async (): Promise<PublicCity[]> => {
+    const rows = await get<PublicCity[]>("/public/cab/cities");
+    // Only cities with at least one vehicle configured are selectable —
+    // a city with zero vehicles can never show a fare.
+    return rows.filter((c) => c.has_pricing !== false);
+  },
 
   /** Nearest active city to a (lat, lng) — used to derive city_id after a
    *  Google Places pick. Returns null if no active city has coords yet. */
@@ -269,8 +291,26 @@ export const cabService = {
   // ── Coupon preview (re-checks eligibility + returns discount) ──
   applyCoupon: async (body: CouponApplyIn): Promise<CouponApplyOut> => {
     const { default: api } = await import("@/lib/api");
-    const res = await api.post<CouponApplyOut>("/public/coupon/validate", body);
-    return res.data;
+    try {
+      const res = await api.post<Omit<CouponApplyOut, "discount_amount" | "final_amount"> & {
+        discount_amount: number | string;
+        final_amount: number | string;
+      }>("/public/coupon/validate", body);
+      // FastAPI serializes Decimal as strings; normalize before display/math.
+      const discount_amount = Number(res.data.discount_amount);
+      const final_amount = Number(res.data.final_amount);
+      if (!Number.isFinite(discount_amount) || !Number.isFinite(final_amount)) {
+        throw new Error("Couldn't read the coupon total. Please try again.");
+      }
+      return { ...res.data, discount_amount, final_amount };
+    } catch (error) {
+      const { isAxiosError } = await import("axios");
+      if (isAxiosError(error)) {
+        const detail = error.response?.data?.detail ?? error.response?.data?.message;
+        if (typeof detail === "string") throw new Error(detail);
+      }
+      throw error;
+    }
   },
 
   // ── Customer profile (auth required — uses apiClient for token attach) ──

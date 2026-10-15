@@ -1,8 +1,19 @@
+import Link from "next/link";
 import { Container, PageHeader, Card } from "@/components/ui";
 import { Section } from "@/components/ui";
 import { publicCmsService, LegalPage } from "@/services/publicCms";
+import { pageMetadata, type SeoContent } from "@/services/seoService";
+import { BRAND } from "@/lib/brand";
 
-export const metadata = { title: "Privacy Policy", description: "WayTero's privacy policy — how we collect, use, and protect your data." };
+const META_FALLBACK: SeoContent = {
+  title: "Privacy Policy — WayTero",
+  description: "WayTero's privacy policy — how we collect, use, and protect your data.",
+  keywords: ["WayTero privacy", "data protection India", "travel app privacy"],
+};
+
+export async function generateMetadata(): Promise<import("next").Metadata> {
+  return pageMetadata("privacy", "/privacy", META_FALLBACK);
+}
 
 // Static fallback — used only when the backend is unreachable. The seeded
 // content from GET /public/legal/privacy (single source of truth) wins.
@@ -14,7 +25,7 @@ const FALLBACK: LegalPage = {
   sections: [
     {
       heading: "1. Data we collect",
-      body: "WayTero Travel Technologies Pvt Ltd (\"WayTero\", \"we\", \"us\") collects only the data needed to deliver your travel services: account information (name, email, mobile number), trip information (pickup, drop, dates, passengers), payment metadata (card numbers are never stored by us), and device/usage logs used for fraud prevention and product improvement.",
+      body: "WayTero (\"we\", \"us\", \"our\") collects only the data needed to deliver your travel services: account information (name, email, mobile number), trip information (pickup, drop, dates, passengers), payment metadata (card numbers are never stored by us), and device/usage logs used for fraud prevention and product improvement.",
     },
     {
       heading: "2. How we use your data",
@@ -30,7 +41,7 @@ const FALLBACK: LegalPage = {
     },
     {
       heading: "5. Your rights",
-      body: "You can request an export of your data, correction, or deletion by raising an account deletion request or emailing privacy@waytero.com. We respond within 30 days.",
+      body: `You can request an export of your data, correction, or deletion by raising an account deletion request or emailing ${BRAND.email}. We respond within 30 days.`,
     },
     {
       heading: "6. Security",
@@ -41,7 +52,12 @@ const FALLBACK: LegalPage = {
 
 export default async function PrivacyPage() {
   const page = (await publicCmsService.getLegalPage("privacy")) ?? FALLBACK;
-  const subtitle = `Effective ${page.effective_date ?? "January 1, 2026"} · Last updated ${page.updated_at ?? "August 10, 2026"}`;
+  const subtitle = [
+    page.effective_date ? `Effective ${page.effective_date}` : null,
+    page.updated_at ? `Last updated ${page.updated_at}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <>
@@ -68,9 +84,9 @@ export default async function PrivacyPage() {
               ))}
               <p className="text-sm text-ink-4 pt-2 border-t border-ink-8">
                 Want to delete your account?{" "}
-                <a href="/account-deletion" className="text-primary-600 font-semibold">
+                <Link href="/account-deletion" className="text-primary-600 font-semibold">
                   Request account deletion
-                </a>
+                </Link>
               </p>
             </div>
           </Card>

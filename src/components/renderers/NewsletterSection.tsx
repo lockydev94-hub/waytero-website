@@ -1,21 +1,26 @@
 "use client";
 
-import { useState } from "react";
-import { Send, CheckCircle2 } from "lucide-react";
+import { Mail } from "lucide-react";
 import { Container, Section, MotionGlow, Button } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import { pick } from "@/types/cms";
+import { usePlatformContacts } from "@/hooks/usePlatformContacts";
 
 interface NewsletterSectionProps {
   variant: Record<string, unknown>;
 }
 
+// There is no newsletter backend yet, so this renders no fake capture form:
+// the band links to the real support email (DB-first via platform profile).
 export default function NewsletterSection({ variant }: NewsletterSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Stay in the loop");
-  const title = pick<string>(variant, "headline", "Get travel deals in your inbox");
-  const subtitle = pick<string>(variant, "subheadline", "Subscribe for weekly offers, new destinations and booking tips. No spam — unsubscribe anytime.");
-  const [email, setEmail] = useState("");
-  const [done, setDone] = useState(false);
+  const title = pick<string>(variant, "headline", "Travel updates from WayTero");
+  const subtitle = pick<string>(
+    variant,
+    "subheadline",
+    "Questions, offers, or feedback — write to us and a real person will answer."
+  );
+  const contacts = usePlatformContacts();
 
   return (
     <Section bg="ink" pad="md" id="newsletter" className="relative overflow-hidden" overlay="grid">
@@ -45,38 +50,18 @@ export default function NewsletterSection({ variant }: NewsletterSectionProps) {
               </h2>
               {subtitle && <p className="mt-4 text-sm sm:text-base text-white/80 leading-relaxed">{subtitle}</p>}
 
-              {done ? (
-                <div className="mt-8 inline-flex items-center gap-2 rounded-xl bg-white/15 backdrop-blur px-5 py-3 text-white font-semibold border border-white/10">
-                  <CheckCircle2 className="h-5 w-5 text-accent-300" /> Thanks for subscribing — see you in the inbox!
-                </div>
-              ) : (
-                <form
-                  className="mt-8 flex flex-col sm:flex-row gap-3 max-w-lg mx-auto"
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    if (email.trim()) setDone(true);
-                  }}
-                >
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    className="flex-1 h-12 px-4 rounded-xl bg-white text-ink placeholder:text-ink-4 focus:outline-none focus:ring-2 focus:ring-accent-400 shadow-wt"
-                  />
+              <div className="mt-8 flex justify-center">
+                <a href={`mailto:${contacts.email}?subject=Travel%20updates`}>
                   <Button
-                    type="submit"
                     variant="gradient-accent"
                     size="lg"
                     shine
-                    rightIcon={<Send className="h-4 w-4" />}
+                    leftIcon={<Mail className="h-4 w-4" />}
                   >
-                    Subscribe
+                    Email us
                   </Button>
-                </form>
-              )}
-              <p className="mt-4 text-xs text-white/60">Join 12,000+ subscribers · Weekly digest only</p>
+                </a>
+              </div>
             </div>
           </MotionGlow>
         </MotionFadeIn>

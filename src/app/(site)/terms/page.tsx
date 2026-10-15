@@ -1,8 +1,17 @@
 import { Container, PageHeader, Card } from "@/components/ui";
 import { Section } from "@/components/ui";
 import { publicCmsService, LegalPage } from "@/services/publicCms";
+import { pageMetadata, type SeoContent } from "@/services/seoService";
 
-export const metadata = { title: "Terms of Service", description: "WayTero's terms of service — please read before using the platform." };
+const META_FALLBACK: SeoContent = {
+  title: "Terms of Service — WayTero",
+  description: "WayTero's terms of service — please read before using the platform.",
+  keywords: ["WayTero terms", "terms of service India", "travel booking terms"],
+};
+
+export async function generateMetadata(): Promise<import("next").Metadata> {
+  return pageMetadata("terms", "/terms", META_FALLBACK);
+}
 
 // Static fallback — used only when the backend is unreachable.
 const FALLBACK: LegalPage = {
@@ -44,7 +53,13 @@ const FALLBACK: LegalPage = {
 
 export default async function TermsPage() {
   const page = (await publicCmsService.getLegalPage("terms")) ?? FALLBACK;
-  const subtitle = `Effective ${page.effective_date ?? "January 1, 2026"} · Last updated ${page.updated_at ?? "August 10, 2026"}`;
+  // Dates render only when the DB carries them — no invented effective dates.
+  const subtitle = [
+    page.effective_date ? `Effective ${page.effective_date}` : null,
+    page.updated_at ? `Last updated ${page.updated_at}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <>

@@ -1,8 +1,11 @@
 import Link from "next/link";
-import { MapPin, Clock, ImageOff } from "lucide-react";
+import { MapPin, ImageOff } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, MotionTilt } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
+import { API_BASE } from "@/lib/apiBase";
+import { slugify } from "@/lib/slug";
+import { getLandingRefs } from "@/lib/landingIndex";
 
 interface PopularDestinationsSectionProps {
   variant: Record<string, unknown>;
@@ -21,17 +24,14 @@ interface Destination {
   hero_image_url?: string | null;
 }
 
-const TOUR_API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
-
 /**
  * PopularDestinationsSection — homepage destinations grid.
  *
  * DB-driven: only cities that actually have active tour packages
  * (GET /public/tours/popular-destinations). Cards with a package image show
  * it; cities without an image render as a clean text-first card — never a
- * dark empty void. Links go to the tours listing pre-filtered by the
- * destination name, which always renders real results.
+ * dark empty void. Links go to the city's tour landing page when one is
+ * published, else the tours listing — never a URL that 404s.
  */
 export default async function PopularDestinationsSection({ variant }: PopularDestinationsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Where to next"));
@@ -40,7 +40,7 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
 
   let destinations: Destination[] = [];
   try {
-    const res = await fetch(`${TOUR_API_BASE}/public/tours/popular-destinations`, {
+    const res = await fetch(`${API_BASE}/public/tours/popular-destinations`, {
       next: { revalidate: 300 },
     });
     if (res.ok) {
@@ -52,39 +52,12 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
     destinations = [];
   }
 
-  // Empty catalogue → Coming Soon (no fake destinations, ever).
-  if (destinations.length === 0) {
-    return (
-      <Section bg="white" pad="lg" id="destinations" overlay="dots">
-        <Container size="lg">
-          <SectionHeader
-            eyebrow={eyebrow}
-            title={title}
-            subtitle={subtitle}
-            accent="primary"
-            underline
-            animatedEyebrow
-          />
-          <div className="relative overflow-hidden rounded-3xl border border-ink-7 bg-white p-10 text-center shadow-wt-sm">
-            <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-primary-500/10 blur-3xl" />
-            <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-accent-500/10 blur-3xl" />
-            <div className="relative">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-500/10 px-3.5 py-1.5 text-[11px] font-extrabold uppercase tracking-[0.16em] text-accent-600">
-                <Clock className="h-3.5 w-3.5" /> Coming soon
-              </span>
-              <h3 className="mt-5 text-2xl font-extrabold tracking-tight text-ink">
-                Tour destinations are coming soon
-              </h3>
-              <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-ink-3">
-                Our verified operators are adding destinations right now. Once
-                tour packages go live, you'll find them here.
-              </p>
-            </div>
-          </div>
-        </Container>
-      </Section>
-    );
-  }
+  // Published tour landing pages by slug — the only hrefs we may link to.
+  const publishedSlugs = new Set((await getLandingRefs()).map((r) => r.slug));
+
+  // Empty catalogue → omit the section entirely (owner rule: no
+  // "coming soon" fakery for a vertical with no real supply).
+  if (destinations.length === 0) return null;
 
   return (
     <Section bg="white" pad="lg" id="destinations" overlay="dots">
@@ -95,7 +68,8 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
             const name = d.name ?? d.city_name ?? "";
             if (!name) return null;
             const image = d.image_url ?? d.hero_image_url ?? null;
-            const href = `/destinations/${name.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`;
+            const tourPage = `tour-packages-in-${slugify(name)}`;
+            const href = publishedSlugs.has(tourPage) ? `/${tourPage}` : "/tours";
             return (
               <MotionStaggerItem key={d.city_id} className="h-full">
                 <MotionGlow color="primary" intensity={0.2} size={240} className="h-full rounded-2xl">

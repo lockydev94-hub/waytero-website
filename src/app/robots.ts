@@ -10,6 +10,8 @@ export default function robots(): MetadataRoute.Robots {
       // to render pages. Only private app areas are blocked (SEO audit §1.1).
       disallow: ["/api/", "/admin/"],
     },
+    // AI crawlers (GPTBot, ClaudeBot, PerplexityBot, ...) fall under "*" and
+    // are explicitly welcomed; see the app-native map served at /llms.txt.
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

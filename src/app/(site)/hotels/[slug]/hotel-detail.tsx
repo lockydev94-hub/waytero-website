@@ -13,6 +13,7 @@
  */
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import {
@@ -363,7 +364,7 @@ function HotelContent({
             <div className="bg-white border border-ink-7 rounded-2xl overflow-hidden">
               <div className="relative aspect-[16/9] bg-gradient-to-br from-accent-100 via-accent-50 to-primary-50">
                 {activeImage ? (
-                  <img src={activeImage} alt={hotel.hotel_name} className="absolute inset-0 h-full w-full object-cover" />
+                  <Image src={activeImage} alt={hotel.hotel_name} fill priority sizes="(max-width: 1024px) 100vw, 720px" className="absolute inset-0 h-full w-full object-cover" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Building2 className="h-16 w-16 text-accent-300" />
@@ -382,7 +383,7 @@ function HotelContent({
                       }`}
                     >
                       {img ? (
-                        <img src={img} alt="" className="h-full w-full object-cover" />
+                        <Image src={img} alt="" fill sizes="112px" className="absolute inset-0 h-full w-full object-cover" />
                       ) : (
                         <div className="h-full w-full bg-ink-8 flex items-center justify-center">
                           <Building2 className="h-5 w-5 text-ink-4" />
@@ -483,7 +484,7 @@ function HotelContent({
                     <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     {catImg && (
                       <div className="relative h-40 bg-gradient-to-br from-primary-100 to-accent-100 overflow-hidden">
-                        <img src={catImg} alt={cat.category_name} className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                        <Image src={catImg} alt={cat.category_name} fill sizes="(max-width: 768px) 100vw, 33vw" className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" />
                       </div>
                     )}
                     <div className="p-5">
@@ -579,6 +580,7 @@ function HotelContent({
       <HotelBookingReviewModal
         open={reviewOpen}
         onClose={() => { setReviewOpen(false); setSelectedCat(null); setQuote(null); }}
+        hotelId={hotel.id}
         hotelName={hotel.hotel_name}
         categoryName={selectedCat?.category_name ?? ""}
         checkIn={checkIn}

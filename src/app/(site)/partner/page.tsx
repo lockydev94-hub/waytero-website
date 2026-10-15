@@ -8,8 +8,8 @@ import { CtaSection } from "@/components/renderers";
 import { publicLeadsService } from "@/services/publicLeads";
 
 const PERKS = [
-  { icon: Users, title: "50K+ travelers", desc: "Reach customers actively booking across India.", tone: "primary" as const },
-  { icon: TrendingUp, title: "Up to 3× revenue", desc: "Partners see meaningful revenue growth in 90 days.", tone: "success" as const },
+  { icon: Users, title: "Real demand", desc: "Reach travellers booking cabs, hotels and tours on WayTero today.", tone: "primary" as const },
+  { icon: TrendingUp, title: "A new booking channel", desc: "Turn searches near airports, stations and city landmarks into confirmed bookings.", tone: "success" as const },
   { icon: Wallet, title: "Instant payouts", desc: "Daily settlements straight to your bank — no delays.", tone: "accent" as const },
   { icon: Award, title: "Zero lock-in", desc: "Pause anytime. No contracts, no minimums.", tone: "info" as const },
 ];
@@ -64,7 +64,7 @@ export default function PartnerPage() {
                 List your business on <span className="text-gradient-primary">WayTero</span>
               </>
             }
-            subtitle="Reach 50,000+ Indian travelers, get instant payouts, and grow without lock-in. Cabs, hotels, and tour operators welcome."
+            subtitle="Reach travellers across Odisha, get instant payouts, and grow without lock-in. Cabs, hotels, and tour operators welcome."
           />
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
             <ButtonLink href="#apply" variant="gradient-primary" size="lg" shine>Apply now</ButtonLink>

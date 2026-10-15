@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useSupportPhone } from "@/hooks/useSupportPhone";
 import { telHref } from "@/lib/supportPhone";
 import { Search, MapPin, Phone, MessageCircle, Car, Hotel, Map, Loader2, User, Navigation, CalendarDays, IndianRupee } from "lucide-react";
@@ -236,7 +237,7 @@ export default function TrackPage() {
         </MotionStagger>
 
         <div className="mt-10 text-center text-sm text-ink-3">
-          Need help? <a href="/contact" className="text-primary-600 font-semibold">Contact support</a> or <a href={telHref(supportPhone)} className="text-primary-600 font-semibold">call {supportPhone}</a>.
+          Need help? <Link href="/contact" className="text-primary-600 font-semibold">Contact support</Link> or <a href={telHref(supportPhone)} className="text-primary-600 font-semibold">call {supportPhone}</a>.
         </div>
       </Container>
     </Section>

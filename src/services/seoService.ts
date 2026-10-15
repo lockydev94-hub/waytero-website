@@ -11,6 +11,9 @@
    Doc Ref: DB Schema Part 2 §8 — service_types (migration 0019)
    ============================================================ */
 
+import { publicCmsService } from "@/services/publicCms";
+import { BRAND } from "@/lib/brand";
+
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
@@ -36,9 +39,9 @@ export interface SeoContent {
 
 export const STATIC_SEO: Record<string, SeoContent> = {
   home: {
-    title: "WayTero — India's Travel Operating System",
+    title: BRAND.tagline,
     description:
-      "Book cabs, hotels, and tour packages across India. WayTero connects customers, partners, drivers, and hotels on one seamless travel platform.",
+      "Book cabs, hotels, and tour packages in the cities WayTero serves. We connect customers, partners, drivers, and hotels on one seamless travel platform.",
     keywords: [
       "travel booking India",
       "cab booking",
@@ -50,7 +53,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
   CAB: {
     title: "Book a Cab — Outstation & Local Rides",
     description:
-      "Book reliable outstation cabs, airport transfers, and local rides across India. Transparent pricing, verified drivers, real-time tracking.",
+      "Book reliable outstation cabs, airport transfers, and local rides in the cities WayTero serves. Transparent pricing, verified drivers, real-time tracking.",
     keywords: [
       "cab booking India",
       "outstation cab",
@@ -60,9 +63,9 @@ export const STATIC_SEO: Record<string, SeoContent> = {
     ],
   },
   HOTEL: {
-    title: "Hotels — Stay Anywhere in India",
+    title: "Hotels — Stays in the Cities WayTero Serves",
     description:
-      "Book budget to luxury hotels, resorts, and homestays across India with transparent pricing and free cancellation.",
+      "Book budget to luxury hotels, resorts, and homestays in the cities WayTero serves, with transparent pricing and free cancellation.",
     keywords: [
       "hotel booking India",
       "resorts",
@@ -74,7 +77,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
   TOUR: {
     title: "Tour Packages — Explore India",
     description:
-      "Handpicked tour packages with verified operators — from weekend getaways to temple circuits and Himalayan treks. Fully managed from booking to return.",
+      "Tour packages from verified operators — from weekend getaways to temple circuits and heritage tours. Fully managed from booking to return.",
     keywords: [
       "tour packages India",
       "holiday packages",
@@ -98,12 +101,9 @@ export const STATIC_SEO: Record<string, SeoContent> = {
 
 /* ── Fetch service-type SEO from the backend (cacheable) ───────────────── */
 
-let cached: Record<string, ServiceTypeSeo> | null = null;
-
 export async function getServiceTypeSeo(): Promise<
   Record<string, ServiceTypeSeo>
 > {
-  if (cached) return cached;
   try {
     const res = await fetch(`${BASE_URL}/public/service-types`, {
       next: { revalidate: 300 }, // 5 min — admin edits are rare
@@ -112,7 +112,6 @@ export async function getServiceTypeSeo(): Promise<
     const list = (await res.json()) as ServiceTypeSeo[];
     const byCode: Record<string, ServiceTypeSeo> = {};
     for (const st of list) byCode[st.type_code] = st;
-    cached = byCode;
     return byCode;
   } catch {
     return {};
@@ -121,19 +120,26 @@ export async function getServiceTypeSeo(): Promise<
 
 /* ── Build a Next.js Metadata object from resolved SEO ─────────────────── */
 
+export function appUrl(): string {
+  return process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
+}
+
 export function toMetadata(
   seo: SeoContent,
   path: string,
   extra?: Partial<import("next").Metadata>,
 ): import("next").Metadata {
-  const appUrl =
-    process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
-  const canonical = `${appUrl}${path === "/" ? "" : path}`;
+  const canonical = `${appUrl()}${path === "/" ? "" : path}`;
+  const { alternates: extraAlternates, ...rest } = extra ?? {};
   return {
     title: normalizeTitle(seo.title),
     description: seo.description,
     keywords: seo.keywords,
-    alternates: { canonical },
+    alternates: {
+      canonical,
+      languages: { "en-in": canonical, en: canonical },
+      ...(extraAlternates as object | undefined),
+    },
     openGraph: {
       type: "website",
       locale: "en_IN",
@@ -151,18 +157,51 @@ export function toMetadata(
       ...(seo.image ? { images: [seo.image] } : {}),
       ...(extra?.twitter as object | undefined),
     },
-    ...extra,
+    ...rest,
   } as import("next").Metadata;
 }
 
 /* ── Resolve a page's SEO: DB first, static fallback ───────────────────── */
 
 // The root layout applies a "%s | WayTero" title template, so DB-provided
-// titles that already carry a "| WayTero" suffix would render doubled
-// ("… | WayTero | WayTero"). Strip any trailing brand suffix here so the
-// template appends exactly one.
+// titles that already carry a "— WayTero"/"| WayTero" suffix would render
+// doubled ("… | WayTero | WayTero"). Strip any trailing brand suffix here
+// so the template appends exactly one.
 function normalizeTitle(raw: string): string {
-  return raw.replace(/\s*\|\s*WayTero\s*$/i, "").trim();
+  return raw.replace(/\s*(?:[-–—|·:]\s*)?WayTero\s*$/i, "").trim();
+}
+
+/* ── Static-page <head> metadata from system_configurations ────────────── */
+
+export interface SiteSeoRow {
+  title?: string;
+  description?: string;
+}
+
+export async function getSiteSeoMap(): Promise<Record<string, SiteSeoRow>> {
+  return publicCmsService.getSiteSeo();
+}
+
+/** DB-first metadata for a static page: SEO_PAGE_<KEY> row, else fallback. */
+export async function pageMetadata(
+  key: string,
+  path: string,
+  fallback: SeoContent,
+): Promise<import("next").Metadata> {
+  const [pages, profile] = await Promise.all([
+    getSiteSeoMap(),
+    publicCmsService.getPlatformProfile(),
+  ]);
+  const db = pages[key.replace(/-/g, "_")];
+  return toMetadata(
+    {
+      title: db?.title?.trim() || fallback.title,
+      description: db?.description?.trim() || fallback.description,
+      keywords: fallback.keywords,
+      image: fallback.image || profile.og_image_url || "/og-image.png",
+    },
+    path,
+  );
 }
 
 export async function resolveSeo(
@@ -170,15 +209,23 @@ export async function resolveSeo(
   overrides?: Partial<SeoContent>,
 ): Promise<SeoContent> {
   const fallback = STATIC_SEO[page] ?? STATIC_SEO.home;
-  const db = (await getServiceTypeSeo())[page];
+  const [services, pages, profile] = await Promise.all([
+    getServiceTypeSeo(),
+    getSiteSeoMap(),
+    publicCmsService.getPlatformProfile(),
+  ]);
+  const db = services[page];
+  const pageSeo = pages[page.toLowerCase()];
 
   const title = normalizeTitle(
     overrides?.title?.trim() ||
+    pageSeo?.title?.trim() ||
     db?.seo_title?.trim() ||
-    fallback.title,
+    (page === "home" ? profile.tagline : fallback.title),
   );
   const description =
     overrides?.description?.trim() ||
+    pageSeo?.description?.trim() ||
     db?.seo_description?.trim() ||
     fallback.description;
   const keywords = [
@@ -194,6 +241,6 @@ export async function resolveSeo(
     title,
     description,
     keywords,
-    image: overrides?.image ?? db?.image_url ?? null,
+    image: overrides?.image || db?.image_url || profile.og_image_url || "/og-image.png",
   };
 }

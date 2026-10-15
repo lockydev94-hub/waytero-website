@@ -10,7 +10,9 @@ import CabSearchForm from "@/components/sections/CabSearchForm";
 // the backend (Settings → Service Types); falls back to bundled static
 // values when the admin hasn't filled them in or the API is unreachable.
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { resolveSeo, toMetadata, getServiceTypeSeo } from "@/services/seoService";
+import { getAvailability, serviceVisible } from "@/lib/availability";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await resolveSeo("CAB");
@@ -25,6 +27,10 @@ const FEATURES = [
 ];
 
 export default async function CabsPage() {
+  // Hard availability gate: CAB hidden site-wide when disabled or no
+  // priced city supply exists — the listing 404s instead of an empty page.
+  const av = await getAvailability();
+  if (!serviceVisible(av, "CAB")) notFound();
   // Hero/banner image configured by the admin (Settings → Service Types → CAB).
   const serviceSeo = await getServiceTypeSeo();
   const cabImage = serviceSeo.CAB?.image_url ?? null;
@@ -40,7 +46,7 @@ export default async function CabsPage() {
                 Book a cab <span className={cabImage ? "text-accent-400" : "text-primary-600"}>in 60 seconds</span>
               </>
             }
-            subtitle="Reliable cabs across India — outstation, airport transfers, and local rides. Verified drivers, transparent pricing, real-time tracking."
+            subtitle="Reliable cabs in Bhubaneswar and the cities we serve — outstation, airport transfers, and local rides. Verified drivers, transparent pricing, real-time tracking."
             imageUrl={cabImage ?? undefined}
           />
           <div className="mt-10">

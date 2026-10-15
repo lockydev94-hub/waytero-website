@@ -3,7 +3,8 @@ import { Suspense } from "react";
 import { notFound, permanentRedirect } from "next/navigation";
 import TourDetailPage from "./tour-detail";
 import type { PublicTourPackage } from "@/services/tourService";
-import { STATIC_SEO, toMetadata, type SeoContent } from "@/services/seoService";
+import { getAvailability, serviceVisible } from "@/lib/availability";
+import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
 
 // ── Page-level SEO (SSR) — derived from the package with static fallback ─
 // Tour packages have no per-package SEO fields in the DB, so the metadata
@@ -19,6 +20,9 @@ export interface TourSeoPayload {
   slug?: string;
   package_code?: string | null;
   package_name: string;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  seo_keywords?: string | null;
   destination?: string | null;
   city_id?: number | null;
   city_name?: string | null;
@@ -48,19 +52,23 @@ async function seoForTour(slug: string): Promise<SeoContent> {
   const fallback = STATIC_SEO.TOUR;
   const tour = await fetchTourPayload(slug);
   if (!tour?.package_name) return fallback;
-  const title = `${tour.package_name} — Tour Package`;
+  const generatedKeywords = [
+    ...fallback.keywords,
+    tour.package_name,
+    tour.destination,
+    tour.duration_days ? `${tour.duration_days}-day tour` : "",
+    tour.city_name ?? "",
+  ].filter((k): k is string => Boolean(k));
   return {
-    title,
+    // Admin-curated SEO wins; the generated form is the fallback.
+    title: tour.seo_title?.trim() || `${tour.package_name} — Tour Package`,
     description:
+      tour.seo_description?.trim() ||
       tour.short_description?.slice(0, 320) ||
       `Book the ${tour.package_name} tour in ${tour.destination} — ${tour.duration_days} days / ${tour.duration_nights} nights.`,
-    keywords: [
-      ...fallback.keywords,
-      tour.package_name,
-      tour.destination,
-      tour.duration_days ? `${tour.duration_days}-day tour` : "",
-      tour.city_name ?? "",
-    ].filter((k): k is string => Boolean(k)),
+    keywords: tour.seo_keywords?.trim()
+      ? tour.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
+      : generatedKeywords,
     image: tour.primary_image_url ?? tour.media?.[0]?.media_url ?? null,
   };
 }
@@ -93,6 +101,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function TourDetailsPage({ params }: Props) {
   const { slug } = await params;
+  // Hard availability gate: TOUR hidden site-wide when disabled or the DB
+  // has no supply — detail URLs 404 too, not just the listing.
+  const av = await getAvailability();
+  if (!serviceVisible(av, "TOUR")) notFound();
   const tour = await fetchTourPayload(slug);
 
   // Legacy code-style slugs (…-tp-20260913-0001) still resolve via the
@@ -120,7 +132,7 @@ export default async function TourDetailsPage({ params }: Props) {
             priceCurrency: "INR",
             price,
             availability: "https://schema.org/InStock",
-            url: `https://waytero.com/tours/${slug}`,
+            url: `${appUrl()}/tours/${slug}`,
           },
         }
       : {}),
@@ -130,7 +142,9 @@ export default async function TourDetailsPage({ params }: Props) {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
+        }}
       />
       <Suspense fallback={null}>
         <TourDetailPage initialTour={tour as unknown as PublicTourPackage} />

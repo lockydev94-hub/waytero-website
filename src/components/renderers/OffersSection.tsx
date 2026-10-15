@@ -2,9 +2,13 @@ import { ArrowRight, BadgePercent } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
+import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 interface OffersSectionProps {
   variant: Record<string, unknown>;
+  /** Verticals hidden site-wide — offer cards linking into them are
+   *  removed, and the whole section disappears when nothing is left. */
+  hidden?: ServiceKey[];
 }
 
 interface Offer {
@@ -16,11 +20,8 @@ interface Offer {
   image_url?: string | null;
 }
 
-const PLACEHOLDER: Offer[] = [
-  { title: "Flat ₹300 Off on Airport Rides", description: "Book any outstation airport cab this week and save ₹300 instantly.", badge: "Limited time", cta_text: "Book a cab", cta_link: "/cabs" },
-  { title: "Up to 25% Off on Weekend Stays", description: "Enjoy discounted rates at 1,200+ partner hotels across India.", badge: "Weekend special", cta_text: "Explore hotels", cta_link: "/hotels" },
-  { title: "Free Pickup on Tour Packages", description: "Book any 5-day tour package and get complimentary hotel pickup.", badge: "Popular", cta_text: "See packages", cta_link: "/tours" },
-];
+// No fallback list: a promo the admin hasn't authored is not a real deal
+// (owner rule — nothing on the site that the database can't back up).
 
 const CARD_BG = [
   "bg-gradient-to-br from-primary-700 via-primary-600 to-primary-500",
@@ -28,11 +29,14 @@ const CARD_BG = [
   "bg-gradient-to-br from-ink-800 via-ink-700 to-primary-800",
 ];
 
-export default function OffersSection({ variant }: OffersSectionProps) {
+export default function OffersSection({ variant, hidden = [] }: OffersSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Limited-time deals");
   const title = pick<string>(variant, "headline", "Offers & Deals");
   const subtitle = pick<string>(variant, "subheadline", "Grab these limited-time deals on cabs, hotels and tour packages.");
-  const offers = pick<Offer[]>(variant, "offers", PLACEHOLDER);
+  const offers = pick<Offer[]>(variant, "offers", []).filter(
+    (o) => !isHiddenHref(o.cta_link, hidden),
+  );
+  if (offers.length === 0) return null;
 
   return (
     <Section bg="white" pad="lg" id="offers" overlay="dots">

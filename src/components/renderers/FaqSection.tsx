@@ -15,23 +15,16 @@ interface Faq {
   answer: string;
 }
 
-const PLACEHOLDER: Faq[] = [
-  { question: "How do I book a cab with WayTero?", answer: "Choose your trip type, enter pickup and drop locations and a date-time, review the fare breakdown and confirm. You can pay online or use wallet balance." },
-  { question: "Can I get a refund if I cancel my booking?", answer: "Yes — cancellations follow the policy shown at checkout. Refunds are processed back to your source or wallet within 3-5 business days." },
-  { question: "Are the hotels verified?", answer: "Every partner hotel goes through document verification, live audits and guest-rating reviews before it is listed on WayTero." },
-  { question: "How do I track my cab in real time?", answer: "Once your driver is assigned, open the Track page and enter your booking number + mobile to follow the live route and driver location." },
-  { question: "What payment methods are accepted?", answer: "UPI, debit/credit cards, net-banking and WayTero Wallet. Wallet recharges can be used for instant checkouts with wallet rewards." },
-  { question: "Is my data safe with WayTero?", answer: "Yes. All payments are processed over encrypted channels and we follow strict data-security practices. See our Privacy & Security pages for details." },
-];
-
 export default function FaqSection({ variant }: FaqSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Help centre");
   const title = pick<string>(variant, "headline", "Frequently Asked Questions");
   const subtitle = pick<string>(variant, "subheadline", "Everything you need to know before you book.");
   const ctaText = pick<string | null>(variant, "cta_text", null);
   const ctaLink = pick<string | null>(variant, "cta_link", null);
-  const faqs = pick<Faq[]>(variant, "faqs", PLACEHOLDER);
+  // Admin-authored only — the site never shows invented FAQs (owner rule).
+  const faqs = pick<Faq[]>(variant, "faqs", []);
   const [open, setOpen] = useState<number>(0);
+  if (faqs.length === 0) return null;
 
   return (
     <Section bg="muted" pad="lg" id="faq" overlay="dots">

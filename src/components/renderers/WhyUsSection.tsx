@@ -35,7 +35,7 @@ const DEFAULT: WhyUsItem[] = [
 export default function WhyUsSection({ variant }: WhyUsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Why choose us"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Built for Indian Travelers"));
-  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "We understand the nuances of travel across India — and built WayTero to solve them."));
+  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "We understand the nuances of travel in the cities we serve — and built WayTero to solve them."));
   const items = pick<WhyUsItem[]>(variant, "items", DEFAULT);
 
   return (

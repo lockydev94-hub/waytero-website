@@ -2,8 +2,15 @@ import Link from "next/link";
 import { Container, PageHeader, Card } from "@/components/ui";
 import { Section } from "@/components/ui";
 import { publicCmsService, LegalPage } from "@/services/publicCms";
+import { pageMetadata } from "@/services/seoService";
 
-export const metadata = { title: "Booking Instructions", description: "How to book a cab, hotel, or tour package on WayTero." };
+export async function generateMetadata() {
+  return pageMetadata("booking-instructions", "/booking-instructions", {
+    title: "Booking Instructions",
+    description: "How to book a cab, hotel, or tour package on WayTero — step by step.",
+    keywords: ["how to book", "cab booking steps", "hotel booking", "tour booking", "WayTero"],
+  });
+}
 
 // Static fallback — used only when the backend is unreachable.
 const FALLBACK: LegalPage = {

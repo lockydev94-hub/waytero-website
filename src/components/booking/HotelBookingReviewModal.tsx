@@ -12,13 +12,16 @@
  * handler. Doc Ref: BRD Part 4 §57-92, public_hotel_api.py
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import {
   X, Tag, Calendar, Users, BedDouble, Hotel as HotelIcon, Loader2,
   CheckCircle2, AlertCircle, Info, ShieldCheck,
 } from "lucide-react";
 import type { HotelQuoteOut } from "@/services/hotelService";
+import { cabService } from "@/services/cabService";
+import type { CouponApplyOut } from "@/services/cabService";
+import { COUPON_FUNDING_LABELS } from "@/services/cabService";
 
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -26,6 +29,7 @@ const INR = (n: number | string) =>
 export interface HotelBookingReviewModalProps {
   open: boolean;
   onClose: () => void;
+  hotelId: number;
   hotelName: string;
   categoryName: string;
   checkIn: string;
@@ -42,6 +46,7 @@ export interface HotelBookingReviewModalProps {
 export default function HotelBookingReviewModal({
   open,
   onClose,
+  hotelId,
   hotelName,
   categoryName,
   checkIn,
@@ -55,61 +60,60 @@ export default function HotelBookingReviewModal({
 }: HotelBookingReviewModalProps) {
   const [coupon, setCoupon] = useState("");
   const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [couponResult, setCouponResult] = useState<
-    { valid: boolean; discount_amount: number; final_amount: number; message: string } | null
-  >(null);
+  const [couponResult, setCouponResult] = useState<CouponApplyOut | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [guestName, setGuestName] = useState("");
   const [guestMobile, setGuestMobile] = useState("");
   const [guestError, setGuestError] = useState<string | null>(null);
 
+  const couponRequest = useRef(0);
+  const bookingKey = JSON.stringify([hotelId, checkIn, checkOut, roomsCount, guests, quote]);
   useEffect(() => {
-    if (open) {
-      setCoupon("");
-      setCouponResult(null);
-      setCouponError(null);
-      setGuestError(null);
-    }
-  }, [open, quote?.room_category_id]);
+    couponRequest.current += 1;
+    setCoupon("");
+    setCouponResult(null);
+    setCouponError(null);
+    setGuestError(null);
+    setApplyingCoupon(false);
+    return () => { couponRequest.current += 1; };
+  }, [open, bookingKey]);
 
-  const subtotal = quote?.total_amount ?? 0;
+  const subtotal = Number(quote?.total_amount ?? 0);
   const discount = couponResult?.valid ? Number(couponResult.discount_amount) : 0;
-  const finalAmount = Math.max(0, subtotal - discount);
+  // Server owns the payable total — booking creation re-validates the same way.
+  const finalAmount = couponResult?.valid
+    ? Math.max(0, Number(couponResult.final_amount))
+    : subtotal;
 
   if (!open) return null;
 
   const handleApplyCoupon = async () => {
     const code = coupon.trim();
     if (!code || !quote) return;
+    const request = ++couponRequest.current;
     setApplyingCoupon(true);
+    setCouponResult(null);
     setCouponError(null);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1"}/public/coupon/validate`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          coupon_code: code,
-          service_type: "HOTEL",
-          booking_amount: subtotal,
-          customer_id: 0,
-        }),
+      const res = await cabService.applyCoupon({
+        coupon_code: code,
+        service_type: "HOTEL",
+        hotel_id: hotelId,
+        booking_amount: subtotal,
       });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setCouponResult(null);
-        setCouponError(json?.detail ?? "Couldn't apply coupon");
-      } else if (json.valid) {
-        setCouponResult(json);
-        toast.success(`Coupon applied — you save ₹${json.discount_amount}`);
+      if (request !== couponRequest.current) return;
+      if (res.valid) {
+        setCouponResult(res);
+        toast.success(`Coupon applied — you save ${INR(res.discount_amount)}`);
       } else {
-        setCouponResult(null);
-        setCouponError(json.message || "Coupon not valid for this booking");
+        setCouponError(res.message || "Coupon not valid for this booking");
       }
     } catch (e) {
-      setCouponResult(null);
-      setCouponError(e instanceof Error ? e.message : "Couldn't apply coupon");
+      if (request === couponRequest.current) {
+        setCouponError(e instanceof Error ? e.message : "Couldn't apply coupon");
+      }
     } finally {
-      setApplyingCoupon(false);
+      if (request === couponRequest.current) setApplyingCoupon(false);
     }
   };
 
@@ -269,9 +273,16 @@ export default function HotelBookingReviewModal({
             </div>
             {couponError && <p className="text-xs text-rose-600 mt-1.5 flex items-center gap-1"><AlertCircle size={12} /> {couponError}</p>}
             {couponResult?.valid && (
-              <p className="text-xs text-emerald-600 mt-1.5 flex items-center gap-1">
-                <CheckCircle2 size={12} /> You save {INR(couponResult.discount_amount)}!
-              </p>
+              <div className="mt-1.5">
+                <p className="text-xs text-emerald-600 flex items-center gap-1">
+                  <CheckCircle2 size={12} /> You save {INR(couponResult.discount_amount)}!
+                </p>
+                {couponResult.coupon_type !== "PLATFORM" && (
+                  <p className="text-[11px] text-ink-4 mt-0.5">
+                    {COUPON_FUNDING_LABELS[couponResult.coupon_type]}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 

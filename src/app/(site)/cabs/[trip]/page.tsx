@@ -9,6 +9,10 @@ import { Container, Section, SectionHeader, Card, IconBox, Breadcrumb } from "@/
 import { MotionFadeIn, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
 import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import { enumLabel } from "@/components/landing/format";
+import { API_BASE } from "@/lib/apiBase";
+import { appUrl } from "@/services/seoService";
+import { getAvailability, serviceVisible } from "@/lib/availability";
 
 // ============================================================
 // /cabs/[trip] — DB-driven cab trip-type landing pages.
@@ -24,9 +28,6 @@ import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
 //
 // Doc Ref: BRD Part 3 §35-36 (fare engine, city pricing)
 // ============================================================
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
 
 const TRIP_META: Record<
   string,
@@ -103,16 +104,16 @@ const SLUG_TO_CODE: Record<string, string> = Object.fromEntries(
   Object.entries(TRIP_META).map(([code, m]) => [m.slug, code]),
 );
 
-interface CategoryRow {
+interface FareMatrixRow {
   vehicle_category_id: number;
-  category_name: string;
-  seating_capacity: number | null;
-  image_url: string | null;
-  icon_url: string | null;
-  base_fare: string | number;
-  minimum_km: number | null;
-  per_km_rate: string | number;
-  driver_allowance: string | number;
+  vehicle_category: string;
+  seats: number | null;
+  trip_type: string;
+  base_fare: number;
+  per_km_rate: number;
+  minimum_km: number;
+  estimated_total: number;
+  source: string;
 }
 
 async function loadTripPage(code: string) {
@@ -128,25 +129,39 @@ async function loadTripPage(code: string) {
   }
   if (!tripTypes.some((t) => t.code === code)) return null;
 
-  // Cities + per-category default pricing for the pricing table.
-  const [citiesRes, catsRes] = await Promise.all([
-    fetch(`${API_BASE}/public/cab/cities`, { next: { revalidate: 300 } }),
-    fetch(
-      `${API_BASE}/public/cab/fare-estimate?city_id=1&distance_km=10&trip_type=${code}`,
-      { next: { revalidate: 300 } },
-    ).catch(() => null),
-  ]);
-
+  // Cities first — the fare sheet is priced for the first serviced city
+  // (real city, real rules), never a hardcoded id.
   let cities: Array<{ id: number; name: string; state_name: string | null }> = [];
-  if (citiesRes.ok) cities = await citiesRes.json();
-
-  let categories: CategoryRow[] = [];
-  if (catsRes && catsRes.ok) {
-    const data = await catsRes.json();
-    categories = (data.categories ?? []) as CategoryRow[];
+  try {
+    const res = await fetch(`${API_BASE}/public/cab/cities`, {
+      next: { revalidate: 300 },
+    });
+    if (res.ok) cities = await res.json();
+  } catch {
+    cities = [];
   }
 
-  return { cities, categories };
+  let rows: FareMatrixRow[] = [];
+  let cityName: string | null = null;
+  if (cities.length > 0) {
+    cityName = cities[0].name;
+    try {
+      const res = await fetch(
+        `${API_BASE}/public/cab/cities/${cities[0].id}/fare-matrix?distance_km=10`,
+        { next: { revalidate: 300 } },
+      );
+      if (res.ok) {
+        const data = await res.json();
+        rows = ((data.rows ?? []) as FareMatrixRow[]).filter(
+          (r) => r.trip_type === code,
+        );
+      }
+    } catch {
+      rows = [];
+    }
+  }
+
+  return { cities, rows, cityName };
 }
 
 export function generateStaticParams() {
@@ -167,6 +182,9 @@ export async function generateMetadata({
   params: Promise<{ trip: string }>;
 }): Promise<Metadata> {
   const { trip } = await params;
+  // CAB hidden site-wide when disabled / no supply — trip pages 404 cleanly.
+  const av = await getAvailability();
+  if (!serviceVisible(av, "CAB")) notFound();
   const code = SLUG_TO_CODE[trip];
   const meta = code ? TRIP_META[code] : null;
   if (!meta) return { title: "Cab Booking" };
@@ -227,22 +245,23 @@ export default async function CabTripPage({
 
   const data = await loadTripPage(code);
   if (!data) notFound(); // no active pricing rules → nothing to sell yet
-  const { cities, categories } = data;
+  const { cities, rows, cityName } = data;
 
   const Icon = meta.Icon;
 
   const faqs = TRIP_FAQS[code] ?? [];
 
   // FAQPage + BreadcrumbList schema — prerendered into the HTML.
+  const root = appUrl();
   const schemas: Array<Record<string, unknown>> = [
     faqPageSchema(faqs),
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: "https://waytero.com/" },
-        { "@type": "ListItem", position: 2, name: "Cabs", item: "https://waytero.com/cabs" },
-        { "@type": "ListItem", position: 3, name: meta.h1, item: `https://waytero.com/cabs/${meta.slug}` },
+        { "@type": "ListItem", position: 1, name: "Home", item: `${root}/` },
+        { "@type": "ListItem", position: 2, name: "Cabs", item: `${root}/cabs` },
+        { "@type": "ListItem", position: 3, name: meta.h1, item: `${root}/cabs/${meta.slug}` },
       ],
     },
   ];
@@ -265,7 +284,7 @@ export default async function CabTripPage({
               <Icon className="h-3.5 w-3.5" /> Cab booking
             </span>
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
-              {meta.h1} <span className="text-primary-600">across India</span>
+              {meta.h1} <span className="text-primary-600">in the cities we serve</span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-3">{meta.blurb}</p>
             <div className="mt-7 flex flex-wrap gap-3">
@@ -306,13 +325,17 @@ export default async function CabTripPage({
         </Container>
       </Section>
 
-      {/* ── Live pricing table (DB-driven, 10 km sample) ──────── */}
-      {categories.length > 0 && (
+      {/* ── Live pricing table (DB-driven fare matrix, 10 km sample) ── */}
+      {rows.length > 0 && (
         <Section bg="white" pad="lg">
           <Container size="lg">
             <SectionHeader
               eyebrow="Upfront pricing"
-              title="Sample fares across vehicle categories"
+              title={
+                cityName
+                  ? `Sample ${meta.name.toLowerCase()} fares in ${cityName}`
+                  : "Sample fares across vehicle categories"
+              }
               subtitle="Indicative 10 km fares from the live fare engine. Your exact quote is calculated for your route, date, and night timing before you pay."
             />
             <div className="overflow-hidden rounded-2xl border border-ink-7 bg-white shadow-wt-sm">
@@ -328,21 +351,18 @@ export default async function CabTripPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {categories.map((c) => (
-                    <tr key={c.vehicle_category_id} className="border-b border-ink-8 last:border-0">
+                  {rows.map((r) => (
+                    <tr key={r.vehicle_category_id} className="border-b border-ink-8 last:border-0">
                       <td className="px-5 py-3.5 font-bold text-ink">
-                        {c.category_name.replace(/_/g, " ")}
+                        {enumLabel(r.vehicle_category)}
+                        {r.source === "default" ? "*" : ""}
                       </td>
-                      <td className="px-5 py-3.5 text-ink-3">{c.seating_capacity ?? "—"}</td>
-                      <td className="px-5 py-3.5 text-ink-2">{INR(c.base_fare)}</td>
-                      <td className="hidden px-5 py-3.5 text-ink-2 sm:table-cell">{INR(c.per_km_rate)}</td>
-                      <td className="hidden px-5 py-3.5 text-ink-3 md:table-cell">{c.minimum_km ?? "—"} km</td>
+                      <td className="px-5 py-3.5 text-ink-3">{r.seats ?? "—"}</td>
+                      <td className="px-5 py-3.5 text-ink-2">{INR(r.base_fare)}</td>
+                      <td className="hidden px-5 py-3.5 text-ink-2 sm:table-cell">{INR(r.per_km_rate)}</td>
+                      <td className="hidden px-5 py-3.5 text-ink-3 md:table-cell">{r.minimum_km ?? "—"} km</td>
                       <td className="px-5 py-3.5 text-right font-extrabold text-primary-700">
-                        {INR(
-                          Number(c.base_fare) +
-                            Math.max(0, 10 - (c.minimum_km ?? 0)) * Number(c.per_km_rate) +
-                            Number(c.driver_allowance ?? 0),
-                        )}
+                        {INR(r.estimated_total)}
                       </td>
                     </tr>
                   ))}
@@ -350,8 +370,11 @@ export default async function CabTripPage({
               </table>
             </div>
             <p className="mt-3 text-xs text-ink-4">
-              Fares exclude GST and tolls where applicable. City-specific pricing
-              may differ — the exact amount is always shown before booking.
+              Fares exclude GST and tolls where applicable.{" "}
+              {rows.some((r) => r.source === "default")
+                ? "Rows marked * follow platform-standard pricing — this city has no custom rule yet. "
+                : ""}
+              City-specific pricing may differ — the exact amount is always shown before booking.
             </p>
           </Container>
         </Section>

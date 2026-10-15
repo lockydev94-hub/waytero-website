@@ -2,20 +2,24 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { Container } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import { pick } from "@/types/cms";
 import type { ServiceType } from "@/types/cms";
+import type { ServiceKey } from "@/lib/availability";
 import CabSearchForm from "@/components/sections/CabSearchForm";
 import HeroSearchForm from "@/components/sections/HeroSearchForm";
 
 interface HeroSectionProps {
   variant: Record<string, unknown>;
   serviceType?: ServiceType | null;
+  /** Verticals hidden site-wide — the hero search drops their tabs. */
+  hiddenServices?: ServiceKey[];
 }
 
-export default function HeroSection({ variant }: HeroSectionProps) {
+export default function HeroSection({ variant, hiddenServices = [] }: HeroSectionProps) {
   // ── Map backend field names to component values ──────────────────────────
   const headline = pick<string>(variant, "headline", "");
   const subline   = pick<string>(variant, "subheadline", "");
@@ -30,13 +34,9 @@ export default function HeroSection({ variant }: HeroSectionProps) {
   // if there IS a primary CTA (otherwise no buttons at all)
   const hasSecondaryCta = hasPrimaryCta;
 
-  // Stats — hardcoded (no DB field)
-  const stats = [
-    { value: "50K+",   label: "Happy Travelers" },
-    { value: "1,200+", label: "Partner Hotels" },
-    { value: "800+",   label: "Verified Drivers" },
-    { value: "30+",    label: "Cities" },
-  ];
+  // No hardcoded stats — the hero never shows counters the DB can't back
+  // (owner rule 2026-10-15). Admin-authored figures live in the STATS
+  // section and render only when the CMS actually has them.
 
   // Background media — backend fields
   const bgImage    = pick<string | null>(variant, "background_image_url", null);
@@ -82,10 +82,13 @@ export default function HeroSection({ variant }: HeroSectionProps) {
 
       {/* Background image (shown if no video, or as poster fallback) */}
       {activeImage && !bgVideo && (
-        <img
+        <Image
           src={activeImage}
           alt=""
           aria-hidden
+          fill
+          priority
+          sizes="100vw"
           className="absolute inset-0 h-full w-full object-cover"
         />
       )}
@@ -194,24 +197,7 @@ export default function HeroSection({ variant }: HeroSectionProps) {
 
         {/* Search — premium glass form with Cab/Hotel/Tour tabs */}
         <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
-          <HeroSearchForm />
-        </MotionFadeIn>
-
-        {/* Stats */}
-        <MotionFadeIn delay={hasPrimaryCta ? 0.4 : 0.3} className="mt-14 lg:mt-20">
-          <dl className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-0 lg:divide-x lg:divide-white/15 max-w-4xl mx-auto">
-            {stats.map((s, i) => (
-              <div key={i} className="text-center px-4">
-                <dt className="sr-only">{s.label}</dt>
-                <dd>
-                  <div className="text-3xl lg:text-4xl font-extrabold bg-gradient-to-br from-accent-400 to-accent-500 bg-clip-text text-transparent drop-shadow-sm">
-                    {s.value}
-                  </div>
-                  <div className={`mt-1 text-sm ${hasMedia ? "text-white/80" : "text-white/65"}`}>{s.label}</div>
-                </dd>
-              </div>
-            ))}
-          </dl>
+          <HeroSearchForm hiddenServices={hiddenServices} />
         </MotionFadeIn>
       </Container>
     </section>

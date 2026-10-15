@@ -19,6 +19,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -28,6 +29,11 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cabService, type PublicCity, type PublicTripType } from "@/services/cabService";
+import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
+import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
+import { outOfServiceArea } from "@/lib/serviceArea";
+import type { ServiceKey } from "@/lib/availability";
+import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
 import type { PublicTourSuggestion } from "@/services/tourService";
 
 type Tab = "CAB" | "HOTEL" | "TOUR";
@@ -327,6 +333,7 @@ function CityChip({
           }}
           className="bg-white rounded-xl shadow-[0_20px_60px_rgba(11,27,59,0.22)] border border-ink-7 overflow-y-auto"
         >
+          <UseMyLocationOption onCity={onChange} onClose={() => setOpen(false)} />
           {cities.map(c => {
             const active = c.id === selectedCity?.id;
             return (
@@ -407,6 +414,8 @@ function LockedLocationInput({
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [locked, setLocked] = useState(!!value.place_id); // picked → locked
+  // Pick resolved to a place outside every serviced city → honest notice.
+  const [outOfArea, setOutOfArea] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
   const geocoder = useRef<google.maps.Geocoder | null>(null);
@@ -553,16 +562,25 @@ function LockedLocationInput({
         if (status === "OK" && results?.[0]) {
           const loc = results[0].geometry.location;
           const lat = loc.lat(), lng = loc.lng();
+          // Airport/station picks are remembered locally so the homepage can
+          // offer the matching place page next visit (fire-and-forget).
+          void maybeRecordPlaceIntent(results[0].types, lat, lng);
           try {
             const city = await cabService.matchNearestCity(lat, lng);
-            onChange({
-              label: s.description,
-              place_id: s.place_id,
-              lat, lng,
-              city_id: city?.id,
-              city_name: city?.name,
-            });
-            if (city && onResolvedCity) onResolvedCity(city);
+            if (outOfServiceArea(city, lat, lng)) {
+              setOutOfArea(s.description.split(",")[0]);
+              onChange({ label: s.description, place_id: s.place_id, lat, lng });
+            } else {
+              setOutOfArea(null);
+              onChange({
+                label: s.description,
+                place_id: s.place_id,
+                lat, lng,
+                city_id: city?.id,
+                city_name: city?.name,
+              });
+              if (city && onResolvedCity) onResolvedCity(city);
+            }
           } catch {
             onChange({ label: s.description, place_id: s.place_id, lat, lng });
           }
@@ -579,6 +597,7 @@ function LockedLocationInput({
     setLocked(false);
     setSuggestions([]);
     setOpen(false);
+    setOutOfArea(null);
     sessionToken.current = null;
     onChange({ label: "" });
   };
@@ -653,7 +672,14 @@ function LockedLocationInput({
           </button>
         )}
       </div>
-      {locked && (
+      {outOfArea && (
+        <OutOfServiceAreaNotice
+          area={outOfArea}
+          onDismiss={() => setOutOfArea(null)}
+          className="mt-2"
+        />
+      )}
+      {locked && !outOfArea && (
         <p className="mt-1 text-[10px] text-ink-4">Pick from the dropdown to change.</p>
       )}
       {open && suggestions.length > 0 && dropdownRect && typeof document !== "undefined" &&
@@ -781,7 +807,9 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
     if (!cityId && pickup.lat && pickup.lng) {
       try {
         const c = await cabService.matchNearestCity(pickup.lat, pickup.lng);
-        cityId = c?.id;
+        // Out-of-range match → stay city-less; results page shows the
+        // honest "not served yet" notice instead of foreign fares.
+        if (!outOfServiceArea(c, pickup.lat, pickup.lng)) cityId = c?.id;
       } catch {
         cityId = undefined;
       }
@@ -1263,7 +1291,7 @@ function TourPanel() {
                   className="w-full flex items-center gap-3 px-3.5 py-2.5 text-left hover:bg-primary-50 transition-colors border-b border-ink-8 last:border-0"
                 >
                   {s.primary_image_url ? (
-                    <img src={s.primary_image_url} alt="" className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
+                    <Image src={s.primary_image_url} alt="" width={40} height={40} className="h-10 w-10 rounded-lg object-cover flex-shrink-0" />
                   ) : (
                     <span className="h-10 w-10 rounded-lg bg-primary-50 text-[#F05A22] flex items-center justify-center flex-shrink-0">
                       <Sparkles className="h-4 w-4" />
@@ -1317,10 +1345,23 @@ function TourPanel() {
 interface HeroSearchFormProps {
   /** Which tab is active on first render. Defaults to CAB (homepage). */
   defaultService?: Tab;
+  /** Verticals hidden site-wide (disabled or zero supply) — their tabs
+   *  disappear so the hero never searches into a 404. */
+  hiddenServices?: ServiceKey[];
 }
 
-export default function HeroSearchForm({ defaultService = "CAB" }: HeroSearchFormProps) {
-  const [tab, setTab] = useState<Tab>(defaultService);
+export default function HeroSearchForm({ defaultService = "CAB", hiddenServices = [] }: HeroSearchFormProps) {
+  const tabs = useMemo(() => ([
+    { id: "CAB"   as const, label: "Cabs",   icon: Car },
+    { id: "HOTEL" as const, label: "Hotels", icon: Hotel },
+    { id: "TOUR"  as const, label: "Tours",  icon: MapIcon },
+  ].filter((t) => !hiddenServices.includes(t.id))), [hiddenServices]);
+
+  const [tab, setTab] = useState<Tab>(
+    hiddenServices.includes(defaultService)
+      ? (tabs[0]?.id ?? defaultService)
+      : defaultService,
+  );
 
   // Trip types — fetched from the backend (NOT hardcoded).
   const [tripTypes, setTripTypes] = useState<PublicTripType[]>([]);
@@ -1372,12 +1413,6 @@ export default function HeroSearchForm({ defaultService = "CAB" }: HeroSearchFor
     const withCoords = cities.find(c => c.latitude != null && c.longitude != null);
     setSelectedCity(bbs ?? withCoords ?? cities[0] ?? null);
   }, [cities, selectedCity]);
-
-  const tabs = useMemo(() => ([
-    { id: "CAB"   as const, label: "Cabs",   icon: Car },
-    { id: "HOTEL" as const, label: "Hotels", icon: Hotel },
-    { id: "TOUR"  as const, label: "Tours",  icon: MapIcon },
-  ]), []);
 
   return (
     <div className="relative">

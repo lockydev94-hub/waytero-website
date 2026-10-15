@@ -8,6 +8,7 @@
    - Backend returns the payload RAW — no {success, data} envelope wrapper.
    ============================================================ */
 import type { PublicHomepage } from "@/types/cms";
+import { BRAND, BRAND_SOCIALS } from "@/lib/brand";
 
 const BASE_URL =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -18,6 +19,19 @@ export interface PlatformProfile {
   og_image_url: string;
   /** Admin Settings → Platform Details (SUPPORT_PHONE). Empty when unset. */
   support_phone: string;
+  /** system_configurations.SUPPORT_EMAIL (brand-master fallback applied below). */
+  support_email: string;
+  /** system_configurations.OFFICE_ADDRESS. */
+  office_address: string;
+  /** system_configurations.PLATFORM_TAGLINE. */
+  tagline: string;
+  /** Official profile URLs from SOCIAL_* keys (brand-master fallback applied). */
+  social_links: Record<string, string>;
+}
+
+export interface SiteSeoEntry {
+  title: string;
+  description: string;
 }
 
 export interface LegalSection {
@@ -102,27 +116,62 @@ export const publicCmsService = {
    * bundled static assets.
    */
   async getPlatformProfile(): Promise<PlatformProfile> {
-    const empty: PlatformProfile = {
+    const fallback: PlatformProfile = {
       logo_url: "",
       favicon_url: "",
       og_image_url: "",
       support_phone: "",
+      support_email: BRAND.email,
+      office_address: BRAND.officeAddress,
+      tagline: BRAND.tagline,
+      social_links: BRAND_SOCIALS,
     };
     try {
       const res = await fetch(`${BASE_URL}/public/platform-profile`, {
         next: { revalidate: 300 }, // 5 min — admin uploads are rare
       });
-      if (!res.ok) return empty;
+      if (!res.ok) return fallback;
       const json = (await res.json()) as Partial<PlatformProfile>;
+      const str = (v: unknown): string => (typeof v === "string" ? v.trim() : "");
+      const socials =
+        json.social_links && typeof json.social_links === "object"
+          ? Object.fromEntries(
+              Object.entries(json.social_links).filter(
+                ([, v]) => typeof v === "string" && v.trim() !== ""
+              )
+            )
+          : {};
       return {
-        logo_url: typeof json.logo_url === "string" ? json.logo_url : "",
-        favicon_url: typeof json.favicon_url === "string" ? json.favicon_url : "",
-        og_image_url: typeof json.og_image_url === "string" ? json.og_image_url : "",
-        support_phone:
-          typeof json.support_phone === "string" ? json.support_phone.trim() : "",
+        logo_url: str(json.logo_url),
+        favicon_url: str(json.favicon_url),
+        og_image_url: str(json.og_image_url),
+        support_phone: str(json.support_phone),
+        support_email: str(json.support_email) || BRAND.email,
+        office_address: str(json.office_address) || BRAND.officeAddress,
+        tagline: str(json.tagline) || BRAND.tagline,
+        social_links: Object.keys(socials).length ? socials : BRAND_SOCIALS,
       };
     } catch {
-      return empty;
+      return fallback;
+    }
+  },
+
+  /**
+   * Per-page <head> metadata authored in system_configurations
+   * (SEO_PAGE_* keys). Mirrors backend `GET /public/site-seo`.
+   * Returns {} on failure — callers use their brand-master fallback.
+   */
+  async getSiteSeo(): Promise<Record<string, SiteSeoEntry>> {
+    try {
+      const res = await fetch(`${BASE_URL}/public/site-seo`, {
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) return {};
+      const json = (await res.json()) as Record<string, SiteSeoEntry>;
+      if (!json || typeof json !== "object") return {};
+      return json;
+    } catch {
+      return {};
     }
   },
 
