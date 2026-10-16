@@ -845,7 +845,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* "Searching in <city> ▾" chip — biases Google Places autocomplete
           so suggestions come from the customer's selected city, not from
           anywhere in the country. */}
@@ -865,7 +865,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           const active = t.code === tripType;
           return (
             <button key={t.code} type="button" onClick={() => setTripType(t.code)}
-              className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-full text-xs font-bold transition-all border
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border
                 ${active
                   ? "bg-gradient-to-r from-[#F05A22] to-[#E04A12] text-white border-transparent shadow-[0_4px_16px_rgba(240,90,34,0.45)]"
                   : "bg-white/8 text-white/85 border-white/15 hover:bg-white/15 hover:border-white/30"
@@ -878,8 +878,8 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
       </div>
 
       {/* Fields */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch">
-        <GlassField label="From" error={errors.pickup} className="md:col-span-3">
+      <div className={FIELD_ROW}>
+        <GlassField label="From" error={errors.pickup} className="flex-[2_1_210px] min-w-[190px]">
           <LockedLocationInput
             value={pickup} onChange={v => { setPickup(v); setErrors(e => ({...e, pickup: ""})); }}
             placeholder="Type 1 letter to start…" icon={MapPin}
@@ -890,7 +890,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
 
         {requiresDrop && (
           <>
-            <div className="hidden md:flex md:col-span-1 items-center justify-center">
+            <div className="hidden @xl:flex items-center self-center flex-none">
               <button type="button" aria-label="Swap pickup and drop"
                 onClick={() => { const t = pickup; setPickup(drop); setDrop(t); }}
                 className="h-9 w-9 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white">
@@ -898,7 +898,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
               </button>
             </div>
 
-            <GlassField label="To" error={errors.drop} className="md:col-span-3">
+            <GlassField label="To" error={errors.drop} className="flex-[2_1_210px] min-w-[190px]">
               <LockedLocationInput
                 value={drop} onChange={v => { setDrop(v); setErrors(e => ({...e, drop: ""})); }}
                 placeholder="Type 1 letter to start…" icon={Navigation}
@@ -909,12 +909,12 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           </>
         )}
 
-        <GlassField label="Pickup Date & Time" error={errors.date} className="md:col-span-2">
+        <GlassField label="Pickup Date & Time" error={errors.date} className="flex-[1_1_180px] min-w-[168px]">
           <DateTimePicker value={dateTime} onChange={v => { setDateTime(v); setErrors(e => ({...e, date: ""})); }} label="Select date" />
         </GlassField>
 
         {isRoundTrip && (
-          <GlassField label="Return Date & Time" error={errors.returnDate} className="md:col-span-2">
+          <GlassField label="Return Date & Time" error={errors.returnDate} className="flex-[1_1_180px] min-w-[168px]">
             <DateTimePicker
               value={returnDateTime}
               onChange={v => { setReturnDateTime(v); setErrors(e => ({...e, returnDate: ""})); }}
@@ -924,7 +924,7 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           </GlassField>
         )}
 
-        <GlassField label="Passengers" className="md:col-span-2">
+        <GlassField label="Passengers" className="flex-[1_1_140px] min-w-[132px]">
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
             <select value={pax} onChange={e => setPax(+e.target.value)}
@@ -934,12 +934,13 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           </div>
         </GlassField>
 
-        <div className="md:col-span-1 flex">
+        <div className="w-full @xl:w-14 @xl:flex-none flex">
           <button type="button" onClick={handleSearch}
-            className="w-full h-full min-h-[56px] rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+            className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
             style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
             <Search className="h-4 w-4" />
-            <span className="hidden lg:inline">Go</span>
+            <span className="@xl:hidden">Search</span>
+            <span className="hidden @xl:inline">Go</span>
           </button>
         </div>
       </div>
@@ -952,18 +953,25 @@ function GlassField({ label, error, className = "", children }: {
 }) {
   return (
     <div className={`${className} flex flex-col`}>
-      <div className={`relative px-4 py-2.5 rounded-2xl border transition-all backdrop-blur-md
+      <div className={`relative h-full px-3.5 py-2 rounded-2xl border transition-all backdrop-blur-md
         ${error
           ? "border-red-400/60 bg-red-500/15"
           : "border-white/15 bg-white/95 hover:border-white/40 focus-within:border-white/60 focus-within:shadow-[0_8px_24px_rgba(240,90,34,0.25)]"
         }`}>
-        <div className="text-[10px] font-extrabold text-ink-4 uppercase tracking-[0.12em] mb-0.5">{label}</div>
+        <div className="text-[9px] font-extrabold text-ink-4 uppercase tracking-[0.10em] mb-0.5 whitespace-nowrap overflow-hidden">{label}</div>
         {children}
       </div>
-      {error && <p className="text-xs text-red-200 mt-1 px-1 font-medium drop-shadow">{error}</p>}
+      {error && <p className="text-[11px] text-red-200 mt-0.5 px-1 font-medium drop-shadow">{error}</p>}
     </div>
   );
 }
+
+// One row of search fields. Layout is driven by the FORM's width, not the
+// browser's: `flex-wrap` + a per-field `min-w-*` means a field never shrinks
+// below the width its label and value need — the vertical-label squeeze the
+// viewport-based 12-column grid produced whenever the hero gave the form a
+// narrow column (e.g. next to the offer slider).
+const FIELD_ROW = "flex flex-wrap items-stretch gap-2.5";
 
 // ── Hotel panel ──────────────────────────────────────────────────────────────
 // City / place based hotel search — mirrors the cab panel: pick a hotel city
@@ -1046,8 +1054,8 @@ function HotelPanel() {
   };
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch">
-      <GlassField label="City / Place" error={errors.city} className="md:col-span-4">
+    <form onSubmit={submit} className={FIELD_ROW}>
+      <GlassField label="City / Place" error={errors.city} className="flex-[3_1_240px] min-w-[210px]">
         <div ref={cityFieldRef} className="flex items-center gap-2">
           <Building2 className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
           {selectedCity ? (
@@ -1102,19 +1110,19 @@ function HotelPanel() {
           )
         }
       </GlassField>
-      <GlassField label="Check-in" error={errors.checkIn} className="md:col-span-3">
+      <GlassField label="Check-in" error={errors.checkIn} className="flex-[1_1_180px] min-w-[168px]">
         <DateTimePicker
           value={{ date: checkIn, hour: 12, minute: 0 }}
           onChange={v => { setCI(v.date); setErrors(prev => ({ ...prev, checkIn: "" })); }}
           label="Check-in date" />
       </GlassField>
-      <GlassField label="Check-out" error={errors.checkOut} className="md:col-span-3">
+      <GlassField label="Check-out" error={errors.checkOut} className="flex-[1_1_180px] min-w-[168px]">
         <DateTimePicker
           value={{ date: checkOut, hour: 11, minute: 0 }}
           onChange={v => { setCO(v.date); setErrors(prev => ({ ...prev, checkOut: "" })); }}
           label="Check-out date" minDate={checkIn ?? undefined} />
       </GlassField>
-      <GlassField label="Guests · Rooms" className="md:col-span-1">
+      <GlassField label="Guests · Rooms" className="flex-[1_1_140px] min-w-[128px]">
         <div className="flex items-center gap-2">
           <BedDouble className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
           <select
@@ -1131,11 +1139,12 @@ function HotelPanel() {
           </select>
         </div>
       </GlassField>
-      <div className="md:col-span-1 flex">
+      <div className="w-full @xl:w-14 @xl:flex-none flex">
         <button type="submit"
-          className="w-full h-full min-h-[56px] rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+          className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
           style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
           <Search className="h-4 w-4" />
+          <span className="@xl:hidden">Search</span>
         </button>
       </div>
     </form>
@@ -1253,8 +1262,8 @@ function TourPanel() {
   };
 
   return (
-    <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-12 gap-2.5 items-stretch">
-      <GlassField label="Destination / Tour package" className="md:col-span-5">
+    <form onSubmit={submit} className={FIELD_ROW}>
+      <GlassField label="Destination / Tour package" className="flex-[3_1_260px] min-w-[230px]">
         <div ref={fieldRef} className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
           <input
@@ -1318,13 +1327,13 @@ function TourPanel() {
           )
         }
       </GlassField>
-      <GlassField label="Start Date" className="md:col-span-3">
+      <GlassField label="Start Date" className="flex-[1_1_180px] min-w-[168px]">
         <DateTimePicker
           value={{ date, hour: 9, minute: 0 }}
           onChange={v => setDate(v.date)}
           label="Start date" />
       </GlassField>
-      <GlassField label="Travellers" className="md:col-span-3">
+      <GlassField label="Travellers" className="flex-[1_1_160px] min-w-[150px]">
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
           <select value={pax} onChange={e => setPax(+e.target.value)}
@@ -1333,11 +1342,12 @@ function TourPanel() {
           </select>
         </div>
       </GlassField>
-      <div className="md:col-span-1 flex">
+      <div className="w-full @xl:w-14 @xl:flex-none flex">
         <button type="submit"
-          className="w-full h-full min-h-[56px] rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+          className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
           style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
           <Search className="h-4 w-4" />
+          <span className="@xl:hidden">Search</span>
         </button>
       </div>
     </form>
@@ -1427,17 +1437,17 @@ export default function HeroSearchForm({ defaultService = "CAB", hiddenServices 
         <div aria-hidden className="absolute -top-20 -right-20 h-56 w-56 rounded-full bg-[#F05A22]/25 blur-3xl pointer-events-none" />
         <div aria-hidden className="absolute -bottom-24 -left-16 h-56 w-56 rounded-full bg-primary-400/20 blur-3xl pointer-events-none" />
 
-        <div className="relative p-5 sm:p-6 lg:p-7">
+        <div className="@container relative p-4 sm:p-5 lg:p-6">
           {/* Tabs */}
           <div role="tablist" aria-label="Search service"
-            className="flex items-center gap-1 p-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-md w-fit mb-5">
+            className="flex items-center gap-1 p-1 rounded-full bg-white/10 border border-white/15 backdrop-blur-md w-fit mb-4">
             {tabs.map(t => {
               const Icon = t.icon;
               const active = tab === t.id;
               return (
                 <button key={t.id} role="tab" aria-selected={active}
                   onClick={() => setTab(t.id)}
-                  className={`inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 rounded-full text-sm font-bold transition-all
+                  className={`inline-flex items-center gap-2 px-4 sm:px-5 py-2 rounded-full text-[13px] font-bold transition-all
                     ${active
                       ? "bg-gradient-to-r from-[#F05A22] to-[#E04A12] text-white shadow-[0_6px_20px_rgba(240,90,34,0.45)]"
                       : "text-white/85 hover:text-white hover:bg-white/10"

@@ -64,7 +64,7 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
 
   return (
     <section
-      className="relative isolate overflow-hidden text-white"
+      className="relative isolate flex min-h-[100dvh] flex-col justify-center overflow-hidden text-white"
       style={{
         // Full-bleed: covers announcement bar + header height (36px bar + 68px header = ~104px)
         // We use negative margin-top to pull the section up behind the sticky header
@@ -140,10 +140,10 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
       />
 
       {/* ── Content ─────────────────────────────────────────────────────── */}
-      <Container size="xl" className="relative pt-10 pb-20 lg:pt-14 lg:pb-28">
+      <Container size="xl" className="relative py-4 lg:py-5">
         {/* Eyebrow badge */}
         <MotionFadeIn className="mx-auto max-w-3xl text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] backdrop-blur-md shadow-lg">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] backdrop-blur-md shadow-lg">
             <span className="h-1.5 w-1.5 rounded-full bg-accent-400 animate-pulse" aria-hidden />
             {eyebrow}
           </span>
@@ -151,8 +151,8 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
 
         {/* Headline */}
         {headline && (
-          <MotionFadeIn delay={0.1} className="mx-auto mt-7 max-w-4xl text-center">
-            <h1 className="text-4xl sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold leading-[1.05] tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
+          <MotionFadeIn delay={0.1} className="mx-auto mt-4 max-w-4xl text-center">
+            <h1 className="text-[26px] sm:text-[32px] lg:text-[38px] xl:text-[42px] font-extrabold leading-[1.1] tracking-tight drop-shadow-[0_2px_12px_rgba(0,0,0,0.4)]">
               {headline.split("|").map((part, i, arr) => (
                 <span key={i}>
                   {part}
@@ -172,8 +172,8 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
 
         {/* Subheadline */}
         {subline && (
-          <MotionFadeIn delay={0.15} className="mx-auto mt-5 max-w-2xl text-center">
-            <p className={`text-base sm:text-lg leading-relaxed drop-shadow-sm ${hasMedia ? "text-white/90" : "text-white/75"}`}>
+          <MotionFadeIn delay={0.15} className="mx-auto mt-3 max-w-2xl text-center">
+            <p className={`text-[13px] sm:text-sm lg:text-base leading-relaxed drop-shadow-sm ${hasMedia ? "text-white/90" : "text-white/75"}`}>
               {subline}
             </p>
           </MotionFadeIn>
@@ -181,10 +181,10 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
 
         {/* CTAs — only render when backend provides them */}
         {hasPrimaryCta && (
-          <MotionFadeIn delay={0.2} className="mt-9 flex flex-wrap items-center justify-center gap-3">
+          <MotionFadeIn delay={0.2} className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <a
               href={ctaLink!}
-              className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-bold shadow-[0_4px_20px_rgba(240,90,34,0.45)] hover:shadow-[0_6px_28px_rgba(240,90,34,0.55)] transition-all hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-2 h-10 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink text-sm font-bold shadow-[0_4px_20px_rgba(240,90,34,0.45)] hover:shadow-[0_6px_28px_rgba(240,90,34,0.55)] transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               {ctaText}
               <ArrowRight className="h-4 w-4" />
@@ -192,7 +192,7 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
             {hasSecondaryCta && (
               <Link
                 href="/tours"
-                className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-white/10 hover:bg-white/18 text-white font-semibold border border-white/25 backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all hover:-translate-y-0.5 active:translate-y-0"
+                className="inline-flex items-center gap-2 h-10 px-6 rounded-xl bg-white/10 hover:bg-white/18 text-white text-sm font-semibold border border-white/25 backdrop-blur-md shadow-[0_4px_16px_rgba(0,0,0,0.15)] transition-all hover:-translate-y-0.5 active:translate-y-0"
               >
                 Explore Tour Packages
               </Link>
@@ -204,18 +204,18 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
             With live offers it shares a 3-col grid (form 2/3, circular
             offer slider 1/3); without, the current full-width design. */}
         {offers.length > 0 ? (
-          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-8 items-center">
-              <div className="lg:col-span-2">
+          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-6 lg:mt-8">
+            <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto] gap-6 lg:gap-8 items-center justify-center">
+              <div className="min-w-0">
                 <HeroSearchForm hiddenServices={hiddenServices} />
               </div>
-              <div className="lg:col-span-1">
+              <div className="w-full max-w-[280px] justify-self-center lg:w-[250px] xl:w-[280px] lg:justify-self-end">
                 <HeroOfferSlider offers={offers} />
               </div>
             </div>
           </MotionFadeIn>
         ) : (
-          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-10 lg:mt-14">
+          <MotionFadeIn delay={hasPrimaryCta ? 0.3 : 0.2} className="mt-6 lg:mt-8">
             <HeroSearchForm hiddenServices={hiddenServices} />
           </MotionFadeIn>
         )}

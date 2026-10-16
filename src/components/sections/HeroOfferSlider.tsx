@@ -32,7 +32,7 @@ const fmtValidTo = (iso: string) => {
 function OfferCircle({ offer }: { offer: PublicOfferSlide }) {
   const [broken, setBroken] = useState(false);
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[290px]">
+    <div className="relative mx-auto aspect-square w-full max-w-[220px] xl:max-w-[250px]">
       {/* Soft glow behind the circle */}
       <div
         aria-hidden
@@ -54,7 +54,7 @@ function OfferCircle({ offer }: { offer: PublicOfferSlide }) {
             src={offer.image_url}
             alt={offer.title}
             fill
-            sizes="(min-width: 1024px) 290px, 70vw"
+            sizes="(min-width: 1024px) 250px, 70vw"
             className="object-cover"
             onError={() => setBroken(true)}
           />
@@ -81,7 +81,7 @@ export default function HeroOfferSlider({ offers }: { offers: PublicOfferSlide[]
 
   return (
     <div
-      className="mx-auto flex w-full max-w-sm flex-col items-center gap-4 text-center"
+      className="mx-auto flex w-full max-w-sm flex-col items-center gap-2.5 text-center"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}
@@ -107,15 +107,15 @@ export default function HeroOfferSlider({ offers }: { offers: PublicOfferSlide[]
             <MotionTilt max={6}>
               <OfferCircle offer={current} />
             </MotionTilt>
-            <div className="mt-5 space-y-2">
-              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-4 py-1.5 text-xs font-extrabold uppercase tracking-wide text-white shadow-wt-accent">
+            <div className="mt-3 space-y-1">
+              <span className="inline-flex items-center rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-wt-accent">
                 {current.badge}
               </span>
-              <div className="text-base font-extrabold leading-snug text-white drop-shadow-sm">
+              <div className="text-sm font-extrabold leading-snug text-white drop-shadow-sm">
                 {current.title}
               </div>
-              <div className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-white/45 bg-white/10 px-3 py-1 text-xs font-bold tracking-wider text-white backdrop-blur-md">
-                <Tag className="h-3.5 w-3.5 text-accent-400" aria-hidden />
+              <div className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-white/45 bg-white/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-white backdrop-blur-md">
+                <Tag className="h-3 w-3 text-accent-400" aria-hidden />
                 {current.coupon_code}
               </div>
               <div className="text-[11px] font-medium text-white/75">
