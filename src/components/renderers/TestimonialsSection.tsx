@@ -1,6 +1,6 @@
 import { Star, Quote } from "lucide-react";
-import { Container, Section, SectionHeader, Avatar, MotionGlow, Card } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, Avatar, MotionGlow, Card, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 
 interface TestimonialsSectionProps {
@@ -27,12 +27,15 @@ export default function TestimonialsSection({ variant }: TestimonialsSectionProp
   if (items.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="testimonials" overlay="dots">
+    <Section bg="muted" pad="home" id="testimonials" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
+        <Carousel ariaLabel="Customer testimonials">
           {items.map((t) => (
-            <MotionStaggerItem key={t.name}>
+            <MotionStaggerItem
+              key={t.name}
+              className="h-full w-[86%] min-w-[290px] max-w-[736px] shrink-0 grow snap-start sm:w-[475px]"
+            >
               <MotionGlow color="primary" intensity={0.18} size={300} className="h-full rounded-2xl">
                 <Card variant="glass-strong" hover lift="md" hoverTint="primary" className="relative h-full border-gradient-primary">
                   <Quote className="absolute top-5 right-5 h-7 w-7 text-primary-200 transition-transform duration-300 group-hover:scale-110 group-hover:text-primary-400" />
@@ -58,7 +61,7 @@ export default function TestimonialsSection({ variant }: TestimonialsSectionProp
               </MotionGlow>
             </MotionStaggerItem>
           ))}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

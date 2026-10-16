@@ -58,13 +58,13 @@ export default async function PopularRoutesSection({ variant }: { variant: Recor
   if (routes.length === 0) return null;
 
   return (
-    <Section bg="white" pad="lg" id="routes" overlay="grid">
+    <Section bg="white" pad="home" id="routes" overlay="grid-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
         {/* Server-rendered GET form — a plain submit navigates to the hub,
             so this needs no client component. */}
-        <form action="/cabs/routes" method="get" className="mx-auto mb-7 flex max-w-md items-center gap-2">
+        <form action="/cabs/routes" method="get" className="mx-auto mb-5 flex max-w-md items-center gap-2">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-4" />
             <input
@@ -110,7 +110,7 @@ export default async function PopularRoutesSection({ variant }: { variant: Recor
           ))}
         </MotionStagger>
 
-        <div className="mt-8 text-center">
+        <div className="mt-6 text-center">
           <Link
             href="/cabs/routes"
             className="inline-flex items-center gap-2 rounded-full border border-primary-200 bg-white px-5 py-2.5 text-sm font-bold text-primary-700 transition-all hover:border-primary-400 hover:bg-primary-50 hover:shadow-wt"

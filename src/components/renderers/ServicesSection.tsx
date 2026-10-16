@@ -14,8 +14,8 @@ interface ServiceItem {
   link?: string;
   tone?: "primary" | "accent" | "success" | "info";
 }
-import { Container, Section, SectionHeader, IconBox, MotionGlow } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, IconBox, MotionGlow, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
@@ -42,16 +42,19 @@ export default function ServicesSection({ variant, hidden = [] }: ServicesSectio
   if (items.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="services" overlay="dots">
+    <Section bg="muted" pad="home" id="services" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
-        <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <Carousel ariaLabel="Services">
           {items.map((s) => {
             const Icon = typeof s.icon === "string" && ICONS[s.icon] ? ICONS[s.icon] : s.icon || Car;
             const tone = (["primary", "accent", "success", "info"] as const).includes(s.tone as never) ? (s.tone as never) : "primary";
             return (
-              <MotionStaggerItem key={s.title} className="h-full">
+              <MotionStaggerItem
+                key={s.title}
+                className="h-full w-[80%] min-w-[250px] max-w-[460px] shrink-0 grow snap-start sm:w-[229px]"
+              >
                 <MotionGlow color={((tone as string) === "info" ? "primary" : tone) as "primary" | "accent" | "success" | "danger"} intensity={0.18} size={260} className="h-full rounded-2xl">
                   <a
                     href={s.link}
@@ -80,7 +83,7 @@ export default function ServicesSection({ variant, hidden = [] }: ServicesSectio
               </MotionStaggerItem>
             );
           })}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

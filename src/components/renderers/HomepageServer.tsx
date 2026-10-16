@@ -101,7 +101,7 @@ function SectionSwitch({ section, hidden, offers }: { section: HomepageSection; 
     case "PARTNERS":
       return <PartnersSection variant={v} />;
     case "CTA":
-      return <CtaSection variant={v} />;
+      return <CtaSection variant={v} pad="home" />;
     case "POPULAR_DESTINATIONS":
       return <PopularDestinationsSection variant={v} />;
     case "POPULAR_ROUTES":

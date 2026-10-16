@@ -65,9 +65,9 @@ export default async function PopularCitiesSection({ variant }: { variant: Recor
   if (cities.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="cities" overlay="grid">
+    <Section bg="muted" pad="home" id="cities" overlay="grid-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <MotionStagger className="flex flex-wrap justify-center gap-2.5">
           {cities.slice(0, 18).map((c) => (
             <MotionStaggerItem key={c.id}>

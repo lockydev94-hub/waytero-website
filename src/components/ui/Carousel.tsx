@@ -92,8 +92,10 @@ export default function Carousel({ children, ariaLabel, className = "" }: Carous
   const scrollByCards = (dir: 1 | -1) => {
     const el = scroller.current;
     if (!el) return;
-    const first = el.querySelector<HTMLElement>("[data-carousel-item]");
     const track = el.firstElementChild;
+    // The items are the track's own children — MotionStaggerItem forwards no
+    // data attributes, so the DOM position is the contract, not a selector.
+    const first = (track?.firstElementChild as HTMLElement | null) ?? null;
     const gap = track ? parseFloat(getComputedStyle(track).columnGap) || 0 : 0;
     // One card at a time on desktop; never more than a viewport, or the
     // reader loses their place entirely.
@@ -121,12 +123,14 @@ export default function Carousel({ children, ariaLabel, className = "" }: Carous
     >
       {/* Bleeds past the Container gutter and re-adds it as scroll padding, so
           the first card aligns with the heading while the arrows sit over the
-          gutter edge. */}
+          gutter edge. `overflow-x:auto` forces the y-axis to clip too, so the
+          box gets bottom padding for the hover lift + shadow and cancels it
+          with an equal negative margin — the band's rhythm stays unchanged. */}
       <div
         ref={scroller}
         tabIndex={0}
         onKeyDown={onKeyDown}
-        className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 scroll-px-4 [scrollbar-width:none] focus-visible:outline-none sm:mx-0 sm:px-0 sm:scroll-px-0 [&::-webkit-scrollbar]:hidden"
+        className="-mx-4 flex snap-x snap-mandatory overflow-x-auto px-4 pb-3 -mb-3 scroll-px-4 [scrollbar-width:none] focus-visible:outline-none sm:mx-0 sm:px-0 sm:scroll-px-0 [&::-webkit-scrollbar]:hidden"
       >
         <MotionStagger
           className={`flex w-full gap-5 ${fits ? "justify-center" : "justify-start"}`}

@@ -15,16 +15,16 @@ export default function AppDownloadSection({ variant }: AppDownloadSectionProps)
   const ctaLink = pick<string | null>(variant, "cta_link", null);
 
   return (
-    <Section bg="white" pad="lg" id="app" className="relative overflow-hidden" overlay="dots">
+    <Section bg="white" pad="home" id="app" className="relative overflow-hidden" overlay="dots-faint">
       {/* Decorative blob background */}
       <div aria-hidden className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary-100/60 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-accent-100/40 blur-3xl" />
 
       <Container size="lg" className="relative">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
           <MotionFadeIn>
-            <SectionHeader align="left" eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow className="mb-8" />
-            <ul className="space-y-3 mb-8 text-ink-3 text-sm">
+            <SectionHeader align="left" eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" className="mb-6" />
+            <ul className="space-y-3 mb-7 text-ink-3 text-sm">
               {["Instant cab booking with live tracking", "Verified hotels & curated tour packages", "Secure in-app wallet & offers", "24/7 chat support with real humans"].map((point, i) => (
                 <li key={point} className="flex items-start gap-2.5 group">
                   <span className="mt-1 h-5 w-5 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 shadow-wt-primary group-hover:scale-110 transition-transform" aria-hidden>

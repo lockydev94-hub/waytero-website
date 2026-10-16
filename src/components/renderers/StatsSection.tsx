@@ -25,21 +25,24 @@ export default function StatsSection({ variant }: StatsSectionProps) {
   if (stats.length === 0) return null;
 
   return (
-    <Section bg="ink" pad="lg" id="stats" className="relative overflow-hidden" overlay="grid">
+    <Section bg="ink" pad="home" id="stats" className="relative overflow-hidden" overlay="grid">
       {/* Premium depth — animated mesh blobs + grid overlay */}
       <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary-500/30 blur-3xl animate-blob" />
       <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-24 h-96 w-96 rounded-full bg-accent-500/25 blur-3xl animate-blob [animation-delay:4s]" />
       <div aria-hidden className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-72 w-72 rounded-full bg-primary-400/15 blur-3xl animate-blob [animation-delay:7s]" />
 
       <Container size="lg" className="relative">
-        <MotionFadeIn className="text-center mb-12 lg:mb-16">
-          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-accent-300 mb-4">
+        {/* Same rhythm as SectionHeader scale="home" — kept local because this
+            band is on dark ink and needs accent colours, not a dark override
+            inside the shared header. */}
+        <MotionFadeIn className="text-center mb-6 lg:mb-7">
+          <p className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-accent-300 mb-2.5">
             <span className="h-1.5 w-1.5 rounded-full bg-accent-400" aria-hidden /> {eyebrow}
           </p>
-          <h2 className="text-3xl lg:text-5xl font-extrabold text-white tracking-tight">
+          <h2 className="text-2xl sm:text-[1.9rem] lg:text-[2.15rem] font-extrabold text-white leading-[1.15] tracking-[-0.02em]">
             <span className="text-gradient-accent">{headline}</span>
           </h2>
-          <div className="mt-4 h-1 w-20 rounded-full bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 mx-auto" aria-hidden />
+          <div className="mt-3 h-[3px] w-14 rounded-full bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 mx-auto" aria-hidden />
         </MotionFadeIn>
         <MotionStagger className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
           {stats.map((s, i) => (

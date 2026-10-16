@@ -1,6 +1,6 @@
 import { Search, CalendarCheck, ShieldCheck, Plane, Car, MapPin, Wallet, Smartphone, CreditCard, Star, Users, Gift, HandHeart, type LucideIcon } from "lucide-react";
-import { Container, Section, SectionHeader, IconBox, MotionGlow } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, IconBox, MotionGlow, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 
 interface HowItWorksSectionProps {
@@ -39,19 +39,20 @@ export default function HowItWorksSection({ variant }: HowItWorksSectionProps) {
   if (steps.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="how-it-works" overlay="grid">
+    <Section bg="muted" pad="home" id="how-it-works" overlay="grid-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative">
-          {/* Connector gradient line (lg only) */}
-          <div aria-hidden className="hidden lg:block absolute top-12 left-[12%] right-[12%] h-px bg-gradient-to-r from-transparent via-primary-300 to-transparent" />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
+        <Carousel ariaLabel="How WayTero works">
           {steps.map((step, i) => {
             const Icon = (step.icon && ICONS[step.icon]) || MapPin;
             const tones = ["primary", "accent", "success", "info"] as const;
             const tone = tones[i % tones.length];
             const glowColor = (tone === "info" ? "primary" : tone) as "primary" | "accent" | "success" | "danger";
             return (
-              <MotionStaggerItem key={step.title} className="h-full">
+              <MotionStaggerItem
+                key={step.title}
+                className="h-full w-[80%] min-w-[250px] max-w-[460px] shrink-0 grow snap-start sm:w-[229px]"
+              >
                 <MotionGlow color={glowColor} intensity={0.18} size={260} className="h-full rounded-2xl">
                   <div className="group relative h-full rounded-2xl bg-white border border-ink-7 p-6 hover:border-primary-200 hover:shadow-wt-lg hover:-translate-y-1.5 transition-all duration-300 ease-[var(--ease-wt)] overflow-hidden">
                     {/* Top hairline gradient on hover */}
@@ -77,7 +78,7 @@ export default function HowItWorksSection({ variant }: HowItWorksSectionProps) {
               </MotionStaggerItem>
             );
           })}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

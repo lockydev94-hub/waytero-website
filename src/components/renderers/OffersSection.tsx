@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, BadgePercent, Car, Hotel, Plane, Ticket, type LucideIcon } from "lucide-react";
-import { Container, Section, SectionHeader } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import type { PublicOfferSlide } from "@/services/publicCms";
 import type { ServiceKey } from "@/lib/availability";
@@ -74,20 +74,21 @@ export default function OffersSection({ variant, offers, hidden = [] }: OffersSe
   if (live.length === 0) return null;
 
   return (
-    <Section bg="white" pad="lg" id="offers" overlay="dots">
+    <Section bg="white" pad="home" id="offers" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
         {/* Horizontal snap strip — one card at a time on a phone, all of them
-            on a desktop that has room, no wrap that breaks the coupon shape. */}
-        <MotionStagger className="-mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto px-4 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:px-0">
+            on a desktop that has room, no wrap that breaks the coupon shape.
+            The arrows are what make an off-screen card discoverable. */}
+        <Carousel ariaLabel="Offers and deals">
           {live.map((offer) => {
             const meta = SERVICE_META[offer.service_type] ?? SERVICE_META.CAB;
             const Icon = meta.icon;
             return (
               <MotionStaggerItem
                 key={offer.slug}
-                className="w-[86%] min-w-[280px] snap-start sm:w-[340px]"
+                className="w-[86%] min-w-[280px] max-w-[400px] shrink-0 grow snap-start sm:w-[310px]"
               >
                 <Link
                   href={`/offers/${offer.slug}`}
@@ -171,7 +172,7 @@ export default function OffersSection({ variant, offers, hidden = [] }: OffersSe
               </MotionStaggerItem>
             );
           })}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

@@ -5,9 +5,13 @@ import { pick } from "@/types/cms";
 
 interface CtaSectionProps {
   variant: Record<string, unknown>;
+  /** This band is shared: the homepage stacks 16 of them and uses the tight
+      `home` rhythm, while the marketing pages keep `lg`. Defaults to `lg` so
+      the other seven callers are untouched. */
+  pad?: "lg" | "home";
 }
 
-export default function CtaSection({ variant }: CtaSectionProps) {
+export default function CtaSection({ variant, pad = "lg" }: CtaSectionProps) {
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Ready for your next journey?"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Book cabs, hotels and tours with upfront, GST-inclusive pricing."));
   // Backend sends flat cta_text + cta_link — compose object
@@ -17,7 +21,7 @@ export default function CtaSection({ variant }: CtaSectionProps) {
   const secondary = { label: "Talk to Us", href: "/contact" };
 
   return (
-    <Section bg="white" pad="lg" id="cta" className="relative">
+    <Section bg="white" pad={pad} id="cta" className="relative">
       <Container size="lg">
         <MotionFadeIn>
           <MotionGlow color="accent" intensity={0.45} size={520} className="relative overflow-hidden rounded-3xl border border-primary-700/20 bg-mesh-primary px-8 py-14 lg:px-16 lg:py-20 text-center text-ink shadow-premium">

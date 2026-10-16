@@ -1,6 +1,7 @@
+import Image from "next/image";
 import { ArrowRight, CalendarDays, User } from "lucide-react";
-import { Container, Section, SectionHeader, MotionGlow, MotionTilt } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import { publicBlogService, type BlogPostSummary } from "@/services/publicBlog";
 
@@ -31,7 +32,7 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
   if (posts.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="blog" overlay="dots">
+    <Section bg="muted" pad="home" id="blog" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader
           eyebrow={eyebrow}
@@ -40,6 +41,7 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
           accent="primary"
           underline
           animatedEyebrow
+          scale="home"
           actions={
             <a
               href={ctaLink}
@@ -49,9 +51,12 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
             </a>
           }
         />
-        <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <Carousel ariaLabel="Travel stories">
           {posts.map((post) => (
-            <MotionStaggerItem key={post.id} className="h-full">
+            <MotionStaggerItem
+              key={post.id}
+              className="h-full w-[86%] min-w-[290px] max-w-[640px] shrink-0 grow snap-start sm:w-[310px]"
+            >
               <MotionGlow color="primary" intensity={0.2} size={300} className="h-full rounded-2xl">
                 <MotionTilt max={3} className="h-full">
                   <a
@@ -60,10 +65,12 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
                   >
                     <div className="aspect-[16/9] bg-gradient-to-br from-primary-200 via-primary-100 to-accent-100 overflow-hidden relative">
                       {post.featured_image_url ? (
-                        <div
-                          aria-hidden
-                          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                          style={{ backgroundImage: `url(${post.featured_image_url})` }}
+                        <Image
+                          src={post.featured_image_url}
+                          alt={post.title}
+                          fill
+                          sizes="(max-width: 640px) 86vw, 460px"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       ) : (
                         <div aria-hidden className="absolute inset-0 flex items-center justify-center text-primary-300/70 group-hover:scale-125 group-hover:text-primary-500 transition-transform duration-500">
@@ -98,7 +105,7 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
               </MotionGlow>
             </MotionStaggerItem>
           ))}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

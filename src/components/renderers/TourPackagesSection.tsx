@@ -1,8 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Clock, MapPin, ChevronRight, ArrowRight } from "lucide-react";
-import { Container, Section, SectionHeader, MotionTilt, MotionGlow } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, MotionTilt, MotionGlow, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import type { PublicTourPackage } from "@/services/tourService";
 
@@ -58,15 +58,18 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
   if (tours.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="tours" overlay="dots">
+    <Section bg="muted" pad="home" id="tours" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         {/* Photo-first cards: the image is the card, the copy sits on a
             gradient so nothing is invented and nothing hides behind a
             placeholder price. */}
-        <MotionStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <Carousel ariaLabel="Tour packages">
           {tours.map((t, i) => (
-            <MotionStaggerItem key={t.id} className="h-full">
+            <MotionStaggerItem
+              key={t.id}
+              className="h-full w-[86%] min-w-[290px] max-w-[620px] shrink-0 grow snap-start sm:w-[310px]"
+            >
               <MotionGlow color="primary" intensity={0.2} size={320} className="h-full rounded-3xl">
                 <MotionTilt max={3} className="h-full">
                   <Link
@@ -79,7 +82,7 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
                           src={t.primary_image_url}
                           alt={t.package_name}
                           fill
-                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                          sizes="(max-width: 640px) 86vw, 480px"
                           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       ) : (
@@ -135,8 +138,8 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
               </MotionGlow>
             </MotionStaggerItem>
           ))}
-        </MotionStagger>
-        <div className="mt-8 text-center">
+        </Carousel>
+        <div className="mt-6 text-center">
           <Link
             href="/tours"
             className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors"

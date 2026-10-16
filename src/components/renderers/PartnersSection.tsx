@@ -23,9 +23,9 @@ export default function PartnersSection({ variant }: PartnersSectionProps) {
   const strip = [...partners, ...partners];
 
   return (
-    <Section bg="muted" pad="md" id="partners" overlay="grid">
+    <Section bg="muted" pad="home" id="partners" overlay="grid-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
         {/* Infinite marquee — premium auto-scroll strip with gradient mask */}
         <MotionFadeIn>
@@ -47,7 +47,7 @@ export default function PartnersSection({ variant }: PartnersSectionProps) {
           </div>
         </MotionFadeIn>
 
-        <div className="text-center mt-10">
+        <div className="text-center mt-7">
           <ButtonLink href={cta.href} variant="outline-glow" size="md" shine>
             {cta.label}
           </ButtonLink>

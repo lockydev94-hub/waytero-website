@@ -1,7 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { MapPin, ImageOff } from "lucide-react";
-import { Container, Section, SectionHeader, MotionGlow, MotionTilt } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 import { slugify } from "@/lib/slug";
@@ -60,10 +61,10 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
   if (destinations.length === 0) return null;
 
   return (
-    <Section bg="white" pad="lg" id="destinations" overlay="dots">
+    <Section bg="white" pad="home" id="destinations" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
+        <Carousel ariaLabel="Popular destinations">
           {destinations.slice(0, 8).map((d) => {
             const name = d.name ?? d.city_name ?? "";
             if (!name) return null;
@@ -71,7 +72,10 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
             const tourPage = `tour-packages-in-${slugify(name)}`;
             const href = publishedSlugs.has(tourPage) ? `/${tourPage}` : "/tours";
             return (
-              <MotionStaggerItem key={d.city_id} className="h-full">
+              <MotionStaggerItem
+                key={d.city_id}
+                className="h-full w-[45%] min-w-[170px] max-w-[320px] shrink-0 grow snap-start sm:w-[220px]"
+              >
                 <MotionGlow color="primary" intensity={0.2} size={240} className="h-full rounded-2xl">
                   <MotionTilt max={3} className="h-full">
                     <Link
@@ -81,10 +85,12 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
                       {image ? (
                         <>
                           {/* ── With image: photo card ── */}
-                          <div
-                            aria-hidden
-                            className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                            style={{ backgroundImage: `url(${image})` }}
+                          <Image
+                            src={image}
+                            alt={name}
+                            fill
+                            sizes="(max-width: 640px) 45vw, 260px"
+                            className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                           />
                           <div className="absolute inset-0 bg-gradient-to-t from-ink-900/85 via-ink-900/25 to-transparent" />
                           <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
@@ -125,7 +131,7 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
               </MotionStaggerItem>
             );
           })}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

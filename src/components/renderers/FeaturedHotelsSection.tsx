@@ -1,7 +1,8 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Star, MapPin, Waves, ChevronRight } from "lucide-react";
-import { Container, Section, SectionHeader, MotionGlow, MotionTilt } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 import type { PublicHotelSearchItem } from "@/services/hotelService";
 
@@ -47,12 +48,15 @@ export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsS
   if (hotels.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="hotels" overlay="dots">
+    <Section bg="muted" pad="home" id="hotels" overlay="dots-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
+        <Carousel ariaLabel="Featured hotels">
           {hotels.map((h) => (
-            <MotionStaggerItem key={h.id} className="h-full">
+            <MotionStaggerItem
+              key={h.id}
+              className="h-full w-[80%] min-w-[250px] max-w-[460px] shrink-0 grow snap-start sm:w-[229px]"
+            >
               <MotionGlow color="accent" intensity={0.18} size={300} className="h-full rounded-2xl">
                 <MotionTilt max={3} className="h-full">
                   <Link
@@ -61,10 +65,15 @@ export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsS
                   >
                     <div className="relative aspect-[4/3] bg-gradient-to-br from-accent-100 via-accent-50 to-primary-50 overflow-hidden">
                       {h.primary_image_url ? (
-                        <div
-                          aria-hidden
-                          className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
-                          style={{ backgroundImage: `url(${h.primary_image_url})` }}
+                        // next/image fill + object-cover: an inline
+                        // background-size:cover cannot be cropped to the box
+                        // without painting outside the rounded card.
+                        <Image
+                          src={h.primary_image_url}
+                          alt={h.hotel_name}
+                          fill
+                          sizes="(max-width: 640px) 82vw, 340px"
+                          className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       ) : (
                         <div aria-hidden className="absolute inset-0 flex items-center justify-center text-primary-300 group-hover:scale-125 group-hover:text-primary-400 transition-transform duration-500">
@@ -115,8 +124,8 @@ export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsS
               </MotionGlow>
             </MotionStaggerItem>
           ))}
-        </MotionStagger>
-        <div className="mt-8 text-center">
+        </Carousel>
+        <div className="mt-6 text-center">
           <Link
             href="/hotels"
             className="inline-flex items-center gap-2 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors"

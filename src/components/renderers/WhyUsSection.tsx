@@ -1,6 +1,6 @@
 import { Zap, ShieldCheck, Tag, Phone, Lock, Smartphone, type LucideIcon } from "lucide-react";
-import { Container, Section, SectionHeader, IconBox, Card } from "@/components/ui";
-import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { Container, Section, SectionHeader, IconBox, Card, Carousel } from "@/components/ui";
+import { MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
 
 interface WhyUsSectionProps {
@@ -39,15 +39,18 @@ export default function WhyUsSection({ variant }: WhyUsSectionProps) {
   const items = pick<WhyUsItem[]>(variant, "items", DEFAULT);
 
   return (
-    <Section bg="white" pad="lg" id="why-us" overlay="grid">
+    <Section bg="white" pad="home" id="why-us" overlay="grid-faint">
       <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 lg:gap-6">
+        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
+        <Carousel ariaLabel="Why WayTero">
           {items.map((r) => {
             const Icon = typeof r.icon === "string" && ICONS[r.icon] ? ICONS[r.icon] : r.icon || Zap;
             const tone = (["primary", "success", "accent", "info", "warning", "danger"] as const).includes(r.tone as never) ? (r.tone as never) : "primary";
             return (
-              <MotionStaggerItem key={r.title} className="h-full">
+              <MotionStaggerItem
+                key={r.title}
+                className="h-full w-[82%] min-w-[260px] max-w-[460px] shrink-0 grow snap-start sm:w-[310px]"
+              >
                 <Card variant="default" hover lift="sm" className="group flex h-full gap-5 items-start border-ink-7/70 hover:border-primary-200 hover:bg-primary-50/20">
                   <div className="flex-shrink-0">
                     <IconBox
@@ -67,7 +70,7 @@ export default function WhyUsSection({ variant }: WhyUsSectionProps) {
               </MotionStaggerItem>
             );
           })}
-        </MotionStagger>
+        </Carousel>
       </Container>
     </Section>
   );

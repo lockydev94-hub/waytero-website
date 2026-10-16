@@ -27,7 +27,7 @@ export default function FaqSection({ variant }: FaqSectionProps) {
   if (faqs.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="faq" overlay="dots">
+    <Section bg="muted" pad="home" id="faq" overlay="dots-faint">
       <Container size="md">
         <SectionHeader
           eyebrow={eyebrow}
@@ -36,6 +36,7 @@ export default function FaqSection({ variant }: FaqSectionProps) {
           accent="primary"
           underline
           animatedEyebrow
+          scale="home"
           actions={
             ctaText && ctaLink ? (
               <a href={ctaLink} className="inline-flex items-center gap-2 text-sm font-semibold text-primary-600 hover:text-primary-700 transition-colors">

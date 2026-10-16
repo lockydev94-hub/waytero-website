@@ -23,7 +23,7 @@ export default function NewsletterSection({ variant }: NewsletterSectionProps) {
   const contacts = usePlatformContacts();
 
   return (
-    <Section bg="ink" pad="md" id="newsletter" className="relative overflow-hidden" overlay="grid">
+    <Section bg="ink" pad="home" id="newsletter" className="relative overflow-hidden" overlay="grid">
       {/* Premium floating blobs */}
       <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-primary-500/30 blur-3xl animate-blob" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent-500/20 blur-3xl animate-blob [animation-delay:6s]" />
