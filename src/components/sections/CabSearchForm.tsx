@@ -1014,7 +1014,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
           that, the framed image column left ~500px here and twelve tracks put
           every field under 120px, so below xl the fields take half a row each
           instead. No trip-type combination can squeeze a field or the button. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 items-start">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:mt-4 xl:grid-cols-12 items-start">
         {/* Pickup */}
         <Field label="Pickup Location" error={errors.pickup} className={spans.pickup}>
           <LocationInput
@@ -1096,7 +1096,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
       {/* Search Button — its own row. Inside the grid it sat in a single
           twelve-column track (~45px at 768px), so the label was clipped and it
           overlapped the Passengers field. */}
-      <div className="mt-4 flex justify-end">
+      <div className="mt-3 flex justify-end">
         <button
           type="button"
           onClick={handleSearch}

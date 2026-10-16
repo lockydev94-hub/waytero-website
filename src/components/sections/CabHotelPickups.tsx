@@ -51,7 +51,7 @@ export default async function CabHotelPickups({
   if (!hotels.length) return null;
 
   return (
-    <Section bg="white" pad="md">
+    <Section bg="white" pad="home">
       <Container size="xl">
         <SectionHeader
           eyebrow="Also in this city"
@@ -59,8 +59,9 @@ export default async function CabHotelPickups({
           subtitle="Cabs and hotels run on the same account, the same upfront pricing and the same support — here is what is live in this city right now."
           accent="primary"
           underline
+          scale="home"
         />
-        <MotionStagger className="mt-7 grid gap-x-8 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+        <MotionStagger className="mt-5 grid gap-x-8 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
           {hotels.map((h) => (
             <MotionStaggerItem key={h.id}>
               <Link
@@ -94,7 +95,7 @@ export default async function CabHotelPickups({
             </MotionStaggerItem>
           ))}
         </MotionStagger>
-        <div className="mt-6">
+        <div className="mt-5">
           <Link
             href={`/hotels/results?city_id=${city.id}`}
             className="inline-flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"

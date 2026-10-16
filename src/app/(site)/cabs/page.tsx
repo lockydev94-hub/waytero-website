@@ -111,7 +111,7 @@ export default async function CabsPage() {
     <>
       <JsonLd data={faqPageSchema(CAB_FAQS)} />
 
-      <Section bg="white" pad="md">
+      <Section bg="white" pad="home">
         <Container size="xl">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center">
             <div>
@@ -127,7 +127,7 @@ export default async function CabsPage() {
                 airport transfers, and local rides. Verified drivers, transparent
                 pricing, real-time tracking.
               </p>
-              <div className="mt-6">
+              <div className="mt-5">
                 <CabSearchForm variant="page" />
               </div>
             </div>
@@ -152,12 +152,12 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" />
+      <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" pad="home" />
 
       {/* Why-cabs promises, as one icon row rather than four boxed cards —
           with stats, routes, fares, steps and FAQ on the page the boxes were
           the only thing between the hero and the substance. */}
-      <Section bg="white" pad="sm" overlay="dots-faint">
+      <Section bg="white" pad="home" overlay="dots-faint">
         <Container size="xl">
           <SectionHeader
             eyebrow="Why book cabs with WayTero"
@@ -165,8 +165,9 @@ export default async function CabsPage() {
             accent="primary"
             underline
             animatedEyebrow
+            scale="home"
           />
-          <MotionStagger className="mt-7 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          <MotionStagger className="mt-6 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
@@ -181,11 +182,11 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <PopularRoutesSection bg="muted" pad="md" variant={{}} />
+      <PopularRoutesSection bg="muted" pad="home" variant={{}} />
 
       <CabVehicleFares city={city} />
 
-      <LandingSteps serviceType="CAB" bg="muted" pad="md" />
+      <LandingSteps serviceType="CAB" bg="muted" pad="home" />
 
       <CabHotelPickups city={city} />
 
@@ -193,12 +194,13 @@ export default async function CabsPage() {
         faqs={CAB_FAQS}
         eyebrow="Before you book"
         title="Cab booking questions, answered"
-        pad="md"
+        pad="home"
         overlay="dots-faint"
       />
 
       <CtaSection
-        pad="md"
+        pad="home"
+        cardSize="compact"
         variant={{
           title: "Ready to ride?",
           subtitle: "Your next journey is one tap away.",

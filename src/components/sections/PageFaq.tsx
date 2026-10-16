@@ -51,6 +51,7 @@ export default function PageFaq({
           accent="primary"
           underline
           animatedEyebrow
+          scale={pad === "home" ? "home" : "default"}
         />
         <div className="space-y-3">
           {faqs.map((faq, i) => {

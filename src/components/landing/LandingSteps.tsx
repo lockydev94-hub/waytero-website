@@ -52,6 +52,7 @@ export default function LandingSteps({
           eyebrow="How it works"
           title={title ?? "Booking with WayTero"}
           align="center"
+          scale={pad === "home" ? "home" : "default"}
         />
         <MotionStagger className="mt-8 grid gap-5 sm:grid-cols-3">
           {steps.map((s, i) => (

@@ -89,7 +89,7 @@ export default async function CabVehicleFares({
   const tripLabel = TRIP_LABEL[tripType] ?? "ride";
 
   return (
-    <Section bg="white" pad="md">
+    <Section bg="white" pad="home">
       <Container size="xl">
         <SectionHeader
           eyebrow="Real fares"
@@ -97,8 +97,9 @@ export default async function CabVehicleFares({
           subtitle={`Every vehicle we price for a ${tripLabel}, at a sample ${sampleKm} km. The exact total — base fare, per-km, driver allowance and taxes — is itemised before you pay.`}
           accent="primary"
           underline
+          scale="home"
         />
-        <MotionStagger className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <MotionStagger className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {rows.map((r) => (
             <MotionStaggerItem key={r.vehicle_category}>
               <div className="flex h-full flex-col rounded-2xl border border-ink-7 bg-white p-5 shadow-wt-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-primary-300 hover:shadow-wt-lg">

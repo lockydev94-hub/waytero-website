@@ -14,16 +14,19 @@ export default function LandingStatsStrip({
   stats,
   title,
   bg = "white",
+  pad = "sm",
 }: {
   stats: LandingStat[];
   title?: string | null;
   // Service pages alternate white/muted bands; the tone is the caller's call.
   bg?: BandTone;
+  // Homepage rhythm is tighter than a marketing band's; /cabs passes "home".
+  pad?: "home" | "sm" | "md" | "lg";
 }) {
   if (!stats.length) return null;
 
   return (
-    <Section bg={bg} pad="sm">
+    <Section bg={bg} pad={pad}>
       <Container size="xl">
         {title && (
           <MotionFadeIn>

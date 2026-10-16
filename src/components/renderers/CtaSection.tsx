@@ -12,14 +12,18 @@ interface CtaSectionProps {
    *  which keeps the roomy card; every other page gets `lg`/`md` and the
    *  compact card, because the roomy one doubled the band's own padding. */
   pad?: "lg" | "md" | "home";
+  /** Card size, decoupled from `pad`. A service page can want the tight
+   *  `home` section padding without the roomy homepage card, so it passes
+   *  `cardSize="compact"`. Unset keeps the old rule: roomy only on `home`. */
+  cardSize?: "roomy" | "compact";
 }
 
-export default function CtaSection({ variant, bg = "white", pad = "lg" }: CtaSectionProps) {
+export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize }: CtaSectionProps) {
   // The homepage passes `pad="home"` and was tuned against it, so it keeps the
   // roomy card exactly as it renders today. Every other page used to pay that
   // card padding on top of `pad="lg"` band padding — ~192px of it above and
   // below the headline — which is why the band read as three screens tall.
-  const roomy = pad === "home";
+  const roomy = cardSize ? cardSize === "roomy" : pad === "home";
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Ready for your next journey?"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Book cabs, hotels and tours with upfront, GST-inclusive pricing."));
   // Backend sends flat cta_text + cta_link — compose object
