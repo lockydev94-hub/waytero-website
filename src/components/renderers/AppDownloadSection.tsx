@@ -1,13 +1,16 @@
 import { Smartphone, PlayCircle, QrCode } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, ButtonLink } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface AppDownloadSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
-export default function AppDownloadSection({ variant }: AppDownloadSectionProps) {
+export default function AppDownloadSection({ variant, bg = "white" }: AppDownloadSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "On the go");
   const title = pick<string>(variant, "headline", "Travel Smarter with the WayTero App");
   const subtitle = pick<string>(variant, "subheadline", "Book, track and manage trips on the go — available on iOS and Android.");
@@ -15,7 +18,7 @@ export default function AppDownloadSection({ variant }: AppDownloadSectionProps)
   const ctaLink = pick<string | null>(variant, "cta_link", null);
 
   return (
-    <Section bg="white" pad="home" id="app" className="relative overflow-hidden" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="app" className="relative overflow-hidden" overlay="dots-faint">
       {/* Decorative blob background */}
       <div aria-hidden className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary-100/60 blur-3xl" />
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-accent-100/40 blur-3xl" />

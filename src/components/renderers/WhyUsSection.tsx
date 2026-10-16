@@ -1,10 +1,13 @@
 import { Zap, ShieldCheck, Tag, Phone, Lock, Smartphone, type LucideIcon } from "lucide-react";
 import { Container, Section, SectionHeader, IconBox, Card, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface WhyUsSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 const ICONS: Record<string, LucideIcon> = {
@@ -32,14 +35,14 @@ const DEFAULT: WhyUsItem[] = [
   { icon: Smartphone, title: "Real-Time Tracking", desc: "Know exactly where your cab or package is, always.", tone: "danger" },
 ];
 
-export default function WhyUsSection({ variant }: WhyUsSectionProps) {
+export default function WhyUsSection({ variant, bg = "white" }: WhyUsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Why choose us"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Built for Indian Travelers"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "We understand the nuances of travel in the cities we serve — and built WayTero to solve them."));
   const items = pick<WhyUsItem[]>(variant, "items", DEFAULT);
 
   return (
-    <Section bg="white" pad="home" id="why-us" overlay="grid-faint">
+    <Section bg={bg} pad="home" id="why-us" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Why WayTero">

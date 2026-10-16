@@ -86,6 +86,18 @@ export interface PublicOfferSlide {
   valid_to: string;
 }
 
+/** Row counts for the homepage bands that fetch their own content. Mirrors
+ *  `GET /public/homepage-band-counts`; a zero means the band renders nothing. */
+export type HomepageBandCounts = Record<
+  | "FEATURED_HOTELS"
+  | "POPULAR_DESTINATIONS"
+  | "POPULAR_ROUTES"
+  | "POPULAR_CITIES"
+  | "TOUR_PACKAGES"
+  | "BLOG",
+  number
+>;
+
 export const publicCmsService = {
   /**
    * Server-side helper: the admin-configured support phone
@@ -118,6 +130,25 @@ export const publicCmsService = {
       const json = (await res.json()) as PublicHomepage;
       if (!json || !json.header || !json.footer) return null;
       return json;
+    } catch {
+      return null;
+    }
+  },
+
+  /**
+   * How many rows each data-driven homepage band will actually find.
+   * The homepage needs this before it renders, because the light bands
+   * alternate white / off-white and an omitted band must not leave two of
+   * the same tone side by side. Returns null if the API is unreachable —
+   * the caller then falls back to the renderers' own literals.
+   */
+  async getHomepageBandCounts(): Promise<HomepageBandCounts | null> {
+    try {
+      const res = await fetch(`${BASE_URL}/public/homepage-band-counts`, {
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) return null;
+      return (await res.json()) as HomepageBandCounts;
     } catch {
       return null;
     }

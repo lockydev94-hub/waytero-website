@@ -4,10 +4,13 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, HelpCircle } from "lucide-react";
 import { Container, Section, SectionHeader, MotionFadeIn } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface FaqSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 interface Faq {
@@ -15,7 +18,7 @@ interface Faq {
   answer: string;
 }
 
-export default function FaqSection({ variant }: FaqSectionProps) {
+export default function FaqSection({ variant, bg = "muted" }: FaqSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Help centre");
   const title = pick<string>(variant, "headline", "Frequently Asked Questions");
   const subtitle = pick<string>(variant, "subheadline", "Everything you need to know before you book.");
@@ -27,7 +30,7 @@ export default function FaqSection({ variant }: FaqSectionProps) {
   if (faqs.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="faq" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="faq" overlay="dots-faint">
       <Container size="md">
         <SectionHeader
           eyebrow={eyebrow}

@@ -1,10 +1,13 @@
 import { Star, Quote } from "lucide-react";
 import { Container, Section, SectionHeader, Avatar, MotionGlow, Card, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface TestimonialsSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 interface Testimonial {
@@ -16,7 +19,7 @@ interface Testimonial {
   avatar?: string;
 }
 
-export default function TestimonialsSection({ variant }: TestimonialsSectionProps) {
+export default function TestimonialsSection({ variant, bg = "muted" }: TestimonialsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Loved by travelers"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "What Our Customers Say"));
   // "4.8/5 across 50,000+ reviews" was never a fact the DB could back —
@@ -27,7 +30,7 @@ export default function TestimonialsSection({ variant }: TestimonialsSectionProp
   if (items.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="testimonials" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="testimonials" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Customer testimonials">

@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Star, MapPin, Waves, ChevronRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import type { PublicHotelSearchItem } from "@/services/hotelService";
 
 const API_BASE =
@@ -11,6 +11,9 @@ const API_BASE =
 
 interface FeaturedHotelsSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 /**
@@ -22,7 +25,7 @@ interface FeaturedHotelsSectionProps {
  * "Coming soon" state. As soon as the first hotel is added, the cards
  * render automatically.
  */
-export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsSectionProps) {
+export default async function FeaturedHotelsSection({ variant, bg = "muted" }: FeaturedHotelsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Where to stay"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Featured Hotels"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Partner stays with transparent, GST-inclusive pricing."));
@@ -48,7 +51,7 @@ export default async function FeaturedHotelsSection({ variant }: FeaturedHotelsS
   if (hotels.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="hotels" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="hotels" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Featured hotels">

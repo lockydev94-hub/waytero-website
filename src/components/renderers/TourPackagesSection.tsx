@@ -3,7 +3,7 @@ import Image from "next/image";
 import { Clock, MapPin, ChevronRight, ArrowRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionTilt, MotionGlow, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import type { PublicTourPackage } from "@/services/tourService";
 
 const API_BASE =
@@ -23,6 +23,9 @@ const OVERLAYS = [
 
 interface TourPackagesSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 /**
@@ -33,7 +36,7 @@ interface TourPackagesSectionProps {
  * when the catalogue is empty the whole section becomes an honest
  * "Coming soon" state. The first added package renders automatically.
  */
-export default async function TourPackagesSection({ variant }: TourPackagesSectionProps) {
+export default async function TourPackagesSection({ variant, bg = "muted" }: TourPackagesSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Curated experiences"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Tour Packages Loved by Travelers"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Handpicked itineraries with verified partners — fully managed from booking to return."));
@@ -58,7 +61,7 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
   if (tours.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="tours" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="tours" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         {/* Photo-first cards: the image is the card, the copy sits on a

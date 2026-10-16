@@ -5,6 +5,12 @@
  */
 export type ServiceType = "CAB" | "HOTEL" | "TOUR";
 
+/** The two light homepage tones. HomepageServer hands one to every band that
+ *  renders, so the page alternates strictly no matter which bands the admin
+ *  has switched off. Each band defaults to its own literal, which is what
+ *  keeps the 24 non-homepage pages that reuse these sections unchanged. */
+export type BandTone = "white" | "muted";
+
 export type SectionKey =
   | "HERO"
   | "SERVICES"

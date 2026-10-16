@@ -3,7 +3,7 @@ import Image from "next/image";
 import { ArrowRight, BadgePercent, Car, Hotel, Plane, Ticket, type LucideIcon } from "lucide-react";
 import { Container, Section, SectionHeader, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import type { PublicOfferSlide } from "@/services/publicCms";
 import type { ServiceKey } from "@/lib/availability";
 
@@ -20,6 +20,9 @@ import type { ServiceKey } from "@/lib/availability";
 
 interface OffersSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
   /** Live offers from the Offers admin page. */
   offers: PublicOfferSlide[];
   /** Verticals hidden site-wide — their cards are dropped, and the band
@@ -59,7 +62,7 @@ function badgeRuns(badge: string): { text: string; numeric: boolean }[] {
     .map((s) => ({ text: s, numeric: /^[₹]?\d/.test(s) }));
 }
 
-export default function OffersSection({ variant, offers, hidden = [] }: OffersSectionProps) {
+export default function OffersSection({ variant, bg = "white", offers, hidden = [] }: OffersSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Limited-time deals");
   const title = pick<string>(variant, "headline", "Offers & Deals");
   const subtitle = pick<string>(
@@ -74,7 +77,7 @@ export default function OffersSection({ variant, offers, hidden = [] }: OffersSe
   if (live.length === 0) return null;
 
   return (
-    <Section bg="white" pad="home" id="offers" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="offers" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 

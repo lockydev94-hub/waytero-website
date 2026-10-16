@@ -2,11 +2,14 @@ import Image from "next/image";
 import { ArrowRight, CalendarDays, User } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import { publicBlogService, type BlogPostSummary } from "@/services/publicBlog";
 
 interface BlogSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 function formatDate(iso: string | null): string {
@@ -17,7 +20,7 @@ function formatDate(iso: string | null): string {
     : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export default async function BlogSection({ variant }: BlogSectionProps) {
+export default async function BlogSection({ variant, bg = "muted" }: BlogSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Travel stories");
   const title = pick<string>(variant, "headline", "Travel Stories & Tips");
   const subtitle = pick<string>(variant, "subheadline", "Guides, itineraries and insider tips from our team.");
@@ -32,7 +35,7 @@ export default async function BlogSection({ variant }: BlogSectionProps) {
   if (posts.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="blog" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="blog" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader
           eyebrow={eyebrow}

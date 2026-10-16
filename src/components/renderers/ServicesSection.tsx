@@ -16,11 +16,14 @@ interface ServiceItem {
 }
 import { Container, Section, SectionHeader, IconBox, MotionGlow, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 interface ServicesSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
   /** Verticals hidden site-wide — cards linking into them are removed. */
   hidden?: ServiceKey[];
 }
@@ -32,7 +35,7 @@ const DEFAULT: ServiceItem[] = [
   { icon: MapPin, title: "Live Tracking", desc: "Track your cab, driver, and booking in real-time.", link: "/track", tone: "info" },
 ];
 
-export default function ServicesSection({ variant, hidden = [] }: ServicesSectionProps) {
+export default function ServicesSection({ variant, bg = "muted", hidden = [] }: ServicesSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "What we offer"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Everything for Your Journey"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "One platform for every travel need — from your first mile to your last check-out."));
@@ -42,7 +45,7 @@ export default function ServicesSection({ variant, hidden = [] }: ServicesSectio
   if (items.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="services" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="services" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 

@@ -1,14 +1,17 @@
 import { Container, Section, SectionHeader, ButtonLink, Card } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface PartnersSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 const DEFAULT_PARTNERS: string[] = [];
 
-export default function PartnersSection({ variant }: PartnersSectionProps) {
+export default function PartnersSection({ variant, bg = "muted" }: PartnersSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Trusted partners"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Backed by India's Best"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "We work with the brands you trust — hotels, banks, and payment partners."));
@@ -23,7 +26,7 @@ export default function PartnersSection({ variant }: PartnersSectionProps) {
   const strip = [...partners, ...partners];
 
   return (
-    <Section bg="muted" pad="home" id="partners" overlay="grid-faint">
+    <Section bg={bg} pad="home" id="partners" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 

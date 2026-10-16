@@ -1,10 +1,13 @@
 import { Search, CalendarCheck, ShieldCheck, Plane, Car, MapPin, Wallet, Smartphone, CreditCard, Star, Users, Gift, HandHeart, type LucideIcon } from "lucide-react";
 import { Container, Section, SectionHeader, IconBox, MotionGlow, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 
 interface HowItWorksSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 interface Step {
@@ -29,7 +32,7 @@ const ICONS: Record<string, LucideIcon> = {
   HandHeart,
 };
 
-export default function HowItWorksSection({ variant }: HowItWorksSectionProps) {
+export default function HowItWorksSection({ variant, bg = "muted" }: HowItWorksSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", "Simple & transparent");
   const title = pick<string>(variant, "headline", "How WayTero Works");
   const subtitle = pick<string>(variant, "subheadline", "Book your entire trip in four simple steps.");
@@ -39,7 +42,7 @@ export default function HowItWorksSection({ variant }: HowItWorksSectionProps) {
   if (steps.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="how-it-works" overlay="grid-faint">
+    <Section bg={bg} pad="home" id="how-it-works" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="How WayTero works">

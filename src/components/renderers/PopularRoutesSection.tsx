@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowUpRight, Navigation, Search } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 
 /* ============================================================
@@ -29,7 +29,13 @@ interface RoutesPage {
 
 const LIMIT = 12;
 
-export default async function PopularRoutesSection({ variant }: { variant: Record<string, unknown> }) {
+export default async function PopularRoutesSection({
+  variant,
+  bg = "white",
+}: {
+  variant: Record<string, unknown>;
+  bg?: BandTone;
+}) {
   const eyebrow = pick<string>(variant, "variant_tag", "Where people travel");
   const title = pick<string>(variant, "headline", "Popular Routes");
   const subtitle = pick<string>(
@@ -58,7 +64,7 @@ export default async function PopularRoutesSection({ variant }: { variant: Recor
   if (routes.length === 0) return null;
 
   return (
-    <Section bg="white" pad="home" id="routes" overlay="grid-faint">
+    <Section bg={bg} pad="home" id="routes" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 

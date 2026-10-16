@@ -3,13 +3,16 @@ import Image from "next/image";
 import { MapPin, ImageOff } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow, MotionTilt, Carousel } from "@/components/ui";
 import { MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 import { slugify } from "@/lib/slug";
 import { getLandingRefs } from "@/lib/landingIndex";
 
 interface PopularDestinationsSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. Defaults to this band's
+   *  own literal so every other page that uses it is unchanged. */
+  bg?: BandTone;
 }
 
 /** Row shape returned by GET /public/tours/popular-destinations. */
@@ -34,7 +37,7 @@ interface Destination {
  * dark empty void. Links go to the city's tour landing page when one is
  * published, else the tours listing — never a URL that 404s.
  */
-export default async function PopularDestinationsSection({ variant }: PopularDestinationsSectionProps) {
+export default async function PopularDestinationsSection({ variant, bg = "white" }: PopularDestinationsSectionProps) {
   const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "Where to next"));
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Popular Destinations"));
   const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "Trending spots this season — handpicked for every kind of traveler."));
@@ -61,7 +64,7 @@ export default async function PopularDestinationsSection({ variant }: PopularDes
   if (destinations.length === 0) return null;
 
   return (
-    <Section bg="white" pad="home" id="destinations" overlay="dots-faint">
+    <Section bg={bg} pad="home" id="destinations" overlay="dots-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Popular destinations">

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Building2, MapPin } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { pick, type BandTone } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 import { getLandingRefs, type LandingRef } from "@/lib/landingIndex";
 
@@ -38,7 +38,13 @@ function cityHref(refs: LandingRef[], city: PublicCity): string {
   return `/tours?${q.toString()}`;
 }
 
-export default async function PopularCitiesSection({ variant }: { variant: Record<string, unknown> }) {
+export default async function PopularCitiesSection({
+  variant,
+  bg = "muted",
+}: {
+  variant: Record<string, unknown>;
+  bg?: BandTone;
+}) {
   const eyebrow = pick<string>(variant, "variant_tag", "We operate here");
   const title = pick<string>(variant, "headline", "Popular Cities");
   const subtitle = pick<string>(
@@ -65,7 +71,7 @@ export default async function PopularCitiesSection({ variant }: { variant: Recor
   if (cities.length === 0) return null;
 
   return (
-    <Section bg="muted" pad="home" id="cities" overlay="grid-faint">
+    <Section bg={bg} pad="home" id="cities" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <MotionStagger className="flex flex-wrap justify-center gap-2.5">
