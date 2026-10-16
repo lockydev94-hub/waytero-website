@@ -11,7 +11,7 @@ type Bg =
   | "grid"
   | "dot"
   | "noise";
-type Padding = "sm" | "md" | "lg" | "none";
+type Padding = "sm" | "md" | "lg" | "home" | "none";
 
 const BG: Record<Bg, string> = {
   white:           "bg-white",
@@ -31,6 +31,10 @@ const PAD: Record<Padding, string> = {
   sm: "py-12 lg:py-16",
   md: "py-16 lg:py-20",
   lg: "py-20 lg:py-28",
+  // Homepage bands stack 16 deep, so `lg` on both sides of every one of them
+  // read as ~224px of dead space between content. `lg` stays as-is for the
+  // marketing/legal pages that were designed against it.
+  home: "py-10 lg:py-14",
 };
 
 type Divider = "top" | "bottom" | "both" | "none";
@@ -42,16 +46,22 @@ interface SectionProps {
   className?: string;
   /** Adds a soft fade divider above/below the section. */
   divider?: Divider;
-  /** Pattern overlay on top of bg. Useful for ink/dark sections. */
-  overlay?: "dots" | "grid" | "lines" | "none";
+  /** Pattern overlay on top of bg. `dots`/`grid` are white — for ink
+      surfaces; `dots-faint`/`grid-faint` are navy — for light ones. */
+  overlay?: "dots" | "grid" | "lines" | "dots-faint" | "grid-faint" | "none";
   children: ReactNode;
 }
 
-const OVERLAY: Record<"dots" | "grid" | "lines" | "none", string> = {
+const OVERLAY: Record<"dots" | "grid" | "lines" | "dots-faint" | "grid-faint" | "none", string> = {
   none: "",
   dots:  "before:content-[''] before:absolute before:inset-0 before:bg-dot-light before:opacity-40 before:pointer-events-none",
   grid:  "before:content-[''] before:absolute before:inset-0 before:bg-grid-light before:opacity-40 before:pointer-events-none",
   lines: "before:content-[''] before:absolute before:inset-0 before:bg-lines-faint before:opacity-60 before:pointer-events-none",
+  // The white patterns above are invisible on a white/off-white band, which is
+  // why every light homepage section's `overlay` did nothing. These are the
+  // navy-on-light counterparts.
+  "dots-faint": "before:content-[''] before:absolute before:inset-0 before:bg-dot-faint before:opacity-40 before:pointer-events-none",
+  "grid-faint": "before:content-[''] before:absolute before:inset-0 before:bg-grid-faint before:opacity-40 before:pointer-events-none",
 };
 
 const DIVIDER: Record<Divider, string> = {

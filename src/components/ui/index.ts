@@ -8,6 +8,7 @@ export { default as Badge } from "./Badge";
 export { default as Card, CardHeader, CardTitle, CardSubtitle, CardBody, CardFooter } from "./Card";
 export { default as Section } from "./Section";
 export { default as SectionHeader } from "./SectionHeader";
+export { default as Carousel } from "./Carousel";
 export { default as PageHeader } from "./PageHeader";
 export { default as Breadcrumb } from "./Breadcrumb";
 export type { BreadcrumbItem } from "./Breadcrumb";
