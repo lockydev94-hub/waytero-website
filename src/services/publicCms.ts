@@ -80,6 +80,8 @@ export interface PublicOfferSlide {
   image_url: string;
   coupon_code: string;
   badge: string;
+  /** Admin-authored one-liner under the badge; may be null. */
+  short_description: string | null;
   /** YYYY-MM-DD — end of the offer window. */
   valid_to: string;
 }

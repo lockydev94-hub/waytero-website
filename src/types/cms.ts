@@ -15,6 +15,8 @@ export type SectionKey =
   | "PARTNERS"
   | "CTA"
   | "POPULAR_DESTINATIONS"
+  | "POPULAR_ROUTES"
+  | "POPULAR_CITIES"
   | "FEATURED_HOTELS"
   | "HOW_IT_WORKS"
   | "OFFERS"

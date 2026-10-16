@@ -2,6 +2,7 @@ import type { PublicHomepage } from "@/types/cms";
 import { publicCmsService, type PublicOfferSlide } from "@/services/publicCms";
 import {
   HeroSection,
+  HeroMarquee,
   ServicesSection,
   WhyUsSection,
   TourPackagesSection,
@@ -10,6 +11,8 @@ import {
   PartnersSection,
   CtaSection,
   PopularDestinationsSection,
+  PopularRoutesSection,
+  PopularCitiesSection,
   FeaturedHotelsSection,
   HowItWorksSection,
   OffersSection,
@@ -29,6 +32,11 @@ const SECTION_SERVICE: Record<string, ServiceKey> = {
   TOUR_PACKAGES: "TOUR",
   POPULAR_DESTINATIONS: "TOUR",
   FEATURED_HOTELS: "HOTEL",
+  // Route pills are cab corridors priced by the cab fare engine.
+  POPULAR_ROUTES: "CAB",
+  // City pills fall back to /tours when a city has no published landing
+  // page, so the band goes with the tours vertical.
+  POPULAR_CITIES: "TOUR",
 };
 
 /**
@@ -73,6 +81,9 @@ function SectionSwitch({ section, hidden, offers }: { section: HomepageSection; 
       return (
         <>
           <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} offers={offers} />
+          {/* Coupon strip on the hero's bottom edge — a sibling because the
+              hero clips its own overflow. */}
+          <HeroMarquee variant={v} />
           {/* Inline airport/station nudge — client reads local intent. */}
           <IntentBanner />
         </>
@@ -93,12 +104,16 @@ function SectionSwitch({ section, hidden, offers }: { section: HomepageSection; 
       return <CtaSection variant={v} />;
     case "POPULAR_DESTINATIONS":
       return <PopularDestinationsSection variant={v} />;
+    case "POPULAR_ROUTES":
+      return <PopularRoutesSection variant={v} />;
+    case "POPULAR_CITIES":
+      return <PopularCitiesSection variant={v} />;
     case "FEATURED_HOTELS":
       return <FeaturedHotelsSection variant={v} />;
     case "HOW_IT_WORKS":
       return <HowItWorksSection variant={v} />;
     case "OFFERS":
-      return <OffersSection variant={v} hidden={hidden} />;
+      return <OffersSection variant={v} hidden={hidden} offers={offers} />;
     case "FAQ":
       return <FaqSection variant={v} />;
     case "NEWSLETTER":
@@ -118,17 +133,19 @@ function defaultSections(): HomepageSection[] {
     { id: 2, section_key: "OFFERS", display_order: 2, is_active: true, service_type: null, variant: {} },
     { id: 3, section_key: "SERVICES", display_order: 3, is_active: true, service_type: null, variant: {} },
     { id: 4, section_key: "POPULAR_DESTINATIONS", display_order: 4, is_active: true, service_type: null, variant: {} },
-    { id: 5, section_key: "FEATURED_HOTELS", display_order: 5, is_active: true, service_type: null, variant: {} },
-    { id: 6, section_key: "TOUR_PACKAGES", display_order: 6, is_active: true, service_type: null, variant: {} },
-    { id: 7, section_key: "WHY_US", display_order: 7, is_active: true, service_type: null, variant: {} },
-    { id: 8, section_key: "HOW_IT_WORKS", display_order: 8, is_active: true, service_type: null, variant: {} },
-    { id: 9, section_key: "TESTIMONIALS", display_order: 9, is_active: true, service_type: null, variant: {} },
-    { id: 10, section_key: "STATS", display_order: 10, is_active: true, service_type: null, variant: {} },
-    { id: 11, section_key: "PARTNERS", display_order: 11, is_active: true, service_type: null, variant: {} },
-    { id: 12, section_key: "CTA", display_order: 12, is_active: true, service_type: null, variant: {} },
-    { id: 13, section_key: "FAQ", display_order: 13, is_active: true, service_type: null, variant: {} },
-    { id: 14, section_key: "NEWSLETTER", display_order: 14, is_active: true, service_type: null, variant: {} },
-    { id: 15, section_key: "APP_DOWNLOAD", display_order: 15, is_active: true, service_type: null, variant: {} },
-    { id: 16, section_key: "BLOG", display_order: 16, is_active: true, service_type: null, variant: {} },
+    { id: 5, section_key: "POPULAR_ROUTES", display_order: 5, is_active: true, service_type: null, variant: {} },
+    { id: 6, section_key: "POPULAR_CITIES", display_order: 6, is_active: true, service_type: null, variant: {} },
+    { id: 7, section_key: "FEATURED_HOTELS", display_order: 7, is_active: true, service_type: null, variant: {} },
+    { id: 8, section_key: "TOUR_PACKAGES", display_order: 8, is_active: true, service_type: null, variant: {} },
+    { id: 9, section_key: "WHY_US", display_order: 9, is_active: true, service_type: null, variant: {} },
+    { id: 10, section_key: "HOW_IT_WORKS", display_order: 10, is_active: true, service_type: null, variant: {} },
+    { id: 11, section_key: "TESTIMONIALS", display_order: 11, is_active: true, service_type: null, variant: {} },
+    { id: 12, section_key: "STATS", display_order: 12, is_active: true, service_type: null, variant: {} },
+    { id: 13, section_key: "PARTNERS", display_order: 13, is_active: true, service_type: null, variant: {} },
+    { id: 14, section_key: "CTA", display_order: 14, is_active: true, service_type: null, variant: {} },
+    { id: 15, section_key: "FAQ", display_order: 15, is_active: true, service_type: null, variant: {} },
+    { id: 16, section_key: "NEWSLETTER", display_order: 16, is_active: true, service_type: null, variant: {} },
+    { id: 17, section_key: "APP_DOWNLOAD", display_order: 17, is_active: true, service_type: null, variant: {} },
+    { id: 18, section_key: "BLOG", display_order: 18, is_active: true, service_type: null, variant: {} },
   ];
 }

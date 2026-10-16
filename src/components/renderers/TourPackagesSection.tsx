@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Clock, Star, MapPin, ChevronRight } from "lucide-react";
+import { Clock, MapPin, ChevronRight, ArrowRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionTilt, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick } from "@/types/cms";
@@ -8,6 +8,18 @@ import type { PublicTourPackage } from "@/services/tourService";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+
+/** Tints layered over the photo: dark at the bottom so the copy stays
+ *  legible, coloured through the middle. Colour only — no claim about the
+ *  package lives in here. */
+const OVERLAYS = [
+  "from-primary-900/92 via-primary-700/35 to-transparent",
+  "from-accent-900/92 via-accent-700/35 to-transparent",
+  "from-ink-900/92 via-sky-800/35 to-transparent",
+  "from-ink-900/92 via-emerald-800/35 to-transparent",
+  "from-ink-900/92 via-rose-800/35 to-transparent",
+  "from-ink-900/92 via-indigo-800/35 to-transparent",
+];
 
 interface TourPackagesSectionProps {
   variant: Record<string, unknown>;
@@ -49,16 +61,19 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
     <Section bg="muted" pad="lg" id="tours" overlay="dots">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow />
-        <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tours.map((t) => (
+        {/* Photo-first cards: the image is the card, the copy sits on a
+            gradient so nothing is invented and nothing hides behind a
+            placeholder price. */}
+        <MotionStagger className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {tours.map((t, i) => (
             <MotionStaggerItem key={t.id} className="h-full">
-              <MotionGlow color="primary" intensity={0.2} size={300} className="h-full rounded-2xl">
-                <MotionTilt max={4} className="h-full">
+              <MotionGlow color="primary" intensity={0.2} size={320} className="h-full rounded-3xl">
+                <MotionTilt max={3} className="h-full">
                   <Link
                     href={`/tours/${t.slug}`}
-                    className="group relative flex h-full flex-col bg-white rounded-2xl overflow-hidden border border-ink-7 hover:border-primary-200 hover:shadow-wt-xl transition-all duration-300 ease-[var(--ease-wt)]"
+                    className="group relative flex h-full min-h-[300px] flex-col justify-end overflow-hidden rounded-3xl border border-ink-7 shadow-wt-lg transition-all duration-500 ease-[var(--ease-wt)] hover:-translate-y-1.5 hover:border-primary-300 hover:shadow-wt-xl sm:min-h-[360px]"
                   >
-                    <div className="relative aspect-[4/3] bg-gradient-to-br from-primary-100 via-primary-50 to-accent-50 overflow-hidden">
+                    <div className="absolute inset-0 overflow-hidden bg-gradient-to-br from-primary-100 via-primary-50 to-accent-50">
                       {t.primary_image_url ? (
                         <Image
                           src={t.primary_image_url}
@@ -68,34 +83,52 @@ export default async function TourPackagesSection({ variant }: TourPackagesSecti
                           className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
                         />
                       ) : (
-                        <div className="absolute inset-0 flex items-center justify-center text-primary-300 group-hover:scale-110 group-hover:text-primary-400 transition-all duration-500">
-                          <MapPin className="h-12 w-12" />
+                        <div className="absolute inset-0 flex items-center justify-center text-primary-300 transition-all duration-500 group-hover:scale-110 group-hover:text-primary-400">
+                          <MapPin className="h-14 w-14" />
                         </div>
                       )}
-                      <span className="absolute top-3 left-3 z-10 inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-white/90 backdrop-blur text-primary-700 shadow-wt-sm">
-                        {t.package_type === "GROUP" ? "Group tour" : "Verified"}
-                      </span>
-                      <div aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-primary-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                     </div>
-                    <div className="p-5 flex-1 flex flex-col">
-                      <div className="flex items-center gap-2 text-xs text-ink-4 mb-2">
-                        <MapPin className="h-3.5 w-3.5" /> {t.destination}
-                        <span>·</span>
-                        <Clock className="h-3.5 w-3.5" /> {t.duration_days}D/{t.duration_nights}N
+                    {/* Per-index tint keeps the overlay readable without
+                        hiding the photo — the reference's coloured cards. */}
+                    <div
+                      aria-hidden
+                      className={`absolute inset-0 bg-gradient-to-t ${OVERLAYS[i % OVERLAYS.length]}`}
+                    />
+                    <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+
+                    <span className="absolute left-4 top-4 z-10 inline-flex items-center rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-700 shadow-wt-sm backdrop-blur">
+                      {t.package_type === "GROUP" ? "Group tour" : t.package_type === "PRIVATE" ? "Private tour" : "Verified"}
+                    </span>
+
+                    <div className="relative z-10 p-5 text-white">
+                      <div className="flex items-center gap-2 text-[11px] text-white/80">
+                        <MapPin className="h-3.5 w-3.5" />
+                        <span className="truncate">{t.destination}</span>
+                        <span aria-hidden>·</span>
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>
+                          {t.duration_days}D/{t.duration_nights}N
+                        </span>
                       </div>
-                      <h3 className="text-base font-bold text-ink mb-3 line-clamp-1 group-hover:text-primary-600 transition-colors">
+                      <h3 className="mt-1.5 line-clamp-2 text-lg font-extrabold leading-snug tracking-tight">
                         {t.package_name}
                       </h3>
-                      <div className="flex items-end justify-between mt-auto">
-                        <div>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-xl font-extrabold text-gradient-primary">
-                              ₹{Number(t.starting_price ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-ink-4">per person</div>
-                        </div>
+                      <div className="mt-4 flex items-end justify-between gap-3">
+                        <span className="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-white/60 bg-white/10 px-3 py-1.5 backdrop-blur">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-white/80">From</span>
+                          <span className="text-lg font-extrabold leading-none">
+                            ₹{Number(t.starting_price ?? 0).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+                          </span>
+                        </span>
+                        <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white text-primary-700 shadow-wt-lg transition-all duration-300 group-hover:bg-primary-600 group-hover:text-white">
+                          <ArrowRight className="h-[18px] w-[18px] transition-transform duration-300 group-hover:translate-x-0.5" />
+                        </span>
                       </div>
+                      {t.starting_price == null && (
+                        <span className="mt-2 block text-[10px] text-white/70">
+                          Price per person, set by the partner
+                        </span>
+                      )}
                     </div>
                   </Link>
                 </MotionTilt>

@@ -7,6 +7,8 @@ import type { MetadataRoute } from "next";
 //   /                        — homepage
 //   /cabs, /hotels, /tours, /blog + company pages
 //   /cabs/{local,airport,…}  — one page per trip type with active pricing
+//   /cabs/routes             — the inter-city corridors hub
+//   /cabs/routes/{slug}      — one page per published route
 //   /{landing slug}          — city hubs + city/state service pages
 //                              (the [slug] engine's published rows)
 //   /hotels/{slug}           — partner-added hotels
@@ -40,6 +42,9 @@ interface BlogRow {
 }
 interface TripTypeRow {
   code: string;
+}
+interface RouteRow {
+  slug: string;
 }
 
 const TRIP_SLUGS: Record<string, string> = {
@@ -97,6 +102,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }));
+
+  // ── Cab route pages — the corridors hub plus one page per published
+  // route. The routes list is small and admin-authored, so it is paged
+  // through in one-shot 60s rather than a deep crawl.
+  const routeRows: RouteRow[] = [];
+  if (cabVisible) {
+    for (let offset = 0; offset < 300; offset += 60) {
+      const data = await fetchJson<{ items: RouteRow[] }>(
+        `${API_BASE}/public/routes?limit=60&offset=${offset}`,
+      );
+      const items = data?.items ?? [];
+      routeRows.push(...items);
+      if (items.length < 60) break;
+    }
+  }
+  const routeUrls: MetadataRoute.Sitemap = [
+    ...(cabVisible
+      ? [{ url: `${appUrl}/cabs/routes`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 }]
+      : []),
+    ...routeRows
+      .filter((r) => r.slug)
+      .map((r) => ({
+        url: `${appUrl}/cabs/routes/${r.slug}`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.7,
+      })),
+  ];
 
   // ── Landing pages — city hubs (0.85), place cab pages (0.82), vertical
   // pages (0.8). The refs endpoint already filters to published, in-window
@@ -176,6 +209,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticUrls,
     ...tripUrls,
+    ...routeUrls,
     ...landingUrls,
     ...hotelUrls,
     ...tourUrls,
