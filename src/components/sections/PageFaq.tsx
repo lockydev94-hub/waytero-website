@@ -25,18 +25,24 @@ export default function PageFaq({
   eyebrow = "Good to know",
   title = "Frequently Asked Questions",
   subtitle,
+  pad = "lg",
+  overlay = "dots",
 }: {
   faqs: FaqItem[];
   eyebrow?: string;
   title?: string;
   subtitle?: string;
+  pad?: "home" | "sm" | "md" | "lg";
+  // The white dot pattern disappears on this section's muted (light) surface —
+  // callers that want the texture visible pass "dots-faint".
+  overlay?: "dots" | "dots-faint" | "grid" | "grid-faint" | "lines" | "none";
 }) {
   const [open, setOpen] = useState<number>(0);
 
   if (!faqs.length) return null;
 
   return (
-    <Section bg="muted" pad="lg" id="faq" overlay="dots">
+    <Section bg="muted" pad={pad} id="faq" overlay={overlay}>
       <Container size="md">
         <SectionHeader
           eyebrow={eyebrow}

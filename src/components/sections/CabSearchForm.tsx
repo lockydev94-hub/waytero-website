@@ -813,6 +813,24 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   const requiresReturnDate = tripType === "ROUND_TRIP";
   const isRoundTrip = tripType === "ROUND_TRIP";
 
+  // Column widths for the wide (xl) layout, per trip type. They have to add up
+  // to twelve: the old fixed spans summed to more than that for some trip
+  // types, which is what squeezed the Passengers select to nothing.
+  // The literals are listed here so Tailwind's scanner can see them.
+  const SPAN = {
+    two: "xl:col-span-2",
+    three: "xl:col-span-3",
+    four: "xl:col-span-4",
+    five: "xl:col-span-5",
+  } as const;
+  const spans = requiresDrop
+    ? { pickup: SPAN.three, drop: SPAN.three, date: SPAN.three, pax: SPAN.two }
+    : isRoundTrip
+      ? { pickup: SPAN.four, drop: "", date: SPAN.three, pax: SPAN.two }
+      : { pickup: SPAN.five, drop: "", date: SPAN.four, pax: SPAN.three };
+  // Round trip adds a return date (three columns) and drops the swap column,
+  // so all three states still total twelve.
+
   const validate = () => {
     const e: Record<string, string> = {};
     if (!pickup.label.trim()) e.pickup = "Enter pickup location";
@@ -895,10 +913,13 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   const isHero = variant === "hero";
 
   return (
-    <div className={`${isHero ? "" : "bg-white rounded-3xl border border-ink-7 shadow-wt-lg p-6"}`}>
+    <div className={`${isHero ? "" : "bg-white rounded-3xl border border-ink-7 shadow-wt-lg p-5"}`}>
+      {/* City chip and trip-type pills share one row from xl up — stacked they
+          cost the card ~48px of height for no benefit. */}
+      <div className="xl:flex xl:items-center xl:justify-between xl:gap-4">
       {/* "Searching in <city> ▾" chip — biases Google Places autocomplete
           so suggestions stay within the selected city. */}
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-3 xl:mb-0">
         <span className="text-[10px] font-bold text-ink-4 uppercase tracking-wider mr-1">
           Searching in
         </span>
@@ -961,8 +982,8 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
       </div>
 
       {/* Trip Type Selector (driven by backend /public/cab/trip-types) */}
-      <div ref={tripTypeRef} className="relative mb-4">
-        <div className="flex flex-wrap gap-2">
+      <div ref={tripTypeRef} className="relative mb-4 xl:mb-0">
+        <div className="flex flex-wrap gap-2 xl:justify-end">
           {tripTypes.length === 0 && (
             <div className="text-xs text-ink-4 italic">Loading trip types…</div>
           )}
@@ -986,11 +1007,16 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
           })}
         </div>
       </div>
+      </div>
 
-      {/* Search fields */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-start">
+      {/* Search fields — the twelve columns start at xl, the width at which the
+          hero still hands this card the whole container. On the lg band before
+          that, the framed image column left ~500px here and twelve tracks put
+          every field under 120px, so below xl the fields take half a row each
+          instead. No trip-type combination can squeeze a field or the button. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-12 gap-3 items-start">
         {/* Pickup */}
-        <Field label="Pickup Location" error={errors.pickup} className="md:col-span-3">
+        <Field label="Pickup Location" error={errors.pickup} className={spans.pickup}>
           <LocationInput
             value={pickup} onChange={v => { setPickup(v); setErrors(e => ({...e, pickup: ""})); }}
             placeholder="City, area or landmark"
@@ -1006,7 +1032,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
         {requiresDrop && (
           <>
             {/* Swap icon */}
-            <div className="hidden md:flex md:col-span-1 items-center justify-center pt-6">
+            <div className="hidden xl:flex xl:col-span-1 items-center justify-center pt-6">
               <button
                 type="button"
                 onClick={() => { const tmp = pickup; setPickup(drop); setDrop(tmp); }}
@@ -1016,7 +1042,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
               </button>
             </div>
 
-            <Field label="Drop Location" error={errors.drop} className="md:col-span-3">
+            <Field label="Drop Location" error={errors.drop} className={spans.drop}>
               <LocationInput
                 value={drop} onChange={v => { setDrop(v); setErrors(e => ({...e, drop: ""})); }}
                 placeholder="Destination"
@@ -1031,7 +1057,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
         )}
 
         {/* Date & Time */}
-        <Field label="Pickup Date & Time" error={errors.date} className="md:col-span-3">
+        <Field label="Pickup Date & Time" error={errors.date} className={spans.date}>
           <DateTimePicker
             value={dateTime}
             onChange={v => { setDateTime(v); setErrors(e => ({...e, date: ""})); }}
@@ -1041,7 +1067,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
 
         {/* Return Date — only for ROUND_TRIP */}
         {isRoundTrip && (
-          <Field label="Return Date & Time" error={errors.returnDate} className="md:col-span-3">
+          <Field label="Return Date & Time" error={errors.returnDate} className="xl:col-span-3">
             <DateTimePicker
               value={returnDateTime}
               onChange={v => { setReturnDateTime(v); setErrors(e => ({...e, returnDate: ""})); }}
@@ -1052,7 +1078,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
         )}
 
         {/* Passengers */}
-        <Field label="Passengers" className="md:col-span-1">
+        <Field label="Passengers" className={spans.pax}>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
             <select
@@ -1065,18 +1091,21 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
           </div>
         </Field>
 
-        {/* Search Button */}
-        <div className="md:col-span-1 flex items-center pt-0">
-          <button
-            type="button"
-            onClick={handleSearch}
-            className="w-full h-[60px] rounded-xl text-white font-bold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_20px_rgba(240,90,34,0.40)]"
-            style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
-          >
-            <Search className="h-4 w-4" />
-            <span className="hidden md:block">Search</span>
-          </button>
-        </div>
+      </div>
+
+      {/* Search Button — its own row. Inside the grid it sat in a single
+          twelve-column track (~45px at 768px), so the label was clipped and it
+          overlapped the Passengers field. */}
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={handleSearch}
+          className="w-full sm:w-auto h-11 px-8 rounded-xl text-white font-bold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_4px_20px_rgba(240,90,34,0.40)]"
+          style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
+        >
+          <Search className="h-4 w-4" />
+          Search Cabs
+        </button>
       </div>
 
       {/* City mode indicator */}

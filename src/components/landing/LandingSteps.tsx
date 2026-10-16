@@ -1,5 +1,6 @@
 import { Search, CreditCard, Headset, MapPinned } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
+import type { BandTone } from "@/types/cms";
 
 // ============================================================
 // LandingSteps — "how it works", 3 steps. service_type picks the
@@ -32,14 +33,20 @@ const STEPS: Record<string, { icon: typeof Search; title: string; text: string }
 export default function LandingSteps({
   title,
   serviceType,
+  bg = "muted",
+  pad = "md",
 }: {
   title?: string | null;
   serviceType?: string | null;
+  // The cards are white, so the band behind them needs to be the muted step
+  // unless the caller has a reason to move it onto white.
+  bg?: BandTone;
+  pad?: "home" | "sm" | "md" | "lg";
 }) {
   const steps = STEPS[serviceType ?? ""] ?? STEPS.DEFAULT;
 
   return (
-    <Section bg="muted" pad="md">
+    <Section bg={bg} pad={pad}>
       <Container size="xl">
         <SectionHeader
           eyebrow="How it works"

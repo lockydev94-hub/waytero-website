@@ -30,10 +30,12 @@ const PAD: Record<Padding, string> = {
   none: "",
   sm: "py-12 lg:py-16",
   md: "py-16 lg:py-20",
-  lg: "py-20 lg:py-28",
-  // Homepage bands stack 16 deep, so `lg` on both sides of every one of them
-  // read as ~224px of dead space between content. `lg` stays as-is for the
-  // marketing/legal pages that were designed against it.
+  // `lg` used to be py-20 lg:py-28. Every marketing page stacked two or three
+  // of them and the top of a page paid it on top of PageHeader's own padding,
+  // which read as dead space rather than design. It stays the roomiest step in
+  // the ladder (py-16 lg:py-24) so it remains strictly larger than `md`.
+  lg: "py-16 lg:py-24",
+  // Homepage bands stack 16 deep, so they keep the tightest rhythm of all.
   home: "py-10 lg:py-14",
 };
 

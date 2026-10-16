@@ -32,9 +32,13 @@ const LIMIT = 12;
 export default async function PopularRoutesSection({
   variant,
   bg = "white",
+  pad = "home",
 }: {
   variant: Record<string, unknown>;
   bg?: BandTone;
+  // The homepage runs the tight `home` rhythm; service pages stack the
+  // standard steps and pass the one that matches their band.
+  pad?: "home" | "sm" | "md" | "lg";
 }) {
   const eyebrow = pick<string>(variant, "variant_tag", "Where people travel");
   const title = pick<string>(variant, "headline", "Popular Routes");
@@ -64,7 +68,7 @@ export default async function PopularRoutesSection({
   if (routes.length === 0) return null;
 
   return (
-    <Section bg={bg} pad="home" id="routes" overlay="grid-faint">
+    <Section bg={bg} pad={pad} id="routes" overlay="grid-faint">
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 

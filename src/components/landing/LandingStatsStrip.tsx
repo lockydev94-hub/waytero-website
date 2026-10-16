@@ -1,6 +1,7 @@
 import { Container, Section, MotionFadeIn, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import StatValue from "./StatValue";
 import type { LandingStat } from "@/lib/landingIndex";
+import type { BandTone } from "@/types/cms";
 
 // ============================================================
 // LandingStatsStrip — the honest numbers row.
@@ -12,14 +13,17 @@ import type { LandingStat } from "@/lib/landingIndex";
 export default function LandingStatsStrip({
   stats,
   title,
+  bg = "white",
 }: {
   stats: LandingStat[];
   title?: string | null;
+  // Service pages alternate white/muted bands; the tone is the caller's call.
+  bg?: BandTone;
 }) {
   if (!stats.length) return null;
 
   return (
-    <Section bg="white" pad="sm">
+    <Section bg={bg} pad="sm">
       <Container size="xl">
         {title && (
           <MotionFadeIn>

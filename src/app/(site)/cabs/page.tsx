@@ -1,9 +1,20 @@
-import { Car, Clock, ShieldCheck, Wallet, MapPin } from "lucide-react";
-import { Container, PageHeader, IconBox, MotionGlow, Card } from "@/components/ui";
+import Image from "next/image";
+import { Clock, ShieldCheck, Wallet, MapPin } from "lucide-react";
+import { Container, IconBox } from "@/components/ui";
 import { Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { CtaSection } from "@/components/renderers";
+import PopularRoutesSection from "@/components/renderers/PopularRoutesSection";
+import LandingStatsStrip from "@/components/landing/LandingStatsStrip";
+import LandingSteps from "@/components/landing/LandingSteps";
+import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
 import CabSearchForm from "@/components/sections/CabSearchForm";
+import CabVehicleFares from "@/components/sections/CabVehicleFares";
+import CabHotelPickups from "@/components/sections/CabHotelPickups";
+import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import { API_BASE } from "@/lib/apiBase";
+import { fetchCabCities, pickCabCity } from "@/lib/cabCity";
+import type { LandingStat } from "@/lib/landingIndex";
 
 // ── Page-level SEO (SSR) — DB-driven with static fallback ────────────────
 // Reads the CAB service type's seo_title/seo_description/seo_keywords from
@@ -12,6 +23,7 @@ import CabSearchForm from "@/components/sections/CabSearchForm";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { resolveSeo, toMetadata, getServiceTypeSeo } from "@/services/seoService";
+import publicCmsService from "@/services/publicCms";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -26,6 +38,42 @@ const FEATURES = [
   { icon: MapPin, title: "Live tracking", desc: "Share trip with family. Track in real-time.", tone: "info" as const },
 ];
 
+// Authored, feature-descriptive copy — the same five subjects every cab
+// buyer asks about. Nothing here quotes a number the fare engine or the
+// live policy can't back (the precedent is TRIP_FAQS in /cabs/{trip}).
+const CAB_FAQS: FaqItem[] = [
+  {
+    question: "How is the fare I see calculated?",
+    answer: "Base fare (which includes a set number of km), then the per-km rate for the distance beyond that, plus driver allowance. Tolls and night charges, where they apply, are their own lines. The same fare engine that prices your booking produces the estimates shown on this page, so nothing appears for the first time after the ride.",
+  },
+  {
+    question: "What does driver allowance cover?",
+    answer: "It is the driver's time — including waiting at stops and, on multi-day itineraries, the night halt. It is quoted per trip type by the fare rule for your city and itemised in your breakdown rather than folded silently into a distance rate.",
+  },
+  {
+    question: "Is there a night charge?",
+    answer: "Trips that start or finish in night hours carry a night charge. It is displayed separately in the fare breakdown before you confirm, and it is part of the upfront total — it is never added at the end of the ride.",
+  },
+  {
+    question: "Can I cancel a cab booking?",
+    answer: "Yes. The cancellation terms that apply to your trip are shown at checkout, before you pay. Where a refund is due it goes back to your original payment method or WayTero Wallet, typically within 3–5 business days.",
+  },
+  {
+    question: "Is tax included in the quoted fare?",
+    answer: "The fare you see upfront is the pre-tax figure. Any applicable tax is added as its own line at checkout and appears on your invoice, so what you paid and what you are billed for always match.",
+  },
+];
+
+async function fetchCount<T>(url: string): Promise<T[] | null> {
+  try {
+    const res = await fetch(url, { next: { revalidate: 300 } });
+    if (!res.ok) return null;
+    return (await res.json()) as T[];
+  } catch {
+    return null;
+  }
+}
+
 export default async function CabsPage() {
   // Hard availability gate: CAB hidden site-wide when disabled or no
   // priced city supply exists — the listing 404s instead of an empty page.
@@ -33,30 +81,84 @@ export default async function CabsPage() {
   if (!serviceVisible(av, "CAB")) notFound();
   // Hero/banner image configured by the admin (Settings → Service Types → CAB).
   const serviceSeo = await getServiceTypeSeo();
-  const cabImage = serviceSeo.CAB?.image_url ?? null;
+  const cab = serviceSeo.CAB;
+  const cabImage = cab?.image_url ?? null;
+
+  // One round of fetches for every data-driven band below. Each is
+  // revalidated for 5 minutes and yields null when the backend is
+  // unreachable, so a stopped API hides bands instead of failing the page.
+  const [counts, cities, vehicleCategories] = await Promise.all([
+    publicCmsService.getHomepageBandCounts(),
+    fetchCabCities(),
+    fetchCount<{ id: number }>(`${API_BASE}/public/cab/vehicle-categories`),
+  ]);
+  // The city the fare and hotel bands speak about — same rule for both, so
+  // the page never quotes one city and lists stays from another.
+  const city = pickCabCity(cities);
+
+  // Trust stats: only counts the database actually has rows for.
+  const stats: LandingStat[] = [];
+  const citiesCount = counts?.POPULAR_CITIES ?? 0;
+  const routesCount = counts?.POPULAR_ROUTES ?? 0;
+  const hotelsCount = counts?.FEATURED_HOTELS ?? 0;
+  const vehicleTypes = vehicleCategories?.length ?? 0;
+  if (citiesCount > 0) stats.push({ value: citiesCount, label: "cities with live cabs" });
+  if (routesCount > 0) stats.push({ value: routesCount, label: "routes with set fares" });
+  if (vehicleTypes > 0) stats.push({ value: vehicleTypes, label: "cab types to pick from" });
+  if (hotelsCount > 0) stats.push({ value: hotelsCount, label: "partner hotels bookable" });
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-b from-primary-50/60 via-white to-white">
-        <Container size="lg">
-          <PageHeader
-            eyebrow="Outstation & Local Rides"
-            title={
-              <>
-                Book a cab <span className={cabImage ? "text-accent-400" : "text-primary-600"}>in 60 seconds</span>
-              </>
-            }
-            subtitle="Reliable cabs in Bhubaneswar and the cities we serve — outstation, airport transfers, and local rides. Verified drivers, transparent pricing, real-time tracking."
-            imageUrl={cabImage ?? undefined}
-          />
-          <div className="mt-10">
-            <CabSearchForm variant="page" />
+      <JsonLd data={faqPageSchema(CAB_FAQS)} />
+
+      <Section bg="white" pad="md">
+        <Container size="xl">
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center">
+            <div>
+              <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">
+                <span className="h-1.5 w-1.5 rounded-full bg-accent-500" aria-hidden />
+                Outstation &amp; Local Rides
+              </p>
+              <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-ink leading-[1.1] tracking-tight">
+                Book a cab <span className="text-primary-600">in 60 seconds</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-base sm:text-lg text-ink-3 leading-relaxed">
+                Reliable cabs in Bhubaneswar and the cities we serve — outstation,
+                airport transfers, and local rides. Verified drivers, transparent
+                pricing, real-time tracking.
+              </p>
+              <div className="mt-6">
+                <CabSearchForm variant="page" />
+              </div>
+            </div>
+
+            {/* The admin's banner sits in its own panel rather than behind the
+                headline: a full-bleed background put whatever the image contains
+                (stock artwork with text printed into it, most of the time) under
+                the H1. Cropped into a frame it can only ever look like a photo. */}
+            {cabImage && (
+              <div className="relative hidden aspect-[4/3] overflow-hidden rounded-3xl ring-1 ring-ink-7 shadow-wt-lg xl:block">
+                <Image
+                  src={cabImage}
+                  alt={`${cab?.label ?? "Cab"} — WayTero`}
+                  fill
+                  priority
+                  sizes="380px"
+                  className="object-cover"
+                />
+              </div>
+            )}
           </div>
         </Container>
       </Section>
 
-      <Section bg="muted" pad="md" overlay="dots">
-        <Container size="lg">
+      <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" />
+
+      {/* Why-cabs promises, as one icon row rather than four boxed cards —
+          with stats, routes, fares, steps and FAQ on the page the boxes were
+          the only thing between the hero and the substance. */}
+      <Section bg="white" pad="sm" overlay="dots-faint">
+        <Container size="xl">
           <SectionHeader
             eyebrow="Why book cabs with WayTero"
             title="A better cab experience"
@@ -64,28 +166,14 @@ export default async function CabsPage() {
             underline
             animatedEyebrow
           />
-          <MotionStagger className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          <MotionStagger className="mt-7 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => {
               const Icon = f.icon;
-              const glowColor = ((f.tone as string) === "info" ? "primary" : f.tone) as "primary" | "accent" | "success" | "danger";
               return (
-                <MotionStaggerItem key={f.title} className="h-full">
-                  <MotionGlow color={glowColor} intensity={0.18} size={260} className="h-full rounded-2xl">
-                    <Card variant="premium" hover lift="md" hoverTint="primary" className="group h-full">
-                      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                      <IconBox
-                        icon={<Icon />}
-                        tone={f.tone}
-                        size="md"
-                        glow
-                        className="mb-4 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300"
-                      />
-                      <h3 className="font-bold text-ink mb-1.5 group-hover:text-primary-700 transition-colors">
-                        {f.title}
-                      </h3>
-                      <p className="text-sm text-ink-3 leading-relaxed">{f.desc}</p>
-                    </Card>
-                  </MotionGlow>
+                <MotionStaggerItem key={f.title}>
+                  <IconBox icon={<Icon />} tone={f.tone} size="md" glow />
+                  <h3 className="mt-3 text-base font-bold text-ink">{f.title}</h3>
+                  <p className="mt-1.5 text-sm leading-relaxed text-ink-3">{f.desc}</p>
                 </MotionStaggerItem>
               );
             })}
@@ -93,11 +181,31 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      {/* NOTE: the old "Top outstation routes" destination strip was removed —
-          it rendered hardcoded fake destinations with From-₹ prices that don't
-          exist in the DB. Cab routes will get a dedicated DB-backed section
-          once route/pricing data is seeded (BRD Part 3 §36). */}
-      <CtaSection variant={{ title: "Ready to ride?", subtitle: "Your next journey is one tap away.", primary_cta: { label: "Book a Cab", href: "/cabs" } }} />
+      <PopularRoutesSection bg="muted" pad="md" variant={{}} />
+
+      <CabVehicleFares city={city} />
+
+      <LandingSteps serviceType="CAB" bg="muted" pad="md" />
+
+      <CabHotelPickups city={city} />
+
+      <PageFaq
+        faqs={CAB_FAQS}
+        eyebrow="Before you book"
+        title="Cab booking questions, answered"
+        pad="md"
+        overlay="dots-faint"
+      />
+
+      <CtaSection
+        pad="md"
+        variant={{
+          title: "Ready to ride?",
+          subtitle: "Your next journey is one tap away.",
+          cta_text: "See popular routes",
+          cta_link: "/cabs/routes",
+        }}
+      />
     </>
   );
 }

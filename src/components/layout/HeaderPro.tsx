@@ -232,6 +232,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
           including the home hero. Earlier this collapsed on scroll which
           hid it from the home page once the user moved past the hero.   */}
       <div
+        className="overflow-hidden"
         style={{
           background: "linear-gradient(90deg, #0B1B3B 0%, #1A56DB 50%, #0B1B3B 100%)",
           position: "relative",
