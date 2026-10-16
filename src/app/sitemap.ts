@@ -87,6 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${appUrl}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
     { url: `${appUrl}/partner`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${appUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${appUrl}/feedback`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
   ];
 
   // ── Cab trip-type pages (only types with ≥1 active pricing rule) ──

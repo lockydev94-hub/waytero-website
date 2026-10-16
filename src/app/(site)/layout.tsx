@@ -3,6 +3,8 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import ChatWidget from "@/components/chat/ChatWidget";
 import CallNowButton from "@/components/chat/CallNowButton";
+import CaptureRail from "@/components/capture/CaptureRail";
+import CallbackCard from "@/components/capture/CallbackCard";
 import { publicCmsService } from "@/services/publicCms";
 import type { SiteHeaderData, SiteFooterData } from "@/types/cms";
 import { getAvailability, hiddenServices } from "@/lib/availability";
@@ -66,6 +68,10 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
       <ChatWidget />
       {/* Floating Call Now — stacked left of the chat launcher, no overlap */}
       <CallNowButton />
+      {/* Left-edge enquiry + feedback tabs, the enquiry modal and the
+          bottom-left callback card. All one step behind the floats (z-40). */}
+      <CaptureRail />
+      <CallbackCard />
     </>
   );
 }

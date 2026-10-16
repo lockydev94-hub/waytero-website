@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactElement } from "react";
 import Link from "next/link";
 import { useSupportPhone } from "@/hooks/useSupportPhone";
 import { telHref } from "@/lib/supportPhone";
-import { Search, MapPin, Phone, MessageCircle, Car, Hotel, Map, Loader2, User, Navigation, CalendarDays, IndianRupee } from "lucide-react";
+import { Search, MapPin, Phone, MessageCircle, Car, Hotel, Map, Loader2, User, Navigation, CalendarDays, IndianRupee, Layers, Users } from "lucide-react";
 import { Container, Section, PageHeader, Card, Input, Button, Badge, MotionGlow, MotionStagger, MotionStaggerItem, IconBox } from "@/components/ui";
 import { publicLeadsService, TrackedBooking } from "@/services/publicLeads";
 
@@ -12,6 +12,7 @@ const STATUS_TONE: Record<string, "warning" | "info" | "success" | "danger" | "p
   PENDING_ASSIGNMENT: "warning",
   PENDING_PARTNER_ACCEPTANCE: "warning",
   ASSIGNED: "primary",
+  DRIVER_ASSIGNED: "primary",
   ACCEPTED: "primary",
   STARTED: "info",
   COMPLETED: "success",
@@ -19,19 +20,24 @@ const STATUS_TONE: Record<string, "warning" | "info" | "success" | "danger" | "p
   SETTLED: "success",
   CANCELLED: "danger",
   NO_SHOW: "danger",
+  BREAKDOWN_REPORTED: "danger",
   PENDING_PAYMENT: "warning",
   AWAITING_HOTEL_CONFIRMATION: "warning",
+  PENDING_CONFIRMATION: "warning",
   CONFIRMED: "primary",
   CHECKED_IN: "info",
   IN_HOUSE: "info",
   CHECKED_OUT: "success",
   REJECTED: "danger",
+  IN_PROGRESS: "info",
+  CLOSED: "success",
 };
 
 const STATUS_LABEL: Record<string, string> = {
   PENDING_ASSIGNMENT: "Awaiting driver assignment",
   PENDING_PARTNER_ACCEPTANCE: "Driver being assigned",
   ASSIGNED: "Driver assigned",
+  DRIVER_ASSIGNED: "Driver assigned",
   ACCEPTED: "Trip accepted",
   STARTED: "On the way / trip in progress",
   COMPLETED: "Trip completed",
@@ -39,13 +45,26 @@ const STATUS_LABEL: Record<string, string> = {
   SETTLED: "Trip completed",
   CANCELLED: "Cancelled",
   NO_SHOW: "Marked no-show",
+  BREAKDOWN_REPORTED: "Breakdown reported — help being arranged",
   PENDING_PAYMENT: "Awaiting payment",
   AWAITING_HOTEL_CONFIRMATION: "Awaiting hotel confirmation",
-  CONFIRMED: "Reservation confirmed",
+  PENDING_CONFIRMATION: "Awaiting confirmation",
+  CONFIRMED: "Confirmed",
   CHECKED_IN: "Checked in",
   IN_HOUSE: "In-house",
   CHECKED_OUT: "Checked out",
-  REJECTED: "Reservation rejected",
+  REJECTED: "Rejected",
+  IN_PROGRESS: "In progress",
+  CLOSED: "Closed",
+};
+
+// The tracker answers one of four shapes: a single-service CAB / HOTEL / TOUR
+// booking, or TRIP when the number typed was the master (complete-trip) one.
+const SERVICE_META: Record<string, { label: string; icon: ReactElement }> = {
+  CAB: { label: "Cab booking", icon: <Car className="h-4 w-4 text-primary-600" /> },
+  HOTEL: { label: "Hotel booking", icon: <Hotel className="h-4 w-4 text-primary-600" /> },
+  TOUR: { label: "Tour booking", icon: <Map className="h-4 w-4 text-primary-600" /> },
+  TRIP: { label: "Complete trip", icon: <Layers className="h-4 w-4 text-primary-600" /> },
 };
 
 export default function TrackPage() {
@@ -121,9 +140,9 @@ export default function TrackPage() {
             <div className="flex items-center justify-between gap-3 border-b border-ink-7 px-6 py-4 bg-gradient-to-r from-primary-50/40 via-white to-accent-50/30">
               <div>
                 <div className="flex items-center gap-2">
-                  {result.service_type === "CAB" ? <Car className="h-4 w-4 text-primary-600" /> : <Hotel className="h-4 w-4 text-primary-600" />}
+                  {(SERVICE_META[result.service_type] ?? SERVICE_META.TRIP).icon}
                   <span className="text-sm font-bold text-ink uppercase tracking-wider">
-                    {result.service_type === "CAB" ? "Cab booking" : "Hotel booking"}
+                    {(SERVICE_META[result.service_type] ?? SERVICE_META.TRIP).label}
                   </span>
                 </div>
                 <p className="mt-1 font-mono text-sm text-ink-2">{result.booking_number}</p>
@@ -203,6 +222,59 @@ export default function TrackPage() {
                         {result.stay.check_in_date} → {result.stay.check_out_date}
                         {result.stay.num_rooms ? ` · ${result.stay.num_rooms} room(s)` : ""}
                         {result.stay.num_guests ? ` · ${result.stay.num_guests} guest(s)` : ""}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {result.service_type === "TOUR" && result.tour && (
+                <>
+                  <div className="flex items-start gap-3">
+                    <Map className="h-4 w-4 mt-0.5 text-primary-600" />
+                    <div>
+                      <div className="font-semibold text-ink">{result.tour.package_name}</div>
+                      {result.tour.destination && (
+                        <div className="text-ink-3">{result.tour.destination}</div>
+                      )}
+                    </div>
+                  </div>
+                  {result.tour.travel_start_date && (
+                    <div className="flex items-start gap-3">
+                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
+                      <div className="text-ink-2">
+                        {result.tour.travel_start_date} → {result.tour.travel_end_date}
+                        {result.tour.duration_days ? ` · ${result.tour.duration_days} day(s)` : ""}
+                        {result.tour.duration_nights ? ` / ${result.tour.duration_nights} night(s)` : ""}
+                      </div>
+                    </div>
+                  )}
+                  {result.tour.persons_count ? (
+                    <div className="flex items-start gap-3">
+                      <Users className="h-4 w-4 mt-0.5 text-ink-4" />
+                      <div className="text-ink-2">{result.tour.persons_count} traveller(s)</div>
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              {result.service_type === "TRIP" && result.trip && (
+                <>
+                  {result.trip.service_types && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {result.trip.service_types.split(",").filter(Boolean).map((t) => (
+                        <Badge key={t} tone="primary">
+                          {t.charAt(0) + t.slice(1).toLowerCase()}
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                  {result.trip.journey_start_date && (
+                    <div className="flex items-start gap-3">
+                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
+                      <div className="text-ink-2">
+                        {result.trip.journey_start_date}
+                        {result.trip.journey_end_date ? ` → ${result.trip.journey_end_date}` : ""}
                       </div>
                     </div>
                   )}
