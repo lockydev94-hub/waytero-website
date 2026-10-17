@@ -19,6 +19,7 @@ import { Star, MapPin, Wifi, Coffee, Waves, Building2, BedDouble, ChevronRight }
 import { Container, Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { hotelService, type PublicHotelSearchItem, type PublicHotelCity } from "@/services/hotelService";
+import type { BandTone } from "@/types/cms";
 
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -164,7 +165,16 @@ export function HotelPopularCityChips() {
 }
 
 
-export default function HotelExploreSection() {
+export default function HotelExploreSection({
+  bg = "muted",
+  pad = "lg",
+}: {
+  // The /hotels page stacks nine short bands and runs the `tight` rhythm, so
+  // this band takes its tone from the caller instead of hardcoding the
+  // roomiest marketing step. Other callers keep today's muted/lg.
+  bg?: BandTone;
+  pad?: "home" | "tight" | "sm" | "md" | "lg";
+} = {}) {
   const [cities, setCities] = useState<PublicHotelCity[]>([]);
   const [activeCity, setActiveCity] = useState<number | null>(null);
   const [hotels, setHotels] = useState<PublicHotelSearchItem[]>([]);
@@ -196,12 +206,13 @@ export default function HotelExploreSection() {
   const cityCount = cities.length;
 
   return (
-    <Section bg="muted" pad="lg" id="hotels">
+    <Section bg={bg} pad={pad} id="hotels">
       <Container size="lg">
         <SectionHeader
           eyebrow="Stays in cities we serve"
           title={activeCity ? `Hotels in ${cities.find(c => c.id === activeCity)?.name ?? "your city"}` : "Explore hotels"}
           subtitle={`${total} stay${total === 1 ? "" : "s"} available right now${cityCount ? ` across ${cityCount} cities` : ""} — transparent prices, real guest ratings.`}
+          scale={pad === "home" || pad === "tight" ? "home" : "default"}
         />
 
         {/* City filter chips */}

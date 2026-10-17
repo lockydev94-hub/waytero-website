@@ -10,9 +10,16 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Filter, RotateCcw, MapPin, Wallet, Users, Clock3, Star, ArrowDownAZ } from "lucide-react";
+import { Filter, RotateCcw, MapPin, Wallet, Users, Clock3, Star, ArrowDownAZ, Check, Info } from "lucide-react";
 
 export type SortMode = "recommended" | "price_asc" | "price_desc" | "newest";
+
+/** One line from a package's own inclusion list, plus how many packages
+ *  declare it. Counted server-side and handed down — see tours/page.tsx. */
+export interface InclusionLine {
+  text: string;
+  count: number;
+}
 
 export interface TourFilterValues {
   destination: string;
@@ -61,6 +68,28 @@ const SORT_OPTIONS: { value: SortMode; label: string }[] = [
   { value: "newest", label: "Newest first" },
 ];
 
+// Structural facts about how a WayTero tour is priced and run — no numbers
+// that belong to a package or a policy the sidebar can't see. Each one is
+// backed by the fields the listing itself renders.
+const GOOD_TO_KNOW = [
+  {
+    title: "Price is per package, not per person",
+    text: "Partners set one price per traveller slab, so the total moves with your group size — the package page lists every slab.",
+  },
+  {
+    title: "Minimum travellers are enforced",
+    text: "A tour confirms once it has the party size it was priced for, so the range on each card is a real limit, not a suggestion.",
+  },
+  {
+    title: "Cancellations are counted in days",
+    text: "Refunds step down the closer you get to departure, and a package can set its own ladder. The one that applies is printed at checkout.",
+  },
+  {
+    title: "Itineraries are day-by-day",
+    text: "Each package carries its own schedule with what is included and what is not, so you can read your total against the plan it pays for.",
+  },
+];
+
 export function readFiltersFromParams(params: URLSearchParams | null): TourFilterValues {
   if (!params) return DEFAULT_FILTERS;
   return {
@@ -91,9 +120,18 @@ export function filtersToParams(f: TourFilterValues): URLSearchParams {
 export default function TourFilters({
   cities,
   onChange,
+  inclusions = [],
+  tourCount,
+  goodToKnow = GOOD_TO_KNOW,
 }: {
   cities: { id: number; name: string; state_name?: string }[];
   onChange?: (f: TourFilterValues) => void;
+  // Counted from the live packages in page.tsx — the sidebar states what a
+  // tour covers without a second fetch. Empty list → the card is omitted.
+  inclusions?: InclusionLine[];
+  // Packages currently matching, for the header line of the inclusion card.
+  tourCount?: number;
+  goodToKnow?: { title: string; text: string }[];
 }) {
   const router = useRouter();
   const rawParams = useSearchParams();
@@ -257,6 +295,47 @@ export default function TourFilters({
           ))}
         </select>
       </div>
+
+      {/* What's included — counted from the live packages, so this states what
+          the catalogue actually declares rather than a generic promise. */}
+      {inclusions.length > 0 && (
+        <div className="rounded-2xl border border-ink-7 bg-ink-9/60 p-4">
+          <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-ink">
+            <Check className="h-3.5 w-3.5 text-emerald-600" aria-hidden />
+            Usually included
+            {typeof tourCount === "number" && tourCount > 0 && (
+              <span className="ml-auto text-[10px] font-bold text-ink-4">of {tourCount} tours</span>
+            )}
+          </h4>
+          <ul className="mt-3 space-y-2">
+            {inclusions.slice(0, 5).map((line) => (
+              <li key={line.text} className="flex items-start gap-2 text-xs leading-relaxed text-ink-3">
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600" aria-hidden />
+                <span className="min-w-0 flex-1">{line.text}</span>
+                <span className="shrink-0 text-[10px] font-bold text-ink-4">{line.count}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Good to know — structural facts about how tours are priced/run. */}
+      {goodToKnow.length > 0 && (
+        <div className="rounded-2xl border border-ink-7 bg-white p-4">
+          <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-ink">
+            <Info className="h-3.5 w-3.5 text-primary-600" aria-hidden />
+            Good to know
+          </h4>
+          <ul className="mt-3 space-y-3">
+            {goodToKnow.map((f) => (
+              <li key={f.title}>
+                <p className="text-xs font-bold text-ink">{f.title}</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-ink-3">{f.text}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </aside>
   );
 }

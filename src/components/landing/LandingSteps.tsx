@@ -20,7 +20,7 @@ const STEPS: Record<string, { icon: typeof Search; title: string; text: string }
   ],
   TOUR: [
     { icon: MapPinned, title: "Find a package", text: "Curated multi-day tours with day-by-day itineraries and clear inclusions." },
-    { icon: CreditCard, title: "Reserve your seat", text: "Pay a transparent price per traveller — itemised, taxes shown." },
+    { icon: CreditCard, title: "Reserve your seat", text: "One transparent price for the package at your traveller count — itemised, taxes shown." },
     { icon: Headset, title: "Travel supported", text: "Guides, transport and 24×7 assistance are handled for you." },
   ],
   DEFAULT: [
