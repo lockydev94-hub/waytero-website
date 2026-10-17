@@ -4,21 +4,15 @@ import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Clock, ArrowRight, Mail, Calendar, User, Search, Sparkles, BookOpen,
+  ArrowRight, Calendar, User, Search, Sparkles, BookOpen,
 } from "lucide-react";
 import {
   Container, Section, SectionHeader, Card, Badge,
-  Button, Input, Skeleton, MotionGlow, MotionStaggerItem,
+  Button, Input, Skeleton, MotionStagger, MotionStaggerItem,
 } from "@/components/ui";
-import { MotionStagger } from "@/components/ui";
 import { publicBlogService, BlogPostSummary } from "@/services/publicBlog";
 
 const PAGE_SIZE = 9;
-
-function readTimeFromExcerpt(excerpt?: string | null): number {
-  const words = (excerpt || "").split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.round(words / 200));
-}
 
 export default function BlogPage() {
   const [posts, setPosts] = useState<BlogPostSummary[]>([]);
@@ -109,16 +103,10 @@ export default function BlogPage() {
 
   const hasMore = !loading && posts.length < total;
 
-  const submitNewsletter = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const input = e.currentTarget.querySelector<HTMLInputElement>('input[type="email"]');
-    input && (input.value = "");
-  };
-
   return (
     <>
       {/* Hero */}
-      <Section bg="white" pad="lg" className="relative bg-gradient-to-br from-primary-50/60 via-white to-accent-50/40 overflow-hidden">
+      <Section bg="white" pad="home" className="relative bg-gradient-to-br from-primary-50/60 via-white to-accent-50/40 overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 h-80 w-80 rounded-full bg-primary-500/15 blur-3xl" />
         <div aria-hidden className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-accent-500/15 blur-3xl" />
         <Container size="lg">
@@ -186,7 +174,7 @@ export default function BlogPage() {
 
       {/* Featured post */}
       {!filtersActive && (loading ? (
-        <Section bg="white" pad="md">
+        <Section bg="muted" pad="tight">
           <Container size="lg">
             <Card variant="elevated" className="overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-2">
@@ -203,7 +191,7 @@ export default function BlogPage() {
           </Container>
         </Section>
       ) : featured ? (
-        <Section bg="white" pad="md">
+        <Section bg="muted" pad="tight">
           <Container size="lg">
             <Link href={`/blog/${featured.slug}`} className="block group">
               <Card variant="premium" padded={false} className="overflow-hidden relative">
@@ -231,9 +219,6 @@ export default function BlogPage() {
                       {featured.tags.length > 0 && (
                         <Badge tone="primary">{featured.tags[0]}</Badge>
                       )}
-                      <span className="text-xs text-ink-4 inline-flex items-center gap-1">
-                        <Clock size={11} /> {readTimeFromExcerpt(featured.excerpt)} min read
-                      </span>
                     </div>
                     <h2 className="text-2xl lg:text-3xl font-extrabold text-ink tracking-tight group-hover:text-primary-700 transition-colors">
                       {featured.title}
@@ -241,35 +226,37 @@ export default function BlogPage() {
                     <p className="mt-3 text-sm text-ink-3 leading-relaxed line-clamp-3">
                       {featured.excerpt}
                     </p>
-                    <div className="mt-6 flex items-center gap-3">
-                      {featured.author_avatar_url ? (
-                        <Image
-                          src={featured.author_avatar_url}
-                          alt={featured.author_name || "Author"}
-                          width={40}
-                          height={40}
-                          className="h-10 w-10 rounded-full object-cover ring-2 ring-primary-100 group-hover:ring-primary-300 transition-all"
-                        />
-                      ) : (
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center text-sm font-bold shadow-wt-sm">
-                          {featured.author_name?.[0] ?? "W"}
-                        </div>
-                      )}
-                      <div>
+                    {featured.author_name && (
+                      <div className="mt-6 flex items-center gap-3">
+                        {featured.author_avatar_url ? (
+                          <Image
+                            src={featured.author_avatar_url}
+                            alt=""
+                            width={40}
+                            height={40}
+                            className="h-10 w-10 rounded-full object-cover ring-2 ring-primary-100 group-hover:ring-primary-300 transition-all"
+                          />
+                        ) : (
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white flex items-center justify-center text-sm font-bold shadow-wt-sm">
+                            {featured.author_name[0]}
+                          </div>
+                        )}
                         <div className="text-sm font-bold text-ink">
-                          {featured.author_name || "WayTero Editorial"}
-                        </div>
-                        <div className="text-xs text-ink-4">
-                          {featured.published_at
-                            ? new Date(featured.published_at).toLocaleDateString("en-IN", {
-                                day: "numeric",
-                                month: "long",
-                                year: "numeric",
-                              })
-                            : ""}
+                          {featured.author_name}
                         </div>
                       </div>
-                    </div>
+                    )}
+                    {featured.published_at && (
+                      <p className={featured.author_name ? "mt-2" : "mt-6"}>
+                        <span className="text-xs text-ink-4">
+                          {new Date(featured.published_at).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "long",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </p>
+                    )}
                     <div className="mt-6">
                       <span className="inline-flex items-center justify-center font-semibold tracking-tight h-11 px-5 text-sm rounded-xl gap-2 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-800 text-white shadow-wt-primary group-hover:shadow-wt-glow-primary transition-all">
                         Read the article <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform" />
@@ -284,7 +271,7 @@ export default function BlogPage() {
       ) : null)}
 
       {/* Article grid */}
-      <Section bg="muted" pad="lg">
+      <Section bg="white" pad="tight">
         <Container size="lg">
           <SectionHeader
             eyebrow="Latest articles"
@@ -382,9 +369,6 @@ export default function BlogPage() {
                                   })
                                 : "Soon"}
                             </span>
-                            <span className="text-xs text-ink-4 inline-flex items-center gap-1">
-                              <Clock size={11} /> {readTimeFromExcerpt(post.excerpt)} min
-                            </span>
                           </div>
                           <h3 className="font-bold text-ink leading-snug group-hover:text-primary-700 transition-colors line-clamp-2">
                             {post.title}
@@ -393,20 +377,22 @@ export default function BlogPage() {
                             {post.excerpt}
                           </p>
                           <div className="mt-4 pt-4 border-t border-ink-7 flex items-center justify-between">
-                            <span className="text-xs text-ink-4 inline-flex items-center gap-1.5">
-                              {post.author_avatar_url ? (
-                                <Image
-                                  src={post.author_avatar_url}
-                                  alt=""
-                                  width={20}
-                                  height={20}
-                                  className="h-5 w-5 rounded-full object-cover"
-                                />
-                              ) : (
-                                <User size={11} />
-                              )}
-                              {post.author_name || "WayTero"}
-                            </span>
+                            {post.author_name && (
+                              <span className="text-xs text-ink-4 inline-flex items-center gap-1.5">
+                                {post.author_avatar_url ? (
+                                  <Image
+                                    src={post.author_avatar_url}
+                                    alt=""
+                                    width={20}
+                                    height={20}
+                                    className="h-5 w-5 rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <User size={11} />
+                                )}
+                                {post.author_name}
+                              </span>
+                            )}
                             <span className="inline-flex items-center gap-1 text-xs font-bold text-primary-600">
                               Read <ArrowRight size={12} />
                             </span>
@@ -436,31 +422,8 @@ export default function BlogPage() {
         </Container>
       </Section>
 
-      {/* Newsletter band */}
-      <Section bg="white" pad="lg" className="relative overflow-hidden">
-        <Container size="md">
-          <MotionGlow color="accent" intensity={0.15} size={520}>
-            <div className="relative rounded-3xl bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 px-8 py-12 text-center text-white shadow-wt-lg overflow-hidden">
-              <div aria-hidden className="pointer-events-none absolute -top-20 -right-20 h-56 w-56 rounded-full bg-accent-500/30 blur-3xl" />
-              <div aria-hidden className="pointer-events-none absolute -bottom-20 -left-20 h-56 w-56 rounded-full bg-primary-400/20 blur-3xl" />
-              <h2 className="relative text-2xl sm:text-3xl font-extrabold tracking-tight">
-                Travel smart, every <span className="text-gradient-primary">week</span>
-              </h2>
-              <p className="relative mt-2 text-sm text-white/80 max-w-md mx-auto">
-                One email with route ideas, fare tips, and early access to offers. No spam, ever.
-              </p>
-              <form onSubmit={submitNewsletter} className="relative mt-7 max-w-md mx-auto flex gap-2">
-                <div className="flex-1">
-                  <Input type="email" placeholder="you@example.com" required className="bg-white/95 border-white/40" />
-                </div>
-                <Button type="submit" variant="gradient-accent" size="lg" shine leftIcon={<Mail size={15} />}>
-                  Subscribe
-                </Button>
-              </form>
-            </div>
-          </MotionGlow>
-        </Container>
-      </Section>
+      {/* Newsletter band removed 2026-10-17: the form had no endpoint — it
+          cleared the input and said nothing happened. */}
     </>
   );
 }

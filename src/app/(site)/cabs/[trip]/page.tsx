@@ -223,7 +223,7 @@ const TRIP_FAQS: Record<string, FaqItem[]> = {
     { question: "How is one-way pricing different?", answer: "You pay only for the distance of your own journey — the driver's return leg isn't billed to you. The per-km math is shown in your fare breakdown." },
     { question: "Is there a minimum distance for one-way trips?", answer: "Each fare rule includes a minimum-km allowance in the base fare. If your trip is shorter, you simply pay the base fare — nothing extra." },
     { question: "Can I add stops along the way?", answer: "Add special instructions when booking — the driver and support team see them. Long detours may be repriced transparently before you confirm." },
-    { question: "What if I need to cancel?", answer: "Cancellations follow the live policy shown at checkout. Eligible refunds go back to your payment source or WayTero Wallet within 3–5 business days." },
+    { question: "What if I need to cancel?", answer: "The charge follows the ladder in force at the moment you cancel, and the refund preview shows the exact amount before you commit. Approved refunds land in your WayTero wallet, which you can spend on any future booking." },
   ],
   ROUND_TRIP: [
     { question: "How do round-trip fares work?", answer: "Round trips use the same upfront fare engine with per-day driver allowance for multi-day itineraries — every component is itemised before you pay." },

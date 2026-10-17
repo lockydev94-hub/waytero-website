@@ -292,11 +292,13 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
             image: post.featured_image_url || undefined,
             datePublished: post.published_at || post.created_at,
             dateModified: post.updated_at,
-            author: {
-              "@type": "Person",
-              name: post.author_name || "WayTero Editorial",
-              image: post.author_avatar_url || undefined,
-            },
+            author: post.author_name
+              ? {
+                  "@type": "Person",
+                  name: post.author_name,
+                  image: post.author_avatar_url || undefined,
+                }
+              : { "@type": "Organization", name: "WayTero" },
             publisher: { "@type": "Organization", name: "WayTero" },
             mainEntityOfPage: shareUrl,
             keywords: post.seo_keywords || post.tags?.join(", ") || undefined,
@@ -338,20 +340,22 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
 
           {/* Meta */}
           <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-ink-4">
-            <span className="inline-flex items-center gap-1.5">
-              {post.author_avatar_url ? (
-                <Image
-                  src={post.author_avatar_url}
-                  alt={post.author_name || "Author"}
-                  width={24}
-                  height={24}
-                  className="h-6 w-6 rounded-full object-cover ring-2 ring-primary-100"
-                />
-              ) : (
-                <User size={14} />
-              )}
-              {post.author_name || "WayTero Editorial"}
-            </span>
+            {post.author_name && (
+              <span className="inline-flex items-center gap-1.5">
+                {post.author_avatar_url ? (
+                  <Image
+                    src={post.author_avatar_url}
+                    alt=""
+                    width={24}
+                    height={24}
+                    className="h-6 w-6 rounded-full object-cover ring-2 ring-primary-100"
+                  />
+                ) : (
+                  <User size={14} />
+                )}
+                {post.author_name}
+              </span>
+            )}
             {post.published_at && (
               <span className="inline-flex items-center gap-1.5">
                 <Calendar size={14} />
@@ -404,58 +408,62 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
               />
 
               {/* Author + share footer */}
-              <div className="mt-12 pt-8 border-t border-ink-7">
-                <div className="rounded-2xl bg-gradient-to-br from-ink-9 to-ink-8 border border-ink-7 p-6 flex flex-col sm:flex-row sm:items-center gap-5">
-                  {post.author_avatar_url ? (
-                    <Image
-                      src={post.author_avatar_url}
-                      alt={post.author_name || "Author"}
-                      width={64}
-                      height={64}
-                      className="h-16 w-16 rounded-full object-cover ring-2 ring-primary-100 shadow-wt-sm"
-                    />
-                  ) : (
-                    <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-800 text-white flex items-center justify-center text-2xl font-bold shadow-wt-sm">
-                      {post.author_name?.[0] ?? "W"}
-                    </div>
-                  )}
-                  <div className="flex-1">
-                    <div className="text-[11px] font-bold uppercase tracking-wider text-gradient-primary">Written by</div>
-                    <div className="text-base font-bold text-ink mt-0.5">
-                      {post.author_name || "WayTero Editorial"}
-                    </div>
-                    <div className="text-xs text-ink-4 mt-1">
-                      {post.tags.length > 0 ? `Filed under: ${post.tags.join(", ")}` : "WayTero Travel Blog"}
+              <div className="mt-12 pt-8 border-t border-ink-7 space-y-5">
+                {post.author_name && (
+                  <div className="rounded-2xl bg-gradient-to-br from-ink-9 to-ink-8 border border-ink-7 p-6 flex items-center gap-5">
+                    {post.author_avatar_url ? (
+                      <Image
+                        src={post.author_avatar_url}
+                        alt=""
+                        width={64}
+                        height={64}
+                        className="h-16 w-16 rounded-full object-cover ring-2 ring-primary-100 shadow-wt-sm shrink-0"
+                      />
+                    ) : (
+                      <div className="h-16 w-16 rounded-full bg-gradient-to-br from-primary-500 to-primary-800 text-white flex items-center justify-center text-2xl font-bold shadow-wt-sm shrink-0">
+                        {post.author_name[0]}
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-bold uppercase tracking-wider text-gradient-primary">Written by</div>
+                      <div className="text-base font-bold text-ink mt-0.5">
+                        {post.author_name}
+                      </div>
+                      {post.tags.length > 0 && (
+                        <div className="text-xs text-ink-4 mt-1">
+                          Filed under: {post.tags.join(", ")}
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-ink-4 mr-1 inline-flex items-center gap-1">
-                      <Share2 size={12} /> Share
-                    </span>
-                    {SHARE_OPTIONS.map(({ label, Icon, color }) => (
-                      <button
-                        key={label}
-                        type="button"
-                        onClick={() => handleShare(label)}
-                        aria-label={`Share on ${label}`}
-                        className={`h-10 w-10 rounded-xl border border-ink-7 bg-white text-ink-3 flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wt-sm ${color}`}
-                      >
-                        <Icon size={16} />
-                      </button>
-                    ))}
+                )}
+                <div className="flex items-center gap-1.5 flex-wrap shrink-0">
+                  <span className="text-xs font-semibold uppercase tracking-wider text-ink-4 mr-1 inline-flex items-center gap-1">
+                    <Share2 size={12} /> Share
+                  </span>
+                  {SHARE_OPTIONS.map(({ label, Icon, color }) => (
                     <button
+                      key={label}
                       type="button"
-                      onClick={copyLink}
-                      aria-label="Copy link"
-                      className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wt-sm ${
-                        copied
-                          ? "border-emerald-200 bg-emerald-50 text-emerald-600"
-                          : "border-ink-7 bg-white text-ink-3 hover:bg-ink-9"
-                      }`}
+                      onClick={() => handleShare(label)}
+                      aria-label={`Share on ${label}`}
+                      className={`h-10 w-10 rounded-xl border border-ink-7 bg-white text-ink-3 flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wt-sm ${color}`}
                     >
-                      {copied ? <Check size={16} /> : <BookOpen size={16} />}
+                      <Icon size={16} />
                     </button>
-                  </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={copyLink}
+                    aria-label="Copy link"
+                    className={`h-10 w-10 rounded-xl border flex items-center justify-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wt-sm ${
+                      copied
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                        : "border-ink-7 bg-white text-ink-3 hover:bg-ink-9"
+                    }`}
+                  >
+                    {copied ? <Check size={16} /> : <BookOpen size={16} />}
+                  </button>
                 </div>
 
                 <div className="mt-6">
@@ -558,9 +566,6 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
                             <h4 className="text-sm font-bold text-ink leading-snug line-clamp-2 group-hover:text-primary-700 transition-colors">
                               {rp.title}
                             </h4>
-                            <span className="mt-1 inline-flex items-center gap-1 text-[11px] text-ink-4">
-                              <Clock size={10} /> {readTimeOf(rp.excerpt)} min read
-                            </span>
                           </div>
                         </div>
                       </Link>
@@ -605,9 +610,6 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
                     <div className="flex flex-col flex-1 p-5">
                       <div className="flex items-center gap-2 mb-2.5">
                         {post.tags.length > 0 && <Badge tone="primary" size="sm">{post.tags[0]}</Badge>}
-                        <span className="text-xs text-ink-4 inline-flex items-center gap-1">
-                          <Clock size={11} /> {readTimeOf(post.excerpt)} min
-                        </span>
                       </div>
                       <h3 className="font-bold text-ink leading-snug group-hover:text-primary-700 transition-colors line-clamp-2">
                         {post.title}
