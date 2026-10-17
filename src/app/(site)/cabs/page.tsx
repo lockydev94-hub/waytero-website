@@ -35,7 +35,7 @@ const FEATURES = [
   { icon: Clock, title: "60-sec booking", desc: "Outstation or local — book in under a minute.", tone: "primary" as const },
   { icon: ShieldCheck, title: "Verified drivers", desc: "Background-checked, trained, ID-on-file.", tone: "success" as const },
   { icon: Wallet, title: "No surge pricing", desc: "Upfront fare. What you see is what you pay.", tone: "accent" as const },
-  { icon: MapPin, title: "Live tracking", desc: "Share trip with family. Track in real-time.", tone: "info" as const },
+  { icon: MapPin, title: "Driver details", desc: "Name, vehicle number and contact, once a driver is assigned.", tone: "info" as const },
 ];
 
 // Authored, feature-descriptive copy — the same five subjects every cab
@@ -125,7 +125,7 @@ export default async function CabsPage() {
               <p className="mt-4 max-w-2xl text-base sm:text-lg text-ink-3 leading-relaxed">
                 Reliable cabs in Bhubaneswar and the cities we serve — outstation,
                 airport transfers, and local rides. Verified drivers, transparent
-                pricing, real-time tracking.
+                pricing, and trip status you can check any time.
               </p>
               <div className="mt-5">
                 <CabSearchForm variant="page" />

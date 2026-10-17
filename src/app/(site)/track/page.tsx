@@ -1,317 +1,158 @@
-"use client";
-
-import { useState, type ReactElement } from "react";
 import Link from "next/link";
-import { useSupportPhone } from "@/hooks/useSupportPhone";
-import { telHref } from "@/lib/supportPhone";
-import { Search, MapPin, Phone, MessageCircle, Car, Hotel, Map, Loader2, User, Navigation, CalendarDays, IndianRupee, Layers, Users } from "lucide-react";
-import { Container, Section, PageHeader, Card, Input, Button, Badge, MotionGlow, MotionStagger, MotionStaggerItem, IconBox } from "@/components/ui";
-import { publicLeadsService, TrackedBooking } from "@/services/publicLeads";
+import {
+  ArrowRight,
+  CalendarClock,
+  LifeBuoy,
+  MessageSquareWarning,
+  Phone,
+  RotateCcw,
+} from "lucide-react";
+import {
+  Container,
+  Section,
+  SectionHeader,
+  IconBox,
+  MotionGlow,
+} from "@/components/ui";
+import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { CtaSection } from "@/components/renderers";
+import TrackStatusLegend from "@/components/sections/TrackStatusLegend";
+import TrackLookup from "./track-lookup";
+import publicCmsService from "@/services/publicCms";
+import { getAvailability, serviceVisible } from "@/lib/availability";
+import { BRAND, waHref } from "@/lib/brand";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 
-const STATUS_TONE: Record<string, "warning" | "info" | "success" | "danger" | "primary" | "neutral"> = {
-  PENDING_ASSIGNMENT: "warning",
-  PENDING_PARTNER_ACCEPTANCE: "warning",
-  ASSIGNED: "primary",
-  DRIVER_ASSIGNED: "primary",
-  ACCEPTED: "primary",
-  STARTED: "info",
-  COMPLETED: "success",
-  SETTLEMENT_PENDING: "success",
-  SETTLED: "success",
-  CANCELLED: "danger",
-  NO_SHOW: "danger",
-  BREAKDOWN_REPORTED: "danger",
-  PENDING_PAYMENT: "warning",
-  AWAITING_HOTEL_CONFIRMATION: "warning",
-  PENDING_CONFIRMATION: "warning",
-  CONFIRMED: "primary",
-  CHECKED_IN: "info",
-  IN_HOUSE: "info",
-  CHECKED_OUT: "success",
-  REJECTED: "danger",
-  IN_PROGRESS: "info",
-  CLOSED: "success",
-};
+export default async function TrackPage() {
+  const [profile, av] = await Promise.all([publicCmsService.getPlatformProfile(), getAvailability()]);
+  const phone = displayPhone(profile.support_phone);
 
-const STATUS_LABEL: Record<string, string> = {
-  PENDING_ASSIGNMENT: "Awaiting driver assignment",
-  PENDING_PARTNER_ACCEPTANCE: "Driver being assigned",
-  ASSIGNED: "Driver assigned",
-  DRIVER_ASSIGNED: "Driver assigned",
-  ACCEPTED: "Trip accepted",
-  STARTED: "On the way / trip in progress",
-  COMPLETED: "Trip completed",
-  SETTLEMENT_PENDING: "Trip completed",
-  SETTLED: "Trip completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "Marked no-show",
-  BREAKDOWN_REPORTED: "Breakdown reported — help being arranged",
-  PENDING_PAYMENT: "Awaiting payment",
-  AWAITING_HOTEL_CONFIRMATION: "Awaiting hotel confirmation",
-  PENDING_CONFIRMATION: "Awaiting confirmation",
-  CONFIRMED: "Confirmed",
-  CHECKED_IN: "Checked in",
-  IN_HOUSE: "In-house",
-  CHECKED_OUT: "Checked out",
-  REJECTED: "Rejected",
-  IN_PROGRESS: "In progress",
-  CLOSED: "Closed",
-};
+  const cta = serviceVisible(av, "HOTEL")
+    ? { label: "Browse hotels", href: "/hotels/results" }
+    : serviceVisible(av, "CAB")
+      ? { label: "Book a cab", href: "/cabs" }
+      : serviceVisible(av, "TOUR")
+        ? { label: "Browse tours", href: "/tours" }
+        : null;
 
-// The tracker answers one of four shapes: a single-service CAB / HOTEL / TOUR
-// booking, or TRIP when the number typed was the master (complete-trip) one.
-const SERVICE_META: Record<string, { label: string; icon: ReactElement }> = {
-  CAB: { label: "Cab booking", icon: <Car className="h-4 w-4 text-primary-600" /> },
-  HOTEL: { label: "Hotel booking", icon: <Hotel className="h-4 w-4 text-primary-600" /> },
-  TOUR: { label: "Tour booking", icon: <Map className="h-4 w-4 text-primary-600" /> },
-  TRIP: { label: "Complete trip", icon: <Layers className="h-4 w-4 text-primary-600" /> },
-};
-
-export default function TrackPage() {
-  const supportPhone = useSupportPhone();
-  const [bookingNumber, setBookingNumber] = useState("");
-  const [mobile, setMobile] = useState("");
-  const [email, setEmail] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<TrackedBooking | null>(null);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSearching(true);
-    setError(null);
-    setResult(null);
-    try {
-      const res = await publicLeadsService.trackBooking(bookingNumber.trim(), mobile.trim());
-      setResult(res.data);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Booking not found. Please check your details.");
-    } finally {
-      setSearching(false);
-    }
-  };
-
-  const tone = result ? STATUS_TONE[result.status] ?? "neutral" : "neutral";
-  const label = result ? STATUS_LABEL[result.status] ?? result.status : "";
+  const help: {
+    icon: typeof CalendarClock;
+    title: string;
+    desc: string;
+    tone: "primary" | "accent" | "info";
+    link?: { label: string; href: string };
+  }[] = [
+    {
+      icon: CalendarClock,
+      title: "No driver assigned yet",
+      desc: "A booking sits in this state until a partner accepts it. That is normal — you get the driver's name, vehicle number and contact here the moment one is assigned.",
+      tone: "primary" as const,
+    },
+    {
+      icon: RotateCcw,
+      title: "Need to change or cancel",
+      desc: "The ladder that decides what comes back is published, and it runs on how much notice you give. Read it before you cancel, not after.",
+      tone: "accent" as const,
+      link: { label: "Refund & cancellation terms", href: "/refund" },
+    },
+    {
+      icon: MessageSquareWarning,
+      title: "Something went wrong on the trip",
+      desc: "Tell us what happened with the booking number and we can pull it up. The desk is staffed the hours shown on the contact page.",
+      tone: "info" as const,
+      link: { label: "Contact support", href: "/contact" },
+    },
+  ];
 
   return (
-    <Section bg="white" pad="lg" className="bg-gradient-to-br from-primary-50/60 via-white to-white min-h-[calc(100vh-200px)]">
-      <Container size="md">
-        <PageHeader
-          eyebrow="Live booking tracker"
-          title={
-            <>
-              Track your <span className="text-gradient-primary">booking</span>
-            </>
-          }
-          subtitle="Enter your booking number to see real-time status — cab location, hotel check-in, or tour itinerary."
+    <>
+      <Section bg="white" pad="tight" className="bg-gradient-to-br from-primary-50/60 via-white to-white">
+        <Container size="md">
+          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-500" aria-hidden />
+            Booking status lookup
+          </p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-ink leading-[1.1] tracking-tight">
+            Track your <span className="text-gradient-primary">booking</span>
+          </h1>
+          <p className="mt-3 max-w-xl text-base text-ink-3 leading-relaxed">
+            Enter a booking number and the mobile it was made on. You get the status, the driver or
+            property on the booking, the dates and the amount — no sign-in needed.
+          </p>
+
+          <TrackLookup />
+        </Container>
+      </Section>
+
+      <TrackStatusLegend bg="muted" pad="tight" />
+
+      <Section bg="white" pad="tight" overlay="dots-faint">
+        <Container size="lg">
+          <SectionHeader
+            eyebrow="If the status isn't enough"
+            title="What to do next"
+            accent="primary"
+            underline
+            animatedEyebrow
+            scale="home"
+          />
+          <MotionStagger className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-5">
+            {help.map((h) => {
+              const Icon = h.icon;
+              const glowColor = ((h.tone as string) === "info" ? "primary" : h.tone) as "primary" | "accent" | "success" | "danger";
+              return (
+                <MotionStaggerItem key={h.title} className="h-full">
+                  <MotionGlow color={glowColor} intensity={0.16} size={260} className="h-full rounded-2xl">
+                    <div className="flex h-full flex-col rounded-2xl border border-ink-7 bg-ink-9/60 p-5">
+                      <IconBox icon={<Icon />} tone={h.tone} size="md" gradient />
+                      <h3 className="mt-4 text-sm font-extrabold text-ink">{h.title}</h3>
+                      <p className="mt-2 text-[13px] leading-relaxed text-ink-3">{h.desc}</p>
+                      {h.link && (
+                        <Link
+                          href={h.link.href}
+                          className="mt-auto inline-flex items-center gap-1 pt-4 text-xs font-extrabold text-primary-700 transition-colors hover:text-primary-800"
+                        >
+                          {h.link.label}
+                          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                        </Link>
+                      )}
+                    </div>
+                  </MotionGlow>
+                </MotionStaggerItem>
+              );
+            })}
+          </MotionStagger>
+
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-3 rounded-2xl border border-ink-7 bg-ink-9/60 px-5 py-4">
+            <span className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-ink-4">
+              <LifeBuoy className="h-3.5 w-3.5 text-primary-600" aria-hidden />
+              A person answers, not a menu
+            </span>
+            <a href={telHref(phone)} className="inline-flex items-center gap-1.5 text-xs font-extrabold text-primary-700 hover:text-primary-800">
+              <Phone className="h-3.5 w-3.5" aria-hidden />
+              {phone}
+            </a>
+            <a href={waHref(profile.support_phone)} className="text-xs font-extrabold text-primary-700 hover:text-primary-800">
+              WhatsApp us
+            </a>
+            <span className="text-xs font-semibold text-ink-4">{BRAND.officeHours}</span>
+          </div>
+        </Container>
+      </Section>
+
+      {cta && (
+        <CtaSection
+          variant={{
+            title: "Everything in order?",
+            subtitle: "When you are ready for the next trip, the same account books cabs, hotels and tours.",
+            cta_text: cta.label,
+            cta_link: cta.href,
+          }}
+          bg="muted"
+          pad="tight"
+          cardSize="compact"
         />
-
-        <MotionGlow color="primary" intensity={0.12} size={500} className="mt-10 rounded-3xl">
-        <Card variant="premium" className="group relative">
-          <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <Input
-              label="Booking number"
-              required
-              placeholder="e.g. WT-2025-AB123CD"
-              value={bookingNumber}
-              onChange={(e) => setBookingNumber(e.target.value)}
-            />
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Input label="Mobile number" type="tel" required placeholder="Registered mobile"
-                value={mobile} onChange={(e) => setMobile(e.target.value)} maxLength={10} />
-              <Input label="Email" type="email" placeholder="Registered email (optional)"
-                value={email} onChange={(e) => setEmail(e.target.value)} />
-            </div>
-            {error && (
-              <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger" role="alert">{error}</p>
-            )}
-            <Button type="submit" variant="gradient-primary" size="lg" fullWidth leftIcon={searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />} disabled={searching} shine>
-              {searching ? "Looking up…" : "Track booking"}
-            </Button>
-          </form>
-        </Card>
-        </MotionGlow>
-
-        {result && (
-          <Card variant="premium" className="mt-6 overflow-hidden group relative">
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-            <div className="flex items-center justify-between gap-3 border-b border-ink-7 px-6 py-4 bg-gradient-to-r from-primary-50/40 via-white to-accent-50/30">
-              <div>
-                <div className="flex items-center gap-2">
-                  {(SERVICE_META[result.service_type] ?? SERVICE_META.TRIP).icon}
-                  <span className="text-sm font-bold text-ink uppercase tracking-wider">
-                    {(SERVICE_META[result.service_type] ?? SERVICE_META.TRIP).label}
-                  </span>
-                </div>
-                <p className="mt-1 font-mono text-sm text-ink-2">{result.booking_number}</p>
-              </div>
-              <Badge tone={tone}>{label}</Badge>
-            </div>
-
-            <div className="px-6 py-5 space-y-4 text-sm">
-              <div className="flex items-start gap-3">
-                <User className="h-4 w-4 mt-0.5 text-ink-4" />
-                <div>
-                  <div className="font-semibold text-ink">{result.customer_name}</div>
-                  <div className="text-ink-3">Passenger</div>
-                </div>
-              </div>
-
-              {result.service_type === "CAB" && result.trip && (
-                <>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-4 w-4 mt-0.5 text-primary-600" />
-                    <div>
-                      <div className="font-semibold text-ink">{result.trip.pickup_location}</div>
-                      <div className="text-ink-3">{result.trip.trip_type} trip</div>
-                    </div>
-                  </div>
-                  {result.trip.drop_location && (
-                    <div className="flex items-start gap-3">
-                      <Navigation className="h-4 w-4 mt-0.5 text-accent-500" />
-                      <div>
-                        <div className="font-semibold text-ink">{result.trip.drop_location}</div>
-                        <div className="text-ink-3">Drop</div>
-                      </div>
-                    </div>
-                  )}
-                  {result.trip.pickup_datetime && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
-                      <div className="text-ink-2">
-                        {new Date(result.trip.pickup_datetime).toLocaleString("en-IN", {
-                          dateStyle: "medium",
-                          timeStyle: "short",
-                        })}
-                      </div>
-                    </div>
-                  )}
-                  {result.driver && (
-                    <div className="rounded-xl bg-primary-50/70 border border-primary-100 p-4 space-y-1.5">
-                      <div className="flex items-center gap-2 font-semibold text-ink">
-                        <Car className="h-4 w-4 text-primary-600" /> Driver: {result.driver.name ?? "Assigned"}
-                      </div>
-                      {result.driver.vehicle_number && (
-                        <div className="text-ink-3 font-mono">Vehicle: {result.driver.vehicle_number}</div>
-                      )}
-                      {result.driver.mobile && (
-                        <a href={`tel:${result.driver.mobile}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600">
-                          <Phone className="h-3.5 w-3.5" /> {result.driver.mobile}
-                        </a>
-                      )}
-                    </div>
-                  )}
-                </>
-              )}
-
-              {result.service_type === "HOTEL" && result.stay && (
-                <>
-                  <div className="flex items-start gap-3">
-                    <Hotel className="h-4 w-4 mt-0.5 text-primary-600" />
-                    <div>
-                      <div className="font-semibold text-ink">{result.stay.hotel_name}</div>
-                      {result.stay.hotel_address && <div className="text-ink-3">{result.stay.hotel_address}</div>}
-                    </div>
-                  </div>
-                  {result.stay.check_in_date && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
-                      <div className="text-ink-2">
-                        {result.stay.check_in_date} → {result.stay.check_out_date}
-                        {result.stay.num_rooms ? ` · ${result.stay.num_rooms} room(s)` : ""}
-                        {result.stay.num_guests ? ` · ${result.stay.num_guests} guest(s)` : ""}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {result.service_type === "TOUR" && result.tour && (
-                <>
-                  <div className="flex items-start gap-3">
-                    <Map className="h-4 w-4 mt-0.5 text-primary-600" />
-                    <div>
-                      <div className="font-semibold text-ink">{result.tour.package_name}</div>
-                      {result.tour.destination && (
-                        <div className="text-ink-3">{result.tour.destination}</div>
-                      )}
-                    </div>
-                  </div>
-                  {result.tour.travel_start_date && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
-                      <div className="text-ink-2">
-                        {result.tour.travel_start_date} → {result.tour.travel_end_date}
-                        {result.tour.duration_days ? ` · ${result.tour.duration_days} day(s)` : ""}
-                        {result.tour.duration_nights ? ` / ${result.tour.duration_nights} night(s)` : ""}
-                      </div>
-                    </div>
-                  )}
-                  {result.tour.persons_count ? (
-                    <div className="flex items-start gap-3">
-                      <Users className="h-4 w-4 mt-0.5 text-ink-4" />
-                      <div className="text-ink-2">{result.tour.persons_count} traveller(s)</div>
-                    </div>
-                  ) : null}
-                </>
-              )}
-
-              {result.service_type === "TRIP" && result.trip && (
-                <>
-                  {result.trip.service_types && (
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {result.trip.service_types.split(",").filter(Boolean).map((t) => (
-                        <Badge key={t} tone="primary">
-                          {t.charAt(0) + t.slice(1).toLowerCase()}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  {result.trip.journey_start_date && (
-                    <div className="flex items-start gap-3">
-                      <CalendarDays className="h-4 w-4 mt-0.5 text-ink-4" />
-                      <div className="text-ink-2">
-                        {result.trip.journey_start_date}
-                        {result.trip.journey_end_date ? ` → ${result.trip.journey_end_date}` : ""}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              {result.amount > 0 && (
-                <div className="flex items-start gap-3">
-                  <IndianRupee className="h-4 w-4 mt-0.5 text-success-600" />
-                  <div className="font-semibold text-ink">₹{result.amount.toLocaleString("en-IN")}</div>
-                </div>
-              )}
-            </div>
-          </Card>
-        )}
-
-        <MotionStagger className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-5">
-          {[
-            { tone: "primary" as const, icon: <Car className="h-3 w-3" />, label: "Cabs", title: "Live cab tracking", desc: "Driver location, ETA, and route — share with family." },
-            { tone: "accent" as const, icon: <Hotel className="h-3 w-3" />, label: "Hotels", title: "Hotel reservation", desc: "Check-in time, room status, and special requests." },
-            { tone: "success" as const, icon: <Map className="h-3 w-3" />, label: "Tours", title: "Tour itinerary", desc: "Pickup notifications and day-by-day updates." },
-          ].map((c) => (
-            <MotionStaggerItem key={c.title} className="h-full">
-              <Card variant="premium" hover lift="sm" className="group h-full text-center">
-                <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="inline-flex"><Badge tone={c.tone} icon={c.icon}>{c.label}</Badge></div>
-                <h3 className="font-bold text-ink mt-3 mb-1 group-hover:text-primary-700 transition-colors">{c.title}</h3>
-                <p className="text-sm text-ink-3 leading-relaxed">{c.desc}</p>
-              </Card>
-            </MotionStaggerItem>
-          ))}
-        </MotionStagger>
-
-        <div className="mt-10 text-center text-sm text-ink-3">
-          Need help? <Link href="/contact" className="text-primary-600 font-semibold">Contact support</Link> or <a href={telHref(supportPhone)} className="text-primary-600 font-semibold">call {supportPhone}</a>.
-        </div>
-      </Container>
-    </Section>
+      )}
+    </>
   );
 }

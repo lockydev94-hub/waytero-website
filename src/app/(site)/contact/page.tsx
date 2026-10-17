@@ -1,47 +1,76 @@
-"use client";
+import Link from "next/link";
+import {
+  Building2,
+  Clock,
+  Facebook,
+  Instagram,
+  Mail,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Youtube,
+} from "lucide-react";
+import {
+  Container,
+  Section,
+  SectionHeader,
+  Card,
+  IconBox,
+  MotionGlow,
+  ButtonLink,
+} from "@/components/ui";
+import { MotionStagger, MotionStaggerItem } from "@/components/ui";
+import { CtaSection } from "@/components/renderers";
+import PopularRoutesSection from "@/components/renderers/PopularRoutesSection";
+import CoverageBand from "@/components/sections/CoverageBand";
+import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
+import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import ContactFormCard from "./contact-form";
+import publicCmsService from "@/services/publicCms";
+import { getAvailability, serviceVisible } from "@/lib/availability";
+import { BRAND, waHref } from "@/lib/brand";
+import { displayPhone, telHref } from "@/lib/supportPhone";
 
-import { useState } from "react";
-import { Mail, Phone, MapPin, MessageCircle, Clock, Building2, CheckCircle2, Loader2 } from "lucide-react";
-import { Container, Section, PageHeader, Card, IconBox, Input, Textarea, Button, MotionGlow } from "@/components/ui";
-import { publicLeadsService } from "@/services/publicLeads";
-import { useSupportPhone } from "@/hooks/useSupportPhone";
-import { usePlatformContacts } from "@/hooks/usePlatformContacts";
-import { telHref } from "@/lib/supportPhone";
-import { waHref } from "@/lib/brand";
+const SOCIAL_ICONS: Record<string, typeof Facebook> = {
+  facebook: Facebook,
+  instagram: Instagram,
+  youtube: Youtube,
+};
 
-const initialForm = { name: "", email: "", mobile: "", subject: "", message: "" };
+export default async function ContactPage() {
+  // One source of truth for every contact value: system_configurations via
+  // /public/platform-profile, with the owner-approved brand master applied
+  // inside the service. Rendered on the server, so there is no fallback flash.
+  const [profile, av] = await Promise.all([publicCmsService.getPlatformProfile(), getAvailability()]);
+  const phone = displayPhone(profile.support_phone);
+  const email = profile.support_email || BRAND.email;
+  const address = profile.office_address || BRAND.officeAddress;
+  const socials = Object.entries(profile.social_links ?? {}).filter(
+    ([key, url]) => SOCIAL_ICONS[key] && typeof url === "string" && url.trim() !== "",
+  );
 
-export default function ContactPage() {
-  const [form, setForm] = useState(initialForm);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitted, setSubmitted] = useState(false);
-  const supportPhone = useSupportPhone();
-  const contacts = usePlatformContacts();
-  // All contact values: system_configurations via /public/platform-profile,
-  // owner-approved brand master as fallback (never invented numbers).
   const channels = [
     {
       icon: Phone,
       title: "Phone support",
-      value: supportPhone,
-      href: telHref(supportPhone),
-      desc: "Real humans on the line — no IVR maze.",
+      value: phone,
+      href: telHref(phone),
+      desc: "A person picks up — no IVR maze.",
       tone: "primary" as const,
     },
     {
       icon: Mail,
       title: "Email",
-      value: contacts.email,
-      href: `mailto:${contacts.email}`,
+      value: email,
+      href: `mailto:${email}`,
       desc: "Best for detailed requests and documents.",
       tone: "accent" as const,
     },
     {
       icon: MessageCircle,
       title: "WhatsApp",
-      value: supportPhone,
-      href: waHref(supportPhone),
+      value: phone,
+      href: waHref(profile.support_phone),
       desc: "Fastest channel for trip changes.",
       tone: "success" as const,
     },
@@ -50,171 +79,246 @@ export default function ContactPage() {
       title: "Head office",
       value: "Bhubaneswar, Odisha",
       href: undefined,
-      desc: contacts.address,
+      desc: address,
       tone: "info" as const,
     },
   ];
 
-  const update = (key: keyof typeof initialForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-    setForm((f) => ({ ...f, [key]: e.target.value }));
+  const faqs: FaqItem[] = [
+    {
+      question: "How fast will someone reply?",
+      answer: `Messages sent through this form are answered within 24 hours. The desk is staffed ${BRAND.officeHours}; a call or WhatsApp message sent outside those hours is picked up the next working day.`,
+    },
+    {
+      question: "What's the quickest way to change a booking?",
+      answer:
+        "Message or call with the booking number ready — it is on your confirmation and in your bookings page. Trip changes are handled from the booking record, so the number is what makes it fast.",
+    },
+    {
+      question: "Can I check a booking without signing in?",
+      answer:
+        "Yes. The track page takes your booking number and the mobile number it was booked on, and returns the current status — including the driver's name and vehicle number once a partner has accepted.",
+    },
+    {
+      question: "I want to list my hotel, or join with a vehicle.",
+      answer:
+        "Use the partner page rather than this form — applications are reviewed against your documents, GST where applicable and bank details, and answered within 48 hours.",
+    },
+    {
+      question: "Is there an office I can visit?",
+      answer: `Yes — ${address}, ${BRAND.officeHours}. A call or a WhatsApp message before you come means someone can have your booking open when you arrive.`,
+    },
+  ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    setError(null);
-    try {
-      await publicLeadsService.submitContactMessage(form);
-      setSubmitted(true);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  // The CTA must not point at a vertical whose pages are down. With nothing
+  // live there is nothing to send the visitor to, so the band is dropped.
+  const cta = serviceVisible(av, "HOTEL")
+    ? { label: "Browse hotels", href: "/hotels/results" }
+    : serviceVisible(av, "CAB")
+      ? { label: "Book a cab", href: "/cabs" }
+      : serviceVisible(av, "TOUR")
+        ? { label: "Browse tours", href: "/tours" }
+        : null;
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-br from-primary-50/60 via-white to-white">
-        <Container size="lg">
-          <PageHeader
-            eyebrow="We&apos;re here to help"
-            title={
-              <>
+      <JsonLd data={faqPageSchema(faqs)} />
+
+      <Section bg="white" pad="tight">
+        <Container size="xl">
+          <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">
+            <span className="h-1.5 w-1.5 rounded-full bg-accent-500" aria-hidden />
+            We&apos;re here to help
+          </p>
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-center">
+            <div>
+              <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-ink leading-[1.1] tracking-tight">
                 Contact <span className="text-gradient-primary">WayTero</span>
-              </>
-            }
-            subtitle="24/7 human support across phone, email, and WhatsApp. We're here before, during, and after your trip."
-          />
+              </h1>
+              <p className="mt-4 max-w-2xl text-base sm:text-lg text-ink-3 leading-relaxed">
+                Phone, WhatsApp and email before, during and after your trip — staffed{" "}
+                {BRAND.officeHours}, with form replies inside 24 hours.
+              </p>
+              <div className="mt-5 flex flex-wrap items-center gap-3">
+                <ButtonLink href={telHref(phone)} variant="gradient-primary" size="lg" leftIcon={<Phone className="h-4 w-4" />}>
+                  Call {phone}
+                </ButtonLink>
+                <ButtonLink href={waHref(profile.support_phone)} variant="outline" size="lg" className="border-ink-3/30 text-ink hover:bg-ink-9/40">
+                  WhatsApp
+                </ButtonLink>
+                <ButtonLink href={`mailto:${email}`} variant="outline" size="lg" className="border-ink-3/30 text-ink hover:bg-ink-9/40">
+                  Email us
+                </ButtonLink>
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-ink-7 bg-ink-9/60 p-6">
+              <h2 className="text-sm font-extrabold uppercase tracking-wide text-ink">Before you write</h2>
+              <ul className="mt-4 space-y-3 text-sm text-ink-3">
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary-600/10 text-[11px] font-extrabold text-primary-700">1</span>
+                  Keep your booking number to hand — it is on your confirmation.
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary-600/10 text-[11px] font-extrabold text-primary-700">2</span>
+                  For a status check, the track page answers instantly, no sign-in.
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-primary-600/10 text-[11px] font-extrabold text-primary-700">3</span>
+                  Partner and vehicle applications go through the partner desk.
+                </li>
+              </ul>
+            </div>
+          </div>
         </Container>
       </Section>
 
-      <Section bg="white" pad="lg" overlay="dots">
-        <Container size="lg">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <Section bg="muted" pad="tight" overlay="dots-faint">
+        <Container size="xl">
+          <SectionHeader
+            eyebrow="Four ways in"
+            title="Pick the channel that fits the question"
+            accent="primary"
+            underline
+            animatedEyebrow
+            scale="home"
+          />
+          <MotionStagger className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {channels.map((c) => {
               const Icon = c.icon;
               const glowColor = ((c.tone as string) === "info" ? "primary" : c.tone) as "primary" | "accent" | "success" | "danger";
               return (
-                <MotionGlow key={c.title} color={glowColor} intensity={0.15} size={320} className="rounded-2xl">
-                  <Card variant="premium" hover lift="md" hoverTint="primary" className="group h-full">
-                    <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                    <div className="flex items-start gap-4">
+                <MotionStaggerItem key={c.title} className="h-full">
+                  <MotionGlow color={glowColor} intensity={0.15} size={320} className="rounded-2xl">
+                    <Card variant="premium" hover lift="md" hoverTint="primary" className="group h-full">
+                      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                       <IconBox
                         icon={<Icon />}
                         tone={c.tone}
-                        size="lg"
+                        size="md"
                         gradient
                         glow
-                        className="group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300"
+                        className="mb-3 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300"
                       />
-                      <div>
-                        <h3 className="text-base font-bold text-ink mb-1 group-hover:text-primary-700 transition-colors">
-                          {c.title}
-                        </h3>
-                        {c.href ? (
-                          <a
-                            href={c.href}
-                            className="text-gradient-primary font-semibold mb-1 block hover:opacity-80 transition-opacity"
-                          >
-                            {c.value}
-                          </a>
-                        ) : (
-                          <div className="text-gradient-primary font-semibold mb-1">{c.value}</div>
-                        )}
-                        <p className="text-sm text-ink-3">{c.desc}</p>
-                      </div>
-                    </div>
-                  </Card>
-                </MotionGlow>
+                      <h3 className="text-sm font-bold text-ink mb-1 group-hover:text-primary-700 transition-colors">{c.title}</h3>
+                      {c.href ? (
+                        <a href={c.href} className="text-gradient-primary text-sm font-semibold mb-1 block hover:opacity-80 transition-opacity">
+                          {c.value}
+                        </a>
+                      ) : (
+                        <div className="text-gradient-primary text-sm font-semibold mb-1">{c.value}</div>
+                      )}
+                      <p className="text-xs text-ink-3 leading-relaxed">{c.desc}</p>
+                    </Card>
+                  </MotionGlow>
+                </MotionStaggerItem>
               );
             })}
-          </div>
+          </MotionStagger>
+
+          {socials.length > 0 && (
+            <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-bold text-ink-3">
+              <span className="uppercase tracking-wide text-ink-4">Elsewhere</span>
+              {socials.map(([key, url]) => {
+                const Icon = SOCIAL_ICONS[key];
+                return (
+                  <a
+                    key={key}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-ink-2 transition-colors hover:text-primary-700"
+                  >
+                    <Icon className="h-3.5 w-3.5" aria-hidden />
+                    {key.charAt(0).toUpperCase() + key.slice(1)}
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </Container>
       </Section>
 
-      <Section bg="muted" pad="lg" overlay="grid">
-        <Container size="lg">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
+      <CoverageBand
+        bg="white"
+        pad="tight"
+        eyebrow="Where we can actually help"
+        title="Coverage behind these channels"
+        subtitle="Support answers for the places we operate — the cities with live supply on WayTero right now."
+      />
+
+      <PopularRoutesSection
+        bg="muted"
+        pad="tight"
+        variant={{
+          variant_tag: "Trip questions",
+          headline: "Routes people write to us about",
+          subheadline: "Most of what reaches this desk is one of these trips — the fare, the timing, or a change of plan.",
+        }}
+      />
+
+      <Section bg="white" pad="tight" id="form" overlay="dots-faint">
+        <Container size="xl">
+          <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1fr)] gap-8 items-start">
             <div>
-              <h2 className="text-3xl font-extrabold text-ink tracking-tight mb-3">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
                 Send us a <span className="text-gradient-primary">message</span>
               </h2>
-              <p className="text-ink-3 mb-8 max-w-md">
-                For non-urgent requests, partnerships, or press — fill out the form. We&apos;ll get back within 24 hours.
+              <p className="mt-3 text-ink-3 max-w-md">
+                For non-urgent requests, partnerships or press — fill this in and we&apos;ll come back within 24 hours.
               </p>
-              <div className="space-y-4">
-                <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/80 backdrop-blur-sm border border-ink-7/60 hover:shadow-wt transition-all">
+              <div className="mt-6 space-y-3">
+                <div className="flex items-start gap-3 rounded-2xl border border-ink-7 bg-ink-9/60 p-4">
                   <IconBox icon={<MapPin />} tone="primary" size="md" gradient />
                   <div>
                     <div className="text-sm font-bold text-ink">Head office</div>
-                    <div className="text-sm text-ink-3">{contacts.address}</div>
+                    <div className="text-sm text-ink-3">{address}</div>
                   </div>
                 </div>
-                <div className="flex items-start gap-3 p-4 rounded-2xl bg-white/80 backdrop-blur-sm border border-ink-7/60 hover:shadow-wt transition-all">
+                <div className="flex items-start gap-3 rounded-2xl border border-ink-7 bg-ink-9/60 p-4">
                   <IconBox icon={<Clock />} tone="accent" size="md" gradient />
                   <div>
                     <div className="text-sm font-bold text-ink">Office hours</div>
-                    <div className="text-sm text-ink-3">Mon–Sat, 10:00 AM – 7:00 PM IST</div>
+                    <div className="text-sm text-ink-3">{BRAND.officeHours}</div>
                   </div>
                 </div>
               </div>
+              <p className="mt-5 text-xs text-ink-4">
+                Need it now?{" "}
+                <Link href="/track" className="font-bold text-primary-700 hover:text-primary-800">
+                  Check your booking status
+                </Link>
+                .
+              </p>
             </div>
 
-            <MotionGlow color="primary" intensity={0.12} size={420} className="rounded-3xl">
-              <Card variant="premium" className="lg:p-8 relative overflow-visible">
-                {submitted ? (
-                  <div className="text-center py-10">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white mb-5 shadow-wt-glow-primary">
-                      <CheckCircle2 className="h-8 w-8" />
-                    </div>
-                    <h3 className="text-2xl font-extrabold text-ink mb-2">Message sent!</h3>
-                    <p className="text-ink-3 max-w-md mx-auto">
-                      Thanks, <strong>{form.name}</strong>. Our team will get back to you within 24 hours.
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setForm(initialForm);
-                        setSubmitted(false);
-                      }}
-                      className="mt-6 text-sm font-semibold text-primary-600 hover:text-primary-700"
-                    >
-                      Send another message
-                    </button>
-                  </div>
-                ) : (
-                  <form className="space-y-4" onSubmit={handleSubmit}>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input label="Your name" placeholder="Full name" required
-                        value={form.name} onChange={update("name")} />
-                      <Input label="Email" type="email" placeholder="you@example.com" required
-                        value={form.email} onChange={update("email")} />
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Input label="Mobile" type="tel" placeholder="10-digit number"
-                        value={form.mobile} onChange={update("mobile")} maxLength={10} />
-                      <Input label="Subject" placeholder="How can we help?" required
-                        value={form.subject} onChange={update("subject")} />
-                    </div>
-                    <Textarea label="Message" placeholder="Tell us what's on your mind…" rows={5} required
-                      value={form.message} onChange={update("message")} />
-                    {error && (
-                      <p className="rounded-xl bg-danger-soft px-4 py-3 text-sm font-medium text-danger" role="alert">{error}</p>
-                    )}
-                    <Button type="submit" variant="gradient-primary" size="lg" fullWidth disabled={submitting} shine>
-                      {submitting ? (
-                        <span className="inline-flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Sending…</span>
-                      ) : (
-                        "Send message"
-                      )}
-                    </Button>
-                  </form>
-                )}
-              </Card>
-            </MotionGlow>
+            <ContactFormCard />
           </div>
         </Container>
       </Section>
+
+      <PageFaq
+        faqs={faqs}
+        eyebrow="Good to know"
+        title="Questions this desk answers most"
+        pad="tight"
+        overlay="dots-faint"
+      />
+
+      {cta && (
+        <CtaSection
+          variant={{
+            title: "Ready when you are",
+            subtitle: "Cabs, hotels and tours with upfront, GST-inclusive pricing — and a human on the other end if you need one.",
+            cta_text: cta.label,
+            cta_link: cta.href,
+          }}
+          bg="white"
+          pad="tight"
+          cardSize="compact"
+          secondary={{ label: "Track a booking", href: "/track" }}
+        />
+      )}
     </>
   );
 }

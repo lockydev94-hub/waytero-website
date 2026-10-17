@@ -180,7 +180,11 @@ export function MotionGlow({
           filter: "blur(40px)",
         }}
       />
-      <div className="relative z-10">{children}</div>
+      {/* h-full only does anything when the caller made the glow itself fill a
+          stretched grid item; otherwise the parent has auto height and this is a
+          no-op. Without it, a `h-full` card inside a `h-full` glow stops at its
+          own content height and the row's cards end up uneven. */}
+      <div className="relative z-10 h-full">{children}</div>
     </div>
   );
 }

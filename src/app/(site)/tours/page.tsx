@@ -67,13 +67,20 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
+// The popular-destinations endpoint spells its fields `name` / `image_url` /
+// `from_price`; `PublicTourDestination` (which the listing renders) uses
+// `city_name` / `hero_image_url` / `starting_price. Accept both so the tiles
+// and the sidebar's city select get real values.
 interface DestinationRow {
   city_id: number;
-  city_name: string;
+  city_name?: string;
+  name?: string;
   state_name?: string;
-  package_count: number;
+  package_count?: number;
   hero_image_url?: string | null;
+  image_url?: string | null;
   starting_price?: number | null;
+  from_price?: number | null;
 }
 
 interface TourRow {
@@ -105,14 +112,17 @@ export default async function ToursPage() {
   ]);
   const destinations: PublicTourDestination[] = (
     Array.isArray(destRaw) ? destRaw : destRaw?.items ?? []
-  ).map((d) => ({
-    city_id: d.city_id,
-    city_name: d.city_name,
-    state_name: d.state_name,
-    package_count: d.package_count ?? 0,
-    hero_image_url: d.hero_image_url ?? null,
-    starting_price: d.starting_price ?? undefined,
-  }));
+  )
+    .map((d) => ({
+      city_id: d.city_id,
+      city_name: d.city_name ?? d.name ?? "",
+      state_name: d.state_name,
+      package_count: d.package_count ?? 0,
+      hero_image_url: d.hero_image_url ?? d.image_url ?? null,
+      starting_price: d.starting_price ?? d.from_price ?? undefined,
+    }))
+    // A city with no name can't be labelled or used as a destination filter.
+    .filter((d) => d.city_id > 0 && d.city_name);
 
   const tours = packages?.items ?? [];
   const total = Number(packages?.total ?? tours.length);

@@ -53,7 +53,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
   CAB: {
     title: "Book a Cab — Outstation & Local Rides",
     description:
-      "Book reliable outstation cabs, airport transfers, and local rides in the cities WayTero serves. Transparent pricing, verified drivers, real-time tracking.",
+      "Book reliable outstation cabs, airport transfers, and local rides in the cities WayTero serves. Transparent pricing, verified drivers, and driver details on every assigned trip.",
     keywords: [
       "cab booking India",
       "outstation cab",

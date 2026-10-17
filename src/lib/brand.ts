@@ -18,6 +18,10 @@ export const BRAND = {
   phone: "7978322649",
   email: "support@waytero.com",
   officeAddress: "Avinue Appartment, Gothapatana, Bhubaneswar - 751003",
+  // Owner-stated desk hours. There is no public endpoint for them, so this is
+  // the single place the literal lives — /contact and the CTA microcopy both
+  // read it rather than repeating the string.
+  officeHours: "Mon–Sat, 10:00 AM – 7:00 PM IST",
 } as const;
 
 /** Official social profiles — exactly the ones the owner confirmed. */

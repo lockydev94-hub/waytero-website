@@ -18,7 +18,7 @@ const DEFAULT_COLUMNS = [
       { label: "Book a Cab",    href: "/cabs" },
       { label: "Find Hotels",   href: "/hotels" },
       { label: "Tour Packages", href: "/tours" },
-      { label: "Live Tracking", href: "/track" },
+      { label: "Track Booking", href: "/track" },
       { label: "Travel Wallet", href: "/wallet" },
     ],
   },

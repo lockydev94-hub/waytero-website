@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { pageMetadata } from "@/services/seoService";
 
-// Client page — cannot export metadata; <head> values live here,
-// DB-first via SEO_PAGE_CONTACT.
+// The <head> values for this route live here rather than in the page, so the
+// page component can stay focused on the bands. DB-first via SEO_PAGE_CONTACT.
 export async function generateMetadata() {
   return pageMetadata("contact", "/contact", {
     title: "Contact Us",

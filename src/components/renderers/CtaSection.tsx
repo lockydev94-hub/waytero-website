@@ -2,6 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { Container, Section, MotionGlow, ButtonLink } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import { pick, type BandTone } from "@/types/cms";
+import { BRAND } from "@/lib/brand";
 
 interface CtaSectionProps {
   variant: Record<string, unknown>;
@@ -16,9 +17,12 @@ interface CtaSectionProps {
    *  `home` section padding without the roomy homepage card, so it passes
    *  `cardSize="compact"`. Unset keeps the old rule: roomy only on `home`. */
   cardSize?: "roomy" | "compact";
+  /** Overrides the "Talk to Us" button. Only a page that *is* /contact needs
+   *  it — a self-link there is a dead end, so it points at the track page. */
+  secondary?: { label: string; href: string };
 }
 
-export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize }: CtaSectionProps) {
+export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize, secondary }: CtaSectionProps) {
   // The homepage passes `pad="home"` and was tuned against it, so it keeps the
   // roomy card exactly as it renders today. Every other page used to pay that
   // card padding on top of `pad="lg"` band padding — ~192px of it above and
@@ -30,7 +34,7 @@ export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize
   const ctaText = pick<string>(variant, "cta_text", "Start Booking");
   const ctaLink = pick<string>(variant, "cta_link", "/cabs");
   const cta = { label: ctaText, href: ctaLink };
-  const secondary = { label: "Talk to Us", href: "/contact" };
+  const secondaryButton = secondary ?? { label: "Talk to Us", href: "/contact" };
 
   return (
     <Section bg={bg} pad={pad} id="cta" className="relative">
@@ -71,13 +75,15 @@ export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize
                 >
                   {cta.label}
                 </ButtonLink>
-                <ButtonLink href={secondary.href} variant="outline" size="lg" className="border-ink-3/30 text-ink hover:bg-ink-9/40">
-                  {secondary.label}
+                <ButtonLink href={secondaryButton.href} variant="outline" size="lg" className="border-ink-3/30 text-ink hover:bg-ink-9/40">
+                  {secondaryButton.label}
                 </ButtonLink>
               </div>
-              {/* Trust microcopy under CTAs */}
+              {/* Trust microcopy under CTAs — three sourced clauses, one per
+                  concern. "Cancel anytime" and "no credit card needed" used to
+                  sit here and neither is true of the booking engine. */}
               <p className={`relative text-xs text-ink-3/80 font-medium ${roomy ? "mt-7" : "mt-5"}`}>
-                No credit card needed · Cancel anytime · 24/7 human support
+                Full total before you pay · Cancellation terms shown up front · Support {BRAND.officeHours}
               </p>
             </div>
           </MotionGlow>

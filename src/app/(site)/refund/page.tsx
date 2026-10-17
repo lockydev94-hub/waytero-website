@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Container, PageHeader, Card, Badge, MotionGlow } from "@/components/ui";
 import { Section, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { publicCmsService, LiveCancellationPolicy } from "@/services/publicCms";
+import { cabLadder, tourLadder } from "@/lib/cancellationLadder";
 import { pageMetadata } from "@/services/seoService";
 
 export async function generateMetadata() {
@@ -31,21 +32,10 @@ export default async function RefundPage() {
   const cab = live.cab;
   const tour = live.tour;
 
-  const CAB_TIERS = [
-    { tier: `${cab.free_hours}+ hours before pickup`, charge: "Free", refund: "100% to wallet" },
-    { tier: `${cab.tier_1_hours}–${cab.free_hours} hours before`, charge: `${100 - cab.tier_1_percent}% of fare`, refund: `${cab.tier_1_percent}% to wallet` },
-    { tier: `${cab.tier_2_hours}–${cab.tier_1_hours} hours before`, charge: `${100 - cab.tier_2_percent}% of fare`, refund: `${cab.tier_2_percent}% to wallet` },
-    { tier: `Less than ${cab.tier_2_hours} hours before`, charge: `${100 - cab.same_day_percent}% of fare`, refund: `${cab.same_day_percent}% to wallet` },
-    { tier: "After driver assigned", charge: `${100 - cab.after_assignment_percent}% of fare`, refund: `${cab.after_assignment_percent}% to wallet` },
-    { tier: "No-show / after pickup", charge: "100% of fare", refund: "No refund" },
-  ];
-
-  const TOUR_TIERS = [
-    { tier: `${tour.free_days}+ days before travel`, charge: "Free", refund: `${tour.tier_1_percent}% to wallet` },
-    { tier: `${tour.tier_1_days}–${tour.free_days} days before`, charge: `${100 - tour.tier_2_percent}% of fare`, refund: `${tour.tier_2_percent}% to wallet` },
-    { tier: `${tour.tier_2_days}–${tour.tier_1_days} days before`, charge: `${100 - tour.tier_3_percent}% of fare`, refund: `${tour.tier_3_percent}% to wallet` },
-    { tier: `Less than ${tour.tier_2_days} days before`, charge: `${100 - tour.last_minute_percent}% of fare`, refund: `${tour.last_minute_percent}% to wallet` },
-  ];
+  // Rows come from the shared ladder so /about's summary and this table can
+  // never describe two different policies.
+  const CAB_TIERS = cabLadder(cab);
+  const TOUR_TIERS = tourLadder(tour);
 
   const HIGHLIGHTS = [
     { title: "Wallet-first", desc: "All refunds credit your WayTero Travel Wallet instantly.", glow: "primary" as const },
