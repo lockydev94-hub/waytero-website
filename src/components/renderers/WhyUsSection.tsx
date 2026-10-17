@@ -30,9 +30,9 @@ const DEFAULT: WhyUsItem[] = [
   { icon: Zap, title: "Instant Booking", desc: "Book in under 60 seconds. No long forms, no wait.", tone: "primary" },
   { icon: ShieldCheck, title: "Verified Partners", desc: "Every driver, hotel, and operator is background-checked.", tone: "success" },
   { icon: Tag, title: "Transparent Pricing", desc: "No hidden charges. What you see is what you pay.", tone: "accent" },
-  { icon: Phone, title: "24/7 Support", desc: "Real humans available around the clock to help.", tone: "info" },
+  { icon: Phone, title: "Human Support", desc: "A real person on call, chat or email during desk hours.", tone: "info" },
   { icon: Lock, title: "Secure Payments", desc: "Razorpay-powered with encrypted transactions.", tone: "warning" },
-  { icon: Smartphone, title: "Real-Time Tracking", desc: "Know exactly where your cab or package is, always.", tone: "danger" },
+  { icon: Smartphone, title: "Trip Tracking", desc: "Follow any booking by number — status, driver and vehicle once assigned.", tone: "danger" },
 ];
 
 export default function WhyUsSection({ variant, bg = "white" }: WhyUsSectionProps) {

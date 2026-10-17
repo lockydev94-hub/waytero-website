@@ -48,6 +48,7 @@ const SECONDARY = [
 ];
 
 const DEFAULT_TAGLINE       = BRAND.tagline;
+const DEFAULT_OFFICE_HOURS  = BRAND.officeHours;
 const PARTNER_CTA           = { label: "Become a Partner", href: "/partner" };
 
 interface Props {
@@ -59,9 +60,14 @@ interface Props {
   /** Verticals hidden site-wide (disabled or no real supply) — computed
    *  server-side from GET /public/availability in the (site) layout. */
   hiddenServices?: ServiceKey[];
+  /** Staffed hours from Settings → Platform. This strip used to print a
+   *  hardcoded "24/7 support" next to the number the desk is only answered
+   *  during the day — the layout resolves the real hours and passes them in,
+   *  because this component is a client island and cannot fetch itself. */
+  officeHours?: string;
 }
 
-export default function Header({ cmsData, heroHasMedia = false, hiddenServices = [] }: Props) {
+export default function Header({ cmsData, heroHasMedia = false, hiddenServices = [], officeHours = DEFAULT_OFFICE_HOURS }: Props) {
   const pathname            = usePathname() ?? "";
   const auth                = useAuth();
   const [open, setOpen]     = useState(false);
@@ -253,9 +259,10 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
               className="inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
             >
               <Phone className="h-3 w-3 text-[#F5713A]" aria-hidden />
-              <span className="text-white/60">24/7 support</span>
+              <span className="text-white/60">Call the desk</span>
               <span className="text-[#F5713A] font-semibold">{supportPhone}</span>
             </a>
+            <span className="hidden lg:block text-white/50">{officeHours}</span>
             <span className="hidden sm:block text-white/30">·</span>
             <span className="hidden sm:block text-white/70">{tagline}</span>
           </div>

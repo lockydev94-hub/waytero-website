@@ -21,8 +21,16 @@ export interface PlatformProfile {
   support_phone: string;
   /** system_configurations.SUPPORT_EMAIL (brand-master fallback applied below). */
   support_email: string;
-  /** system_configurations.OFFICE_ADDRESS. */
+  /** system_configurations.OFFICE_ADDRESS, or the primary entry the admin
+   *  saved under Settings → Platform when the single key is empty. */
   office_address: string;
+  /** system_configurations.PLATFORM_OFFICE_HOURS — the desk hours printed on
+   *  the CTA band, contact page and header. BRAND.officeHours when unset. */
+  office_hours: string;
+  /** system_configurations.PLATFORM_WHATSAPP_PHONE. Deliberately has no
+   *  brand-master fallback: callers fall back to support_phone, because a
+   *  WhatsApp link to a number the admin never entered is worse than none. */
+  whatsapp_phone: string;
   /** system_configurations.PLATFORM_TAGLINE. */
   tagline: string;
   /** Official profile URLs from SOCIAL_* keys (brand-master fallback applied). */
@@ -39,6 +47,17 @@ export interface LegalSection {
   body: string;
 }
 
+export interface PageFaqEntry {
+  question: string;
+  answer: string;
+}
+
+/**
+ * A page body authored in Website → Pages and stored as JSON under
+ * `LEGAL_PAGE_{SLUG}`. The namespace predates the editor and is really
+ * "published page bodies" — booking-instructions, safety, support, careers
+ * and press live in it too.
+ */
 export interface LegalPage {
   slug: string;
   title: string;
@@ -46,6 +65,11 @@ export interface LegalPage {
   description?: string;
   effective_date?: string;
   updated_at?: string;
+  /** Absent means published, so the rows seeded before the editor existed
+   *  keep rendering. Website → Pages writes it explicitly. */
+  is_published?: boolean;
+  /** Optional FAQ for /safety and /support. An empty array omits the band. */
+  faq?: PageFaqEntry[];
   sections: LegalSection[];
 }
 
@@ -169,6 +193,8 @@ export const publicCmsService = {
       support_phone: "",
       support_email: BRAND.email,
       office_address: BRAND.officeAddress,
+      office_hours: BRAND.officeHours,
+      whatsapp_phone: "",
       tagline: BRAND.tagline,
       social_links: BRAND_SOCIALS,
     };
@@ -194,6 +220,8 @@ export const publicCmsService = {
         support_phone: str(json.support_phone),
         support_email: str(json.support_email) || BRAND.email,
         office_address: str(json.office_address) || BRAND.officeAddress,
+        office_hours: str(json.office_hours) || BRAND.officeHours,
+        whatsapp_phone: str(json.whatsapp_phone),
         tagline: str(json.tagline) || BRAND.tagline,
         social_links: Object.keys(socials).length ? socials : BRAND_SOCIALS,
       };
@@ -228,9 +256,10 @@ export const publicCmsService = {
    * the auth modal simply renders without the image panel.
    */
   /**
-   * Fetch a seeded legal page (privacy / terms / refund / cookies /
-   * booking-instructions). Returns null on failure so callers fall back
-   * to the bundled static content.
+   * Fetch an authored page body. Returns null BOTH when the row does not
+   * exist and when the API is unreachable, which is fine for a link check
+   * and not fine for a page that must never go blank — pages use
+   * `@/lib/pageBody`, which keeps those two states apart.
    */
   async getLegalPage(slug: string): Promise<LegalPage | null> {
     try {
@@ -247,9 +276,30 @@ export const publicCmsService = {
   },
 
   /**
+   * Which page bodies actually exist in the database right now
+   * (GET /public/legal lists every LEGAL_PAGE_* key). /sitemap and the XML
+   * sitemap read it so a page with no authored body is not advertised.
+   * Returns [] when the API is unreachable.
+   */
+  async listLegalSlugs(): Promise<string[]> {
+    try {
+      const res = await fetch(`${BASE_URL}/public/legal`, {
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) return [];
+      const json = (await res.json()) as { slugs?: unknown };
+      if (!Array.isArray(json?.slugs)) return [];
+      return json.slugs.filter((s): s is string => typeof s === "string" && s.trim() !== "");
+    } catch {
+      return [];
+    }
+  },
+
+  /**
    * Fetch the LIVE cancellation ladders (cab + tour) the engine actually
    * enforces, so the Refund Policy page always matches admin edits.
-   * Returns null on failure — callers fall back to the BRD defaults.
+   * Returns null on failure — a ladder band then omits itself rather than
+   * printing numbers the engine may not be using.
    */
   async getCancellationPolicy(): Promise<LiveCancellationPolicy | null> {
     try {

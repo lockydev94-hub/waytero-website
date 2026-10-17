@@ -28,7 +28,7 @@ export default function AppDownloadSection({ variant, bg = "white" }: AppDownloa
           <MotionFadeIn>
             <SectionHeader align="left" eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" className="mb-6" />
             <ul className="space-y-3 mb-7 text-ink-3 text-sm">
-              {["Instant cab booking with live tracking", "Verified hotels & curated tour packages", "Secure in-app wallet & offers", "24/7 chat support with real humans"].map((point, i) => (
+              {["Cab booking with status tracking", "Verified hotels & curated tour packages", "Secure in-app wallet & offers", "Chat support with real people during desk hours"].map((point, i) => (
                 <li key={point} className="flex items-start gap-2.5 group">
                   <span className="mt-1 h-5 w-5 rounded-full bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 shadow-wt-primary group-hover:scale-110 transition-transform" aria-hidden>
                     {i + 1}

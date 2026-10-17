@@ -1,13 +1,15 @@
 import Link from "next/link";
-import { Container, PageHeader, Card } from "@/components/ui";
-import { Section } from "@/components/ui";
-import { publicCmsService, LegalPage } from "@/services/publicCms";
+import { ArrowRight, FileText, Wallet, XOctagon } from "lucide-react";
+import PageHero, { HeroAside } from "@/components/sections/PageHero";
+import ProseBand from "@/components/sections/ProseBand";
+import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
+import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
-import { BRAND } from "@/lib/brand";
 
 const META_FALLBACK: SeoContent = {
   title: "Privacy Policy — WayTero",
-  description: "WayTero's privacy policy — how we collect, use, and protect your data.",
+  description:
+    "What WayTero holds about you, who sees your booking, and how to have the account removed.",
   keywords: ["WayTero privacy", "data protection India", "travel app privacy"],
 };
 
@@ -15,83 +17,92 @@ export async function generateMetadata(): Promise<import("next").Metadata> {
   return pageMetadata("privacy", "/privacy", META_FALLBACK);
 }
 
-// Static fallback — used only when the backend is unreachable. The seeded
-// content from GET /public/legal/privacy (single source of truth) wins.
-const FALLBACK: LegalPage = {
-  slug: "privacy",
-  title: "Privacy Policy",
-  eyebrow: "Legal",
-  description: "WayTero's privacy policy — how we collect, use, and protect your data.",
-  sections: [
-    {
-      heading: "1. Data we collect",
-      body: "WayTero (\"we\", \"us\", \"our\") collects only the data needed to deliver your travel services: account information (name, email, mobile number), trip information (pickup, drop, dates, passengers), payment metadata (card numbers are never stored by us), and device/usage logs used for fraud prevention and product improvement.",
-    },
-    {
-      heading: "2. How we use your data",
-      body: "We use your data to operate the platform, match you with verified partners, process payments and refunds, send booking updates, and prevent abuse. We do not sell your personal data.",
-    },
-    {
-      heading: "3. Sharing with partners",
-      body: "We share only the minimum trip information required for the relevant partner to deliver your booking. All partners are bound by data-processing agreements.",
-    },
-    {
-      heading: "4. Account deletion",
-      body: "You may request deletion of your account at any time from the Account Deletion page. Requests are reviewed by our team and processed within 30 days. On deletion, your login is disabled and personal identifiers are removed; booking and financial records are retained in anonymised form as required by law.",
-    },
-    {
-      heading: "5. Your rights",
-      body: `You can request an export of your data, correction, or deletion by raising an account deletion request or emailing ${BRAND.email}. We respond within 30 days.`,
-    },
-    {
-      heading: "6. Security",
-      body: "All data is encrypted in transit (TLS 1.2+) and at rest. Authentication uses email (Firebase) or mobile OTP with platform-managed JWTs.",
-    },
-  ],
-};
-
 export default async function PrivacyPage() {
-  const page = (await publicCmsService.getLegalPage("privacy")) ?? FALLBACK;
-  const subtitle = [
-    page.effective_date ? `Effective ${page.effective_date}` : null,
-    page.updated_at ? `Last updated ${page.updated_at}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const page = resolvePage(await getPageBody("privacy"), PAGE_BODIES.privacy);
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-br from-primary-50/40 via-white to-white">
-        <Container size="md">
-          <PageHeader eyebrow={page.eyebrow ?? "Legal"} title={
-              <>
-                {page.title.split(" ")[0]}{" "}
-                <span className="text-gradient-primary">{page.title.split(" ").slice(1).join(" ")}</span>
-              </>
-            } subtitle={subtitle} />
-        </Container>
-      </Section>
-      <Section bg="grid" pad="md">
-        <Container size="md">
-          <Card variant="premium" className="prose prose-slate max-w-none group relative">
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-            <div className="space-y-6 text-ink-2 leading-relaxed">
-              {page.sections.map((s) => (
-                <div key={s.heading}>
-                  <h2 className="text-xl font-bold text-ink">{s.heading}</h2>
-                  <p>{s.body}</p>
-                </div>
-              ))}
-              <p className="text-sm text-ink-4 pt-2 border-t border-ink-8">
-                Want to delete your account?{" "}
-                <Link href="/account-deletion" className="text-primary-600 font-semibold">
-                  Request account deletion
+      <PageHero
+        eyebrow={page.eyebrow ?? "Legal"}
+        title={page.title}
+        accent="Policy"
+        description={page.description}
+        meta={page.meta}
+        side={
+          <HeroAside title="What you can do right now">
+            <ul className="space-y-3 text-sm">
+              <li>
+                <Link
+                  href="/profile"
+                  className="group flex items-center gap-2 font-bold text-ink-2 hover:text-primary-700"
+                >
+                  <FileText className="h-4 w-4 shrink-0 text-primary-600" aria-hidden />
+                  Correct your own details in Profile
+                  <ArrowRight
+                    className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-hidden
+                  />
                 </Link>
-              </p>
-            </div>
-          </Card>
-        </Container>
-      </Section>
+              </li>
+              <li>
+                <Link
+                  href="/wallet"
+                  className="group flex items-center gap-2 font-bold text-ink-2 hover:text-primary-700"
+                >
+                  <Wallet className="h-4 w-4 shrink-0 text-primary-600" aria-hidden />
+                  See your invoices, receipts and wallet
+                  <ArrowRight
+                    className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/account-deletion"
+                  className="group flex items-center gap-2 font-bold text-ink-2 hover:text-primary-700"
+                >
+                  <XOctagon className="h-4 w-4 shrink-0 text-primary-600" aria-hidden />
+                  Ask us to delete your account
+                  <ArrowRight
+                    className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            </ul>
+          </HeroAside>
+        }
+      />
+
+      <ProseBand
+        sections={page.sections}
+        eyebrow="The policy, in plain terms"
+        title="How your data is handled"
+        bg="muted"
+        source={sourceNote(page.source)}
+        footer={
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-ink-4">
+              Read these too
+            </span>
+            {[
+              { href: "/terms", label: "Terms of service" },
+              { href: "/cookies", label: "Cookies & storage" },
+              { href: "/security", label: "Security" },
+              { href: "/refund", label: "Refund policy" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="text-xs font-extrabold text-primary-700 transition-colors hover:text-primary-800"
+              >
+                {l.label}
+              </Link>
+            ))}
+          </div>
+        }
+      />
     </>
   );
 }

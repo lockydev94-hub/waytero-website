@@ -1,92 +1,64 @@
-import { Container, PageHeader, Card } from "@/components/ui";
-import { Section } from "@/components/ui";
-import { publicCmsService, LegalPage } from "@/services/publicCms";
+import Link from "next/link";
+import { ArrowRight } from "lucide-react";
+import PageHero from "@/components/sections/PageHero";
+import ProseBand from "@/components/sections/ProseBand";
+import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
+import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
 
 const META_FALLBACK: SeoContent = {
   title: "Terms of Service — WayTero",
-  description: "WayTero's terms of service — please read before using the platform.",
-  keywords: ["WayTero terms", "terms of service India", "travel booking terms"],
+  description:
+    "The agreement between you and WayTero: how a booking is confirmed, what you pay, and what happens when you cancel.",
+  keywords: ["WayTero terms", "terms of service India", "travel marketplace terms"],
 };
 
 export async function generateMetadata(): Promise<import("next").Metadata> {
   return pageMetadata("terms", "/terms", META_FALLBACK);
 }
 
-// Static fallback — used only when the backend is unreachable.
-const FALLBACK: LegalPage = {
-  slug: "terms",
-  title: "Terms of Service",
-  eyebrow: "Legal",
-  description: "WayTero's terms of service — please read before using the platform.",
-  sections: [
-    {
-      heading: "1. Service description",
-      body: "WayTero is a travel marketplace connecting customers with verified cab drivers, hotels, and tour operators. We facilitate bookings, payments and support; the underlying service is delivered by our partners.",
-    },
-    {
-      heading: "2. Bookings & payments",
-      body: "Bookings are confirmed only after payment confirmation (full payment or the advance requested by the partner). Cancellation refunds are governed by our Refund Policy and computed automatically by the cancellation engine based on the tier in effect at the time of the request.",
-    },
-    {
-      heading: "3. Booking instructions",
-      body: "Before you book: verify the pickup/drop, dates and passenger count; check the applicable cancellation policy and any advance required; keep your registered mobile reachable. After you book you can track the trip, view invoices, and cancel from the Bookings page. See the Booking Instructions page for the full guide.",
-    },
-    {
-      heading: "4. User conduct",
-      body: "You agree to provide accurate booking information, treat partners respectfully, and not misuse the platform for fraudulent activity. WayTero reserves the right to suspend accounts that violate these terms.",
-    },
-    {
-      heading: "5. Liability",
-      body: "WayTero acts as an intermediary. Service delivery is the partner's responsibility; we facilitate dispute resolution in good faith.",
-    },
-    {
-      heading: "6. Account deletion",
-      body: "You may delete your account via the Account Deletion page. Deletion is irreversible: your login is disabled, wallet balance and loyalty value are forfeited, and personal identifiers are removed.",
-    },
-    {
-      heading: "7. Governing law",
-      body: "These terms are governed by the laws of India. Disputes are subject to the jurisdiction of courts in Bhubaneswar, Odisha.",
-    },
-  ],
-};
-
 export default async function TermsPage() {
-  const page = (await publicCmsService.getLegalPage("terms")) ?? FALLBACK;
-  // Dates render only when the DB carries them — no invented effective dates.
-  const subtitle = [
-    page.effective_date ? `Effective ${page.effective_date}` : null,
-    page.updated_at ? `Last updated ${page.updated_at}` : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const page = resolvePage(await getPageBody("terms"), PAGE_BODIES.terms);
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-br from-primary-50/40 via-white to-white">
-        <Container size="md">
-          <PageHeader eyebrow={page.eyebrow ?? "Legal"} title={
-              <>
-                Terms of <span className="text-gradient-primary">Service</span>
-              </>
-            } subtitle={subtitle} />
-        </Container>
-      </Section>
-      <Section bg="grid" pad="md">
-        <Container size="md">
-          <Card variant="premium" className="prose prose-slate max-w-none group relative">
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-            <div className="space-y-6 text-ink-2 leading-relaxed">
-              {page.sections.map((s) => (
-                <div key={s.heading}>
-                  <h2 className="text-xl font-bold text-ink">{s.heading}</h2>
-                  <p>{s.body}</p>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </Container>
-      </Section>
+      <PageHero
+        eyebrow={page.eyebrow ?? "Legal"}
+        title={page.title}
+        accent="of Service"
+        description={page.description}
+        meta={page.meta}
+      />
+
+      <ProseBand
+        sections={page.sections}
+        eyebrow="The agreement"
+        title="What you are signing up to"
+        bg="muted"
+        source={sourceNote(page.source)}
+        footer={
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <span className="text-xs font-bold uppercase tracking-wide text-ink-4">
+              Read with
+            </span>
+            {[
+              { href: "/refund", label: "Refund & cancellation policy" },
+              { href: "/booking-instructions", label: "Booking instructions" },
+              { href: "/privacy", label: "Privacy policy" },
+              { href: "/cookies", label: "Cookies & storage" },
+            ].map((l) => (
+              <Link
+                key={l.href}
+                href={l.href}
+                className="group inline-flex items-center gap-1 text-xs font-extrabold text-primary-700 transition-colors hover:text-primary-800"
+              >
+                {l.label}
+                <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+              </Link>
+            ))}
+          </div>
+        }
+      />
     </>
   );
 }

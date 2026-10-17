@@ -56,7 +56,7 @@ const TRIP_META: Record<
     bullets: [
       "Upfront fare — no surge, no hidden charges",
       "Generous luggage space across categories",
-      "24×7 support on every airport trip",
+      "Night pickups quoted with the night charge shown up front",
     ],
   },
   OUTSTATION: {
@@ -217,7 +217,7 @@ const TRIP_FAQS: Record<string, FaqItem[]> = {
     { question: "What does outstation fare include?", answer: "Base fare, per-km rate beyond the included km, and driver allowance. Night charges and tolls (where applicable) are shown separately in your quote before booking." },
     { question: "Is GST included in the shown fare?", answer: "The quoted fare is pre-tax. GST is added at trip close and itemised on your invoice — the estimate you see is always honest about this." },
     { question: "Can I book a one-way outstation drop?", answer: "Yes — one-way pricing is the whole point of WayTero outstation cabs. Choose One Way in the booking form and pay only for your leg." },
-    { question: "How do I track my outstation trip?", answer: "Once the driver is assigned, live tracking is available on the Track page and shareable with family for the entire route." },
+    { question: "How do I track my outstation trip?", answer: "Open the Track page with your booking number. Once a driver is assigned it shows the status, the driver's name and contact and the vehicle — there is no live map." },
   ],
   ONE_WAY: [
     { question: "How is one-way pricing different?", answer: "You pay only for the distance of your own journey — the driver's return leg isn't billed to you. The per-km math is shown in your fare breakdown." },
@@ -419,8 +419,8 @@ export default async function CabTripPage({
             {[
               { icon: Search, title: "1. Enter your route", desc: `Pickup, drop (if needed), date and time — the ${meta.name.toLowerCase()} form only asks for what this trip type requires.` },
               { icon: ListChecks, title: "2. Compare fares", desc: "Every vehicle category with an upfront, itemised fare for your route — base, per-km, allowance — before you choose." },
-              { icon: BadgeCheck, title: "3. Confirm booking", desc: "Sign in, review the fare breakdown, and confirm. Your booking is filed instantly with live status updates." },
-              { icon: Route, title: "4. Ride & track", desc: "A verified driver is assigned; you get live tracking and support for the whole journey." },
+              { icon: BadgeCheck, title: "3. Confirm booking", desc: "Sign in, review the fare breakdown, and confirm. Your booking is filed and its status updates as the trip moves." },
+              { icon: Route, title: "4. Ride & track", desc: "A verified driver is assigned; the Track page shows the status, the driver and the vehicle." },
             ].map((s) => (
               <MotionStaggerItem key={s.title}>
                 <Card variant="premium" hover lift="sm" className="h-full">

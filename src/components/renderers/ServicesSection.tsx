@@ -32,7 +32,7 @@ const DEFAULT: ServiceItem[] = [
   { icon: Car, title: "Cab Booking", desc: "Instant city rides and outstation cabs.", link: "/cabs", tone: "primary" },
   { icon: Hotel, title: "Hotel Booking", desc: "Handpicked hotels & homestays with transparent pricing.", link: "/hotels", tone: "accent" },
   { icon: Map, title: "Tour Packages", desc: "Curated tour packages — fully managed, stress-free.", link: "/tours", tone: "success" },
-  { icon: MapPin, title: "Live Tracking", desc: "Track your cab, driver, and booking in real-time.", link: "/track", tone: "info" },
+  { icon: MapPin, title: "Booking Tracking", desc: "Follow any booking by number — status, driver and vehicle once assigned.", link: "/track", tone: "info" },
 ];
 
 export default function ServicesSection({ variant, bg = "muted", hidden = [] }: ServicesSectionProps) {

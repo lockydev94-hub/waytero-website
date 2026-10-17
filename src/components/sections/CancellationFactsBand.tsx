@@ -54,12 +54,21 @@ export default async function CancellationFactsBand({
   eyebrow = "Money back",
   title = "What you get back if you cancel",
   subtitle = "Not a promise — the live tiers the refund engine applies to your booking, read from the platform's own policy settings. Refunds are credited to your WayTero wallet.",
+  showPolicyLink = true,
+  id = "cancellation",
 }: {
   bg?: BandTone;
   pad?: "home" | "tight" | "sm" | "md" | "lg";
   eyebrow?: string;
   title?: string;
   subtitle?: string;
+  /** The cross-link to /refund is the point of this band on every page except
+   *  /refund itself, where it would be a link to the page you are on. */
+  showPolicyLink?: boolean;
+  /** In-page anchor. The /about band is linked from the hero as `#cancellation`;
+   *  another page on the same anchor would land on the first one, so it takes
+   *  its own name. */
+  id?: string;
 }) {
   const policy = await publicCmsService.getCancellationPolicy();
   if (!policy) return null;
@@ -120,9 +129,11 @@ export default async function CancellationFactsBand({
             <RotateCcw className="h-3.5 w-3.5 text-primary-600" aria-hidden />
             The fine print, in full
           </span>
-          <Link href="/refund" className="text-xs font-extrabold text-primary-700 hover:text-primary-800">
-            Refund &amp; cancellation policy
-          </Link>
+          {showPolicyLink && (
+            <Link href="/refund" className="text-xs font-extrabold text-primary-700 hover:text-primary-800">
+              Refund &amp; cancellation policy
+            </Link>
+          )}
           <Link href="/bookings" className="text-xs font-extrabold text-primary-700 hover:text-primary-800">
             Cancel from your bookings
           </Link>

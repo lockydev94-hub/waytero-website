@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 import { Container, Section, MotionGlow, ButtonLink } from "@/components/ui";
 import { MotionFadeIn } from "@/components/ui";
 import { pick, type BandTone } from "@/types/cms";
-import { BRAND } from "@/lib/brand";
+import { getDesk } from "@/lib/desk";
 
 interface CtaSectionProps {
   variant: Record<string, unknown>;
@@ -22,7 +22,8 @@ interface CtaSectionProps {
   secondary?: { label: string; href: string };
 }
 
-export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize, secondary }: CtaSectionProps) {
+export default async function CtaSection({ variant, bg = "white", pad = "lg", cardSize, secondary }: CtaSectionProps) {
+  const desk = await getDesk();
   // The homepage passes `pad="home"` and was tuned against it, so it keeps the
   // roomy card exactly as it renders today. Every other page used to pay that
   // card padding on top of `pad="lg"` band padding — ~192px of it above and
@@ -83,7 +84,7 @@ export default function CtaSection({ variant, bg = "white", pad = "lg", cardSize
                   concern. "Cancel anytime" and "no credit card needed" used to
                   sit here and neither is true of the booking engine. */}
               <p className={`relative text-xs text-ink-3/80 font-medium ${roomy ? "mt-7" : "mt-5"}`}>
-                Full total before you pay · Cancellation terms shown up front · Support {BRAND.officeHours}
+                Full total before you pay · Cancellation terms shown up front · Support {desk.hours}
               </p>
             </div>
           </MotionGlow>

@@ -9,6 +9,7 @@ import { publicCmsService } from "@/services/publicCms";
 import type { SiteHeaderData, SiteFooterData } from "@/types/cms";
 import { getAvailability, hiddenServices } from "@/lib/availability";
 import { getLandingRefs } from "@/lib/landingIndex";
+import { getDesk } from "@/lib/desk";
 
 /**
  * Layout shared by every public marketing/utility page under (site).
@@ -24,10 +25,11 @@ import { getLandingRefs } from "@/lib/landingIndex";
  * middleware just to read the URL in a server component.
  */
 export default async function SiteLayout({ children }: { children: ReactNode }) {
-  const [cms, av, landingRefs] = await Promise.all([
+  const [cms, av, landingRefs, desk] = await Promise.all([
     publicCmsService.getHomepage(),
     getAvailability(),
     getLandingRefs(),
+    getDesk(),
   ]);
 
   // Verticals disabled or with zero real supply are hidden site-wide:
@@ -61,7 +63,12 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
 
   return (
     <>
-      <Header cmsData={cms?.header ?? null} heroHasMedia={heroHasMedia} hiddenServices={hidden} />
+      <Header
+        cmsData={cms?.header ?? null}
+        heroHasMedia={heroHasMedia}
+        hiddenServices={hidden}
+        officeHours={desk.hours}
+      />
       <main>{children}</main>
       <Footer cmsData={cms?.footer ?? null} hiddenServices={hidden} places={places} />
       {/* Live support chat — smart-routed to online admin agents */}

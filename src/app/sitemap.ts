@@ -24,6 +24,8 @@ import type { MetadataRoute } from "next";
 import { API_BASE } from "@/lib/apiBase";
 import { getLandingRefs } from "@/lib/landingIndex";
 import { getAvailability, serviceVisible } from "@/lib/availability";
+import { getPageBody } from "@/lib/pageBody";
+import { TRIP_SLUGS } from "@/lib/cabTrips";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
 
@@ -47,13 +49,22 @@ interface RouteRow {
   slug: string;
 }
 
-const TRIP_SLUGS: Record<string, string> = {
-  LOCAL: "local",
-  AIRPORT: "airport",
-  OUTSTATION: "outstation",
-  ONE_WAY: "one-way",
-  ROUND_TRIP: "round-trip",
-};
+/** Pages whose body an admin authors in Website → Pages. A slug that has no
+ *  published row is not crawled — the URL still serves the built-in copy, but
+ *  the admin has not stood behind a body for it. `down` (API unreachable at
+ *  build time) is kept, because the page is genuinely up on the copy shipped
+ *  with the site. `/security` is absent: its content is code, not a body. */
+const BODY_PAGES: { slug: string; path: string; priority: number }[] = [
+  { slug: "refund", path: "/refund", priority: 0.6 },
+  { slug: "booking-instructions", path: "/booking-instructions", priority: 0.6 },
+  { slug: "terms", path: "/terms", priority: 0.5 },
+  { slug: "privacy", path: "/privacy", priority: 0.5 },
+  { slug: "cookies", path: "/cookies", priority: 0.4 },
+  { slug: "safety", path: "/safety", priority: 0.5 },
+  { slug: "support", path: "/support", priority: 0.5 },
+  { slug: "careers", path: "/careers", priority: 0.4 },
+  { slug: "press", path: "/press", priority: 0.4 },
+];
 
 async function fetchJson<T>(url: string): Promise<T | null> {
   try {
@@ -88,7 +99,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${appUrl}/partner`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${appUrl}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
     { url: `${appUrl}/feedback`, lastModified: now, changeFrequency: "monthly", priority: 0.4 },
+    // Code-authored, so nothing to gate them on: /security is the same four
+    // sections on every deploy, and /sitemap is the human-readable index.
+    { url: `${appUrl}/security`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
+    { url: `${appUrl}/sitemap`, lastModified: now, changeFrequency: "monthly", priority: 0.3 },
   ];
+
+  // ── Admin-authored page bodies (see BODY_PAGES) ──
+  const bodyEntries = await Promise.all(
+    BODY_PAGES.map(async (p) => ({ ...p, state: await getPageBody(p.slug) })),
+  );
+  const bodyUrls: MetadataRoute.Sitemap = bodyEntries
+    .filter((e) => e.state.kind !== "none")
+    .map((e) => {
+      const state = e.state;
+      return {
+        url: `${appUrl}${e.path}`,
+        lastModified: state.kind === "db" ? day(state.body.updated_at) : now,
+        changeFrequency: "monthly" as const,
+        priority: e.priority,
+      };
+    });
 
   // ── Cab trip-type pages (only types with ≥1 active pricing rule) ──
   const tripTypes = cabVisible
@@ -209,6 +240,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   return [
     ...staticUrls,
+    ...bodyUrls,
     ...tripUrls,
     ...routeUrls,
     ...landingUrls,

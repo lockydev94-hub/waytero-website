@@ -1,92 +1,102 @@
 import Link from "next/link";
-import { Container, PageHeader, Card } from "@/components/ui";
-import { Section } from "@/components/ui";
-import { publicCmsService, LegalPage } from "@/services/publicCms";
-import { pageMetadata } from "@/services/seoService";
+import { ArrowRight, Car, Compass, Hotel, LifeBuoy } from "lucide-react";
+import PageHero, { HeroAside } from "@/components/sections/PageHero";
+import ProseBand from "@/components/sections/ProseBand";
+import CancellationFactsBand from "@/components/sections/CancellationFactsBand";
+import { CtaSection } from "@/components/renderers";
+import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
+import { PAGE_BODIES } from "@/content/pageBodies";
+import { getAvailability, serviceVisible, type ServiceKey } from "@/lib/availability";
+import { pageMetadata, type SeoContent } from "@/services/seoService";
 
-export async function generateMetadata() {
-  return pageMetadata("booking-instructions", "/booking-instructions", {
-    title: "Booking Instructions",
-    description: "How to book a cab, hotel, or tour package on WayTero — step by step.",
-    keywords: ["how to book", "cab booking steps", "hotel booking", "tour booking", "WayTero"],
-  });
-}
-
-// Static fallback — used only when the backend is unreachable.
-const FALLBACK: LegalPage = {
-  slug: "booking-instructions",
-  title: "Booking Instructions",
-  eyebrow: "Guide",
-  description: "How to book a cab, hotel, or tour package on WayTero.",
-  sections: [
-    {
-      heading: "1. Book a cab",
-      body: "Enter pickup and drop, choose the trip type (one-way, round trip, outstation), and pick the vehicle category. A fare estimate is shown before you confirm. If the partner requests an advance, pay it to confirm; the driver receives your trip automatically once assigned. Track your cab live from the Track page.",
-    },
-    {
-      heading: "2. Book a hotel",
-      body: "Search by city and dates, filter by price/amenities, and review the hotel's cancellation policy before booking. Confirm with the room category and guest count. Some properties require an advance; the balance is collected at check-in or per the property's terms.",
-    },
-    {
-      heading: "3. Book a tour package",
-      body: "Browse tour packages by destination and duration. Check the package's cancellation policy and what is included (transport, stay, meals, activities). Pay the required advance to confirm; the tour operator confirms the booking and the itinerary is available to download.",
-    },
-    {
-      heading: "4. Payments & advances",
-      body: "Payments are processed securely by our payment partners. Advances are shown on the booking detail with receipts. The balance due is displayed on every booking; collect and settle through the partner at the time of service.",
-    },
-    {
-      heading: "5. Cancelling a booking",
-      body: "You can preview the exact refund before you cancel from the Bookings page. Cancellation rules differ per service (cab ladder, hotel policy, tour policy) and are computed by the engine at the moment you cancel. Refunds credit your wallet instantly.",
-    },
-    {
-      heading: "6. Invoices & support",
-      body: "Tax invoices are available for completed trips from the booking detail. For any issue, raise it from the Support page or contact our customer care team.",
-    },
-  ],
+const META_FALLBACK: SeoContent = {
+  title: "Booking Instructions — WayTero",
+  description:
+    "How to book a cab, a hotel or a tour on WayTero, what you pay and when, and what happens after you confirm.",
+  keywords: ["how to book", "cab booking steps", "hotel booking", "tour booking", "WayTero"],
 };
 
+export async function generateMetadata(): Promise<import("next").Metadata> {
+  return pageMetadata("booking-instructions", "/booking-instructions", META_FALLBACK);
+}
+
+const STARTERS: { key: ServiceKey; label: string; href: string; icon: typeof Car }[] = [
+  { key: "CAB", label: "Book a cab", href: "/cabs", icon: Car },
+  { key: "HOTEL", label: "Find a stay", href: "/hotels", icon: Hotel },
+  { key: "TOUR", label: "Browse tour packages", href: "/tours", icon: Compass },
+];
+
 export default async function BookingInstructionsPage() {
-  const page = (await publicCmsService.getLegalPage("booking-instructions")) ?? FALLBACK;
+  const [state, av] = await Promise.all([getPageBody("booking-instructions"), getAvailability()]);
+  const page = resolvePage(state, PAGE_BODIES["booking-instructions"]);
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-br from-primary-50/40 via-white to-white">
-        <Container size="md">
-          <PageHeader
-            eyebrow={page.eyebrow ?? "Guide"}
-            title={
-              <>
-                Booking <span className="text-gradient-primary">Instructions</span>
-              </>
-            }
-            subtitle="Everything you need to know before you book a cab, hotel, or tour package on WayTero."
-          />
-        </Container>
-      </Section>
-      <Section bg="grid" pad="md">
-        <Container size="md">
-          <Card variant="premium" className="prose prose-slate max-w-none group relative">
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-            <div className="space-y-6 text-ink-2 leading-relaxed">
-              {page.sections.map((s) => (
-                <div key={s.heading}>
-                  <h2 className="text-xl font-bold text-ink">{s.heading}</h2>
-                  <p>{s.body}</p>
-                </div>
+      <PageHero
+        eyebrow={page.eyebrow ?? "Guide"}
+        title={page.title}
+        accent="Instructions"
+        description={page.description}
+        meta={page.meta}
+        side={
+          <HeroAside title="Start here">
+            <ul className="space-y-3 text-sm">
+              {STARTERS.filter((s) => serviceVisible(av, s.key)).map((s) => (
+                <li key={s.key}>
+                  <Link
+                    href={s.href}
+                    className="group flex items-center gap-2 font-bold text-ink-2 hover:text-primary-700"
+                  >
+                    <s.icon className="h-4 w-4 shrink-0 text-primary-600" aria-hidden />
+                    {s.label}
+                    <ArrowRight
+                      className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                      aria-hidden
+                    />
+                  </Link>
+                </li>
               ))}
-              <p className="text-sm text-ink-4 pt-2 border-t border-ink-8">
-                Prefer a quick start?{" "}
-                <Link href="/cabs" className="text-primary-600 font-semibold">Book a cab</Link>
-                {" · "}
-                <Link href="/hotels" className="text-primary-600 font-semibold">Find hotels</Link>
-                {" · "}
-                <Link href="/tours" className="text-primary-600 font-semibold">Browse tours</Link>
-              </p>
-            </div>
-          </Card>
-        </Container>
-      </Section>
+              <li>
+                <Link
+                  href="/support"
+                  className="group flex items-center gap-2 font-bold text-ink-2 hover:text-primary-700"
+                >
+                  <LifeBuoy className="h-4 w-4 shrink-0 text-primary-600" aria-hidden />
+                  Something went wrong after I booked
+                  <ArrowRight
+                    className="h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100"
+                    aria-hidden
+                  />
+                </Link>
+              </li>
+            </ul>
+          </HeroAside>
+        }
+      />
+
+      <ProseBand
+        sections={page.sections}
+        bg="muted"
+        eyebrow="Step by step"
+        title="What you do, and what happens next"
+        source={sourceNote(page.source)}
+      />
+
+      <CancellationFactsBand bg="white" />
+
+      <CtaSection
+        variant={{
+          headline: "Ready when you are",
+          subtitle:
+            "Fare, advance and cancellation terms are all shown before you pay — start with the one you need.",
+          cta_text: "Book a cab",
+          cta_link: "/cabs",
+        }}
+        bg="muted"
+        pad="tight"
+        cardSize="compact"
+        secondary={{ label: "Track a booking", href: "/track" }}
+      />
     </>
   );
 }
