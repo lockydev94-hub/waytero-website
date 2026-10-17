@@ -38,7 +38,7 @@ export default async function PopularRoutesSection({
   bg?: BandTone;
   // The homepage runs the tight `home` rhythm; service pages stack the
   // standard steps and pass the one that matches their band.
-  pad?: "home" | "sm" | "md" | "lg";
+  pad?: "home" | "tight" | "sm" | "md" | "lg";
 }) {
   const eyebrow = pick<string>(variant, "variant_tag", "Where people travel");
   const title = pick<string>(variant, "headline", "Popular Routes");

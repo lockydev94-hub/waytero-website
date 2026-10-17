@@ -89,7 +89,7 @@ export default async function CabVehicleFares({
   const tripLabel = TRIP_LABEL[tripType] ?? "ride";
 
   return (
-    <Section bg="white" pad="home">
+    <Section bg="white" pad="tight">
       <Container size="xl">
         <SectionHeader
           eyebrow="Real fares"

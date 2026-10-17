@@ -41,7 +41,7 @@ export default function LandingSteps({
   // The cards are white, so the band behind them needs to be the muted step
   // unless the caller has a reason to move it onto white.
   bg?: BandTone;
-  pad?: "home" | "sm" | "md" | "lg";
+  pad?: "home" | "tight" | "sm" | "md" | "lg";
 }) {
   const steps = STEPS[serviceType ?? ""] ?? STEPS.DEFAULT;
 
@@ -52,7 +52,7 @@ export default function LandingSteps({
           eyebrow="How it works"
           title={title ?? "Booking with WayTero"}
           align="center"
-          scale={pad === "home" ? "home" : "default"}
+          scale={pad === "home" || pad === "tight" ? "home" : "default"}
         />
         <MotionStagger className="mt-8 grid gap-5 sm:grid-cols-3">
           {steps.map((s, i) => (

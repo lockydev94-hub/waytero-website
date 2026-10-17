@@ -20,8 +20,8 @@ export default function LandingStatsStrip({
   title?: string | null;
   // Service pages alternate white/muted bands; the tone is the caller's call.
   bg?: BandTone;
-  // Homepage rhythm is tighter than a marketing band's; /cabs passes "home".
-  pad?: "home" | "sm" | "md" | "lg";
+  // Homepage rhythm is tighter than a marketing band's; /cabs passes "home"/"tight".
+  pad?: "home" | "tight" | "sm" | "md" | "lg";
 }) {
   if (!stats.length) return null;
 

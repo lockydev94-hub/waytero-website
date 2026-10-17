@@ -11,7 +11,7 @@ interface CtaSectionProps {
   /** This band is shared. The homepage stacks 16 of them and passes `home`,
    *  which keeps the roomy card; every other page gets `lg`/`md` and the
    *  compact card, because the roomy one doubled the band's own padding. */
-  pad?: "lg" | "md" | "home";
+  pad?: "lg" | "md" | "home" | "tight";
   /** Card size, decoupled from `pad`. A service page can want the tight
    *  `home` section padding without the roomy homepage card, so it passes
    *  `cardSize="compact"`. Unset keeps the old rule: roomy only on `home`. */

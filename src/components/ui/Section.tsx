@@ -11,7 +11,7 @@ type Bg =
   | "grid"
   | "dot"
   | "noise";
-type Padding = "sm" | "md" | "lg" | "home" | "none";
+type Padding = "sm" | "md" | "lg" | "home" | "tight" | "none";
 
 const BG: Record<Bg, string> = {
   white:           "bg-white",
@@ -37,6 +37,11 @@ const PAD: Record<Padding, string> = {
   lg: "py-16 lg:py-24",
   // Homepage bands stack 16 deep, so they keep the tightest rhythm of all.
   home: "py-10 lg:py-14",
+  // A service page (e.g. /cabs) runs nine short bands back to back; at the
+  // homepage's 112px between bands the whitespace reads as loose because each
+  // band here is small. `tight` (72px between bands) is the densest step —
+  // still monotonic, and only opt-in per page so the homepage is untouched.
+  tight: "py-8 lg:py-9",
 };
 
 type Divider = "top" | "bottom" | "both" | "none";

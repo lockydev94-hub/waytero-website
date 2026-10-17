@@ -223,7 +223,7 @@ function DateTimePicker({
 
   const displayStr = value.date
     ? `${value.date.getDate()} ${MONTHS[value.date.getMonth()]} ${value.date.getFullYear()}, ${String(value.hour).padStart(2,"0")}:${String(value.minute).padStart(2,"0")}`
-    : label;
+    : "Select date";
 
   const modal = (
     <div data-portal-picker role="dialog" aria-modal="true" aria-label={label}
@@ -660,9 +660,9 @@ function Field({ children, label, error, className = "" }: {
 }) {
   return (
     <div className={`${className} flex flex-col justify-center`}>
-      <div className={`px-4 py-3 rounded-xl border transition-all
+      <div className={`px-3 py-2 rounded-xl border transition-all
         ${error ? "border-red-300 bg-red-50" : "border-ink-7 bg-white hover:border-primary-300"}`}>
-        <div className="text-[10px] font-bold text-ink-4 uppercase tracking-wider mb-1">{label}</div>
+        <div className="text-[10px] font-bold text-ink-4 uppercase tracking-wider mb-0.5">{label}</div>
         {children}
       </div>
       {error && <p className="text-xs text-red-500 mt-1 px-1">{error}</p>}
@@ -913,7 +913,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   const isHero = variant === "hero";
 
   return (
-    <div className={`${isHero ? "" : "bg-white rounded-3xl border border-ink-7 shadow-wt-lg p-5"}`}>
+    <div className={`${isHero ? "" : "bg-white rounded-3xl border border-ink-7 shadow-wt-lg p-4"}`}>
       {/* City chip and trip-type pills share one row from xl up — stacked they
           cost the card ~48px of height for no benefit. */}
       <div className="xl:flex xl:items-center xl:justify-between xl:gap-4">
@@ -1019,7 +1019,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
         <Field label="Pickup Location" error={errors.pickup} className={spans.pickup}>
           <LocationInput
             value={pickup} onChange={v => { setPickup(v); setErrors(e => ({...e, pickup: ""})); }}
-            placeholder="City, area or landmark"
+            placeholder="City or area"
             icon={MapPin}
             cities={cities}
             useCityMode={useCityMode}

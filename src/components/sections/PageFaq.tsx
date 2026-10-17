@@ -32,7 +32,7 @@ export default function PageFaq({
   eyebrow?: string;
   title?: string;
   subtitle?: string;
-  pad?: "home" | "sm" | "md" | "lg";
+  pad?: "home" | "tight" | "sm" | "md" | "lg";
   // The white dot pattern disappears on this section's muted (light) surface —
   // callers that want the texture visible pass "dots-faint".
   overlay?: "dots" | "dots-faint" | "grid" | "grid-faint" | "lines" | "none";
@@ -51,7 +51,7 @@ export default function PageFaq({
           accent="primary"
           underline
           animatedEyebrow
-          scale={pad === "home" ? "home" : "default"}
+          scale={pad === "home" || pad === "tight" ? "home" : "default"}
         />
         <div className="space-y-3">
           {faqs.map((faq, i) => {

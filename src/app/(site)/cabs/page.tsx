@@ -111,7 +111,7 @@ export default async function CabsPage() {
     <>
       <JsonLd data={faqPageSchema(CAB_FAQS)} />
 
-      <Section bg="white" pad="home">
+      <Section bg="white" pad="tight">
         <Container size="xl">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center">
             <div>
@@ -152,12 +152,12 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" pad="home" />
+      <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" pad="tight" />
 
       {/* Why-cabs promises, as one icon row rather than four boxed cards —
           with stats, routes, fares, steps and FAQ on the page the boxes were
           the only thing between the hero and the substance. */}
-      <Section bg="white" pad="home" overlay="dots-faint">
+      <Section bg="white" pad="tight" overlay="dots-faint">
         <Container size="xl">
           <SectionHeader
             eyebrow="Why book cabs with WayTero"
@@ -182,11 +182,11 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <PopularRoutesSection bg="muted" pad="home" variant={{}} />
+      <PopularRoutesSection bg="muted" pad="tight" variant={{}} />
 
       <CabVehicleFares city={city} />
 
-      <LandingSteps serviceType="CAB" bg="muted" pad="home" />
+      <LandingSteps serviceType="CAB" bg="muted" pad="tight" />
 
       <CabHotelPickups city={city} />
 
@@ -194,12 +194,12 @@ export default async function CabsPage() {
         faqs={CAB_FAQS}
         eyebrow="Before you book"
         title="Cab booking questions, answered"
-        pad="home"
+        pad="tight"
         overlay="dots-faint"
       />
 
       <CtaSection
-        pad="home"
+        pad="tight"
         cardSize="compact"
         variant={{
           title: "Ready to ride?",

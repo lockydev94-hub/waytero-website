@@ -51,7 +51,7 @@ export default async function CabHotelPickups({
   if (!hotels.length) return null;
 
   return (
-    <Section bg="white" pad="home">
+    <Section bg="white" pad="tight">
       <Container size="xl">
         <SectionHeader
           eyebrow="Also in this city"
