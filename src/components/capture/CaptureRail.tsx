@@ -33,10 +33,9 @@ const FLOAT = "rounded-xl";
 
 const VERTICAL = "[writing-mode:vertical-rl] rotate-180";
 
-// globals.css resets `a { color: inherit }` outside any cascade layer, which
-// outranks an ordinary `text-white` utility. The important modifier is the
-// only way a link's own colour wins without touching the site-wide reset.
-const ON_DARK = "text-white!";
+// The site-wide anchor reset lives in @layer base, so an ordinary text-white
+// utility on a link takes effect.
+const ON_DARK = "text-white";
 
 export default function CaptureRail() {
   const [enquiryOpen, setEnquiryOpen] = useState(false);

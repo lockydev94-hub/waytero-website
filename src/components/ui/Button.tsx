@@ -27,7 +27,7 @@ const VARIANT: Record<Variant, string> = {
   ghost:
     "bg-transparent text-ink-2 hover:bg-ink-9 focus-visible:ring-ink-4",
   accent:
-    "bg-accent-500 text-ink shadow-wt-accent hover:bg-accent-600 hover:text-white focus-visible:ring-accent-500",
+    "bg-accent-500 text-white shadow-wt-accent hover:bg-accent-600 focus-visible:ring-accent-500",
   danger:
     "bg-danger text-white hover:bg-red-600 focus-visible:ring-danger",
   subtle:

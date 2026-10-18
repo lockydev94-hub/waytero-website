@@ -12,11 +12,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   MessageCircle, X, Send, Headset, User, Phone, Mail, Clock, Wifi, WifiOff,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useChatNudge } from "@/hooks/useChatNudge";
 import { useChatRealtime } from "@/hooks/useChatRealtime";
+import { usePrefersReducedMotion } from "@/components/ui";
 import chatService, {
   type ChatMessageItem,
   type ChatStatus,
@@ -78,11 +81,25 @@ export default function ChatWidget() {
   const [guestEmail, setGuestEmail] = useState("");
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const reduced = usePrefersReducedMotion();
   const messagesRef = useRef<ChatMessageItem[]>([]);
   messagesRef.current = messages;
 
   // Realtime for logged-in customers; guests poll instead.
   const { subscribe } = useChatRealtime(isLoggedIn ? accessToken : null);
+
+  // Invite a first-time visitor into the chat once per session — never someone
+  // who already has a thread, and never after they open the panel themselves.
+  const nudge = useChatNudge({
+    enabled: !open,
+    skip: () => {
+      try {
+        return Boolean(localStorage.getItem(CONV_LS));
+      } catch {
+        return false;
+      }
+    },
+  });
 
   const refresh = useCallback(async () => {
     if (!conversationId) return;
@@ -242,16 +259,64 @@ export default function ChatWidget() {
       <button
         onClick={() => (open ? setOpen(false) : void openWidget())}
         aria-label={open ? "Close chat" : "Chat with support"}
-        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-teal-500 text-white shadow-lg shadow-blue-600/30 transition-transform hover:scale-105"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        className="fixed bottom-5 right-5 z-50 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-ink-700 to-ink-800 text-white shadow-wt-lg ring-1 ring-white/25 transition-transform hover:scale-105"
       >
         {open ? <X size={24} /> : <MessageCircle size={26} />}
       </button>
 
+      {/* Invitation bubble — sits beside the float stack, once per session */}
+      <AnimatePresence>
+        {nudge.visible && (
+          <motion.div
+            role="status"
+            aria-live="polite"
+            initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 4, scale: 0.98 }}
+            transition={{ duration: reduced ? 0 : 0.28, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed bottom-[7.5rem] right-5 z-50 lg:bottom-6 lg:right-[5.5rem]"
+          >
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => {
+                  nudge.dismiss();
+                  void openWidget();
+                }}
+                className="flex max-w-[min(72vw,258px)] items-start gap-2.5 rounded-2xl rounded-br-sm bg-ink-700 py-3 pl-3.5 pr-8 text-left text-white shadow-wt-lg ring-1 ring-white/20 transition-colors hover:bg-ink-800"
+              >
+                <span aria-hidden className="mt-1.5 h-2 w-2 flex-shrink-0 rounded-full bg-accent-500" />
+                <span>
+                  <span className="block text-sm font-bold leading-tight">Need a hand?</span>
+                  <span className="mt-0.5 block text-xs leading-snug text-white/75">
+                    Start a chat — a WayTero team member picks it up.
+                  </span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={nudge.dismiss}
+                aria-label="Dismiss invitation"
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Panel */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-50 flex w-[min(92vw,380px)] flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl">
+        <div
+          role="dialog"
+          aria-label="Chat with WayTero support"
+          className="fixed bottom-24 right-5 z-50 flex w-[min(92vw,380px)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-ink-900 shadow-[0_24px_60px_rgba(6,17,34,0.55)] lg:bottom-[10rem]"
+        >
           {/* Header */}
-          <div className="flex items-center gap-3 bg-gradient-to-r from-blue-600 to-teal-500 px-4 py-3 text-white">
+          <div className="flex items-center gap-3 bg-gradient-to-r from-ink-700 to-ink-800 px-4 py-3 text-white">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/20">
               <Headset size={18} />
             </div>
@@ -279,18 +344,18 @@ export default function ChatWidget() {
           </div>
 
           {/* Body */}
-          <div className="flex max-h-[420px] min-h-[320px] flex-col overflow-y-auto bg-gray-50">
+          <div className="flex max-h-[420px] min-h-[320px] flex-col overflow-y-auto bg-ink-900">
             {view === "welcome" && (
               <div className="p-4">
-                <p className="mb-3 text-sm text-gray-600">
-                  Hi! What would you like to talk about? Our team will jump in right away.
+                <p className="mb-3 text-sm text-white/80">
+                  Hi! What would you like to talk about?
                 </p>
                 <div className="grid grid-cols-2 gap-2">
                   {TOPICS.map((t) => (
                     <button
                       key={t}
                       onClick={() => pickTopic(t)}
-                      className="rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-xs font-semibold text-gray-700 transition-colors hover:border-blue-500 hover:text-blue-600"
+                      className="rounded-xl border border-white/10 bg-white/[0.07] px-3 py-2.5 text-left text-xs font-semibold text-white transition-colors hover:border-accent-400"
                     >
                       {t}
                     </button>
@@ -301,49 +366,49 @@ export default function ChatWidget() {
 
             {view === "identity" && (
               <div className="p-4">
-                <p className="mb-3 text-sm font-semibold text-gray-700">
+                <p className="mb-3 text-sm font-semibold text-white">
                   Tell us who you are so we can help better
                 </p>
                 <div className="space-y-2.5">
                   <label className="block">
-                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-600">
-                      <User size={13} /> Name <span className="text-red-500">*</span>
+                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-white/70">
+                      <User size={13} /> Name <span className="text-red-400">*</span>
                     </span>
                     <input
                       value={guestName}
                       onChange={(e) => setGuestName(e.target.value)}
                       placeholder="Your name"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent-400"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-600">
-                      <Phone size={13} /> Mobile <span className="text-gray-400">(optional)</span>
+                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-white/70">
+                      <Phone size={13} /> Mobile <span className="text-white/55">(optional)</span>
                     </span>
                     <input
                       value={guestMobile}
                       onChange={(e) => setGuestMobile(e.target.value)}
                       placeholder="10-digit mobile"
                       inputMode="tel"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent-400"
                     />
                   </label>
                   <label className="block">
-                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-gray-600">
-                      <Mail size={13} /> Email <span className="text-gray-400">(optional)</span>
+                    <span className="mb-1 flex items-center gap-1 text-xs font-medium text-white/70">
+                      <Mail size={13} /> Email <span className="text-white/55">(optional)</span>
                     </span>
                     <input
                       value={guestEmail}
                       onChange={(e) => setGuestEmail(e.target.value)}
                       placeholder="you@example.com"
                       type="email"
-                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                      className="w-full rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent-400"
                     />
                   </label>
                   <button
                     onClick={submitGuestForm}
                     disabled={!guestName.trim() || busy}
-                    className="w-full rounded-lg bg-blue-600 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                    className="w-full rounded-lg bg-gradient-to-r from-accent-500 to-accent-600 py-2.5 text-sm font-semibold text-white transition-colors hover:from-accent-600 disabled:opacity-50"
                   >
                     {busy ? "Starting…" : "Start chat"}
                   </button>
@@ -354,13 +419,13 @@ export default function ChatWidget() {
             {view === "thread" && (
               <div className="flex flex-col flex-1">
                 {status === "WAITING" && (
-                  <div className="m-3 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                  <div className="m-3 rounded-lg border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
                     We're offline right now — your messages are saved and our team will reply as soon as possible.
                   </div>
                 )}
                 <div className="flex flex-1 flex-col gap-2 p-3">
                   {messages.length === 0 ? (
-                    <p className="py-6 text-center text-xs text-gray-400">
+                    <p className="py-6 text-center text-xs text-white/50">
                       {subject ? `Start by telling us about "${subject}"` : "Say hi!"}
                     </p>
                   ) : (
@@ -368,18 +433,18 @@ export default function ChatWidget() {
                       const mine = m.sender_type === "CUSTOMER";
                       return (
                         <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                          <p className={`mb-0.5 px-1 text-[10px] font-semibold ${mine ? "text-blue-700" : "text-gray-500"}`}>
+                          <p className={`mb-0.5 px-1 text-[10px] font-semibold ${mine ? "text-white/70" : "text-white/60"}`}>
                             {mine ? "You" : m.sender_name || "WayTero Support"}
                           </p>
                           <div
-                            className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm shadow-sm ${
+                            className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm ${
                               mine
-                                ? "rounded-br-sm bg-blue-600 text-white"
-                                : "rounded-bl-sm border border-gray-200 bg-white text-gray-800"
+                                ? "rounded-br-sm bg-primary-600 text-white"
+                                : "rounded-bl-sm border border-white/10 bg-white/[0.09] text-white"
                             }`}
                           >
                             <p className="whitespace-pre-wrap break-words">{m.body}</p>
-                            <p className={`mt-0.5 text-right text-[10px] ${mine ? "text-blue-100" : "text-gray-400"}`}>
+                            <p className={`mt-0.5 text-right text-[10px] ${mine ? "text-primary-100" : "text-white/45"}`}>
                               {timeLabel(m.created_at)}
                             </p>
                           </div>
@@ -390,7 +455,7 @@ export default function ChatWidget() {
                   <div ref={messagesEndRef} />
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-gray-200 bg-white p-3">
+                <div className="flex items-center gap-2 border-t border-white/10 bg-ink-800 p-3">
                   <input
                     value={draft}
                     onChange={(e) => setDraft(e.target.value)}
@@ -401,13 +466,13 @@ export default function ChatWidget() {
                       }
                     }}
                     placeholder="Type a message…"
-                    className="flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                    className="flex-1 rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2 text-sm text-white placeholder:text-white/50 outline-none focus:border-accent-400"
                   />
                   <button
                     onClick={() => void sendMessage()}
                     disabled={!draft.trim() || sending}
                     aria-label="Send"
-                    className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-40"
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-500 text-white transition-colors hover:bg-accent-600 disabled:opacity-40"
                   >
                     <Send size={16} />
                   </button>
@@ -417,8 +482,8 @@ export default function ChatWidget() {
           </div>
 
           {/* Footer */}
-          <div className="border-t border-gray-100 bg-white px-4 py-2 text-center">
-            <button onClick={resetWidget} className="text-[11px] text-gray-400 hover:text-gray-600">
+          <div className="border-t border-white/10 bg-ink-900 px-4 py-2 text-center">
+            <button onClick={resetWidget} className="text-[11px] text-white/55 transition-colors hover:text-white">
               {conversationId ? "End this chat and start a new one" : "New chat"}
             </button>
           </div>

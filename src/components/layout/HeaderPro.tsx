@@ -5,16 +5,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
-  Menu, X, Phone, ChevronDown, MapPin,
+  Menu, X, Phone, ChevronDown,
   Car, Building2, Compass, Navigation,
   Info, Handshake, MessageCircle, UserCircle2, Users, Newspaper,
-  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon,
+  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy,
 } from "lucide-react";
 import { Container } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
 import { displayPhone, telHref } from "@/lib/supportPhone";
 import { BRAND } from "@/lib/brand";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
+import chatService from "@/services/chatService";
 import type { SiteHeaderData } from "@/types/cms";
 import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
@@ -65,9 +66,13 @@ interface Props {
    *  during the day — the layout resolves the real hours and passes them in,
    *  because this component is a client island and cannot fetch itself. */
   officeHours?: string;
+  /** Ready-made wa.me link from Settings → Platform ("Desk hours & WhatsApp"),
+   *  resolved server-side by lib/desk.ts and passed down by the (site) layout —
+   *  same reason as officeHours: this is a client island. Empty hides the link. */
+  whatsappHref?: string;
 }
 
-export default function Header({ cmsData, heroHasMedia = false, hiddenServices = [], officeHours = DEFAULT_OFFICE_HOURS }: Props) {
+export default function Header({ cmsData, heroHasMedia = false, hiddenServices = [], officeHours = DEFAULT_OFFICE_HOURS, whatsappHref = "" }: Props) {
   const pathname            = usePathname() ?? "";
   const auth                = useAuth();
   const [open, setOpen]     = useState(false);
@@ -75,6 +80,9 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
   const [moreOpen, setMoreOpen] = useState(false);
   const [authOpen, setAuthOpen]       = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  // Is an agent actually signed in right now? null = unknown, and unknown
+  // renders nothing — the bar never guesses at availability.
+  const [deskOnline, setDeskOnline] = useState<boolean | null>(null);
   const moreRef    = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
@@ -113,6 +121,25 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
     const onAuthRequired = () => setAuthOpen(true);
     window.addEventListener("waytero:auth-required", onAuthRequired);
     return () => window.removeEventListener("waytero:auth-required", onAuthRequired);
+  }, []);
+
+  // One read of the desk's presence on mount (GET /chat/availability — a Redis
+  // hash read, no DB). Deliberately not polled: the bar is decoration until the
+  // customer opens the chat, and the widget itself re-checks while it is open.
+  // Any failure leaves deskOnline null, so the label simply does not appear.
+  useEffect(() => {
+    let alive = true;
+    chatService
+      .availability()
+      .then(({ support_online }) => {
+        if (alive) setDeskOnline(support_online);
+      })
+      .catch(() => {
+        /* offline backend, no network — say nothing rather than guess */
+      });
+    return () => {
+      alive = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -198,7 +225,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
     : "text-ink-3 border-ink-7 hover:text-primary-600 hover:border-primary-300";
 
   const logoTextColor   = overHeroUnscrolled ? "text-white"     : "text-ink";
-  const logoAccentColor = overHeroUnscrolled ? "text-[#F5713A]" : "text-primary-600";
+  const logoAccentColor = overHeroUnscrolled ? "text-accent-400" : "text-primary-600";
   const logoSubColor    = overHeroUnscrolled ? "text-white/55"  : "text-ink-4";
 
   // Text shadow for nav items over hero photo
@@ -231,50 +258,61 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
 
   return (
     <>
-      {/* ══ Announcement strip ═══════════════════════════════════════════════
-          Plain block div — no transform, no sticky — sits naturally above
-          the sticky header. Always visible: the support phone and "List
-          Your Business" / "Track Booking" shortcuts belong on every page
-          including the home hero. Earlier this collapsed on scroll which
-          hid it from the home page once the user moved past the hero.   */}
-      <div
-        className="overflow-hidden"
-        style={{
-          background: "linear-gradient(90deg, #0B1B3B 0%, #1A56DB 50%, #0B1B3B 100%)",
-          position: "relative",
-        }}
-      >
-        {/* Shimmer */}
-        <div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: "linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.06) 50%, transparent 60%)",
-            animation: "shimmer 4s linear infinite",
-          }}
-        />
-        <Container size="xl" className="relative flex items-center justify-between h-9">
-          <div className="flex items-center gap-5 text-white/80 text-xs font-medium">
+      {/* ══ Utility strip ═══════════════════════════════════════════════════
+          Information bar, not a promo banner: solid footer-navy so the page
+          gets dark bookends (this strip on top, the footer below), no gradient
+          and no always-running shimmer. Plain block div — not sticky — so it
+          sits above the sticky header and stays visible on every page.
+          Every value here is admin-owned: SUPPORT_PHONE, the staffed hours
+          (PLATFORM_OFFICE_HOURS, passed in as officeHours), the CMS tagline,
+          PLATFORM_WHATSAPP_PHONE (whatsappHref) and the live agent presence
+          from GET /chat/availability. Track and the partner page are NOT
+          repeated here — the nav pill and the orange CTA below already own
+          both destinations, so the strip stops competing with them.   */}
+      <div className="bg-ink-900 border-b border-white/10">
+        <Container size="xl" className="flex items-center justify-between gap-4 h-8 sm:h-9">
+          <div className="flex min-w-0 items-center gap-3 sm:gap-4 text-[11.5px] sm:text-xs font-medium">
+            {deskOnline !== null && (
+              <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-white/75">
+                <span
+                  aria-hidden
+                  className={`h-1.5 w-1.5 flex-shrink-0 rounded-full ${
+                    deskOnline ? "bg-accent-400" : "bg-white/35"
+                  }`}
+                />
+                {deskOnline ? "Desk online" : "Desk offline"}
+              </span>
+            )}
             <a
               href={telHref(supportPhone)}
-              className="inline-flex items-center gap-1.5 hover:opacity-90 transition-opacity"
+              className="hidden md:inline-flex items-center gap-1.5 text-white/75 hover:text-white transition-colors duration-200"
             >
-              <Phone className="h-3 w-3 text-[#F5713A]" aria-hidden />
-              <span className="text-white/60">Call the desk</span>
-              <span className="text-[#F5713A] font-semibold">{supportPhone}</span>
+              <Phone className="h-3 w-3 text-accent-400" aria-hidden />
+              <span className="font-semibold">{supportPhone}</span>
             </a>
-            <span className="hidden lg:block text-white/50">{officeHours}</span>
-            <span className="hidden sm:block text-white/30">·</span>
-            <span className="hidden sm:block text-white/70">{tagline}</span>
+            <span className="hidden lg:inline whitespace-nowrap text-white/70">{officeHours}</span>
+            <span className="hidden xl:inline truncate text-white/55">{tagline}</span>
           </div>
-          <div className="flex items-center gap-4 text-xs text-white/60">
-            <Link href="/track" className="hidden md:inline-flex items-center gap-1 hover:text-white transition-colors duration-200">
-              <MapPin className="h-3 w-3" /> Track Booking
+          <nav aria-label="Support shortcuts" className="hidden sm:flex items-center gap-4 text-xs">
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition-colors duration-200"
+              >
+                <MessageCircle className="h-3 w-3 text-accent-400" aria-hidden />
+                WhatsApp
+              </a>
+            )}
+            <Link
+              href="/support"
+              className="inline-flex items-center gap-1.5 text-white/70 hover:text-white transition-colors duration-200"
+            >
+              <LifeBuoy className="h-3 w-3 text-accent-400" aria-hidden />
+              Help &amp; support
             </Link>
-            <span className="hidden md:block text-white/20">·</span>
-            <Link href="/partner" className="hidden md:inline-flex hover:text-white transition-colors duration-200">
-              List Your Business
-            </Link>
-          </div>
+          </nav>
         </Container>
       </div>
 
@@ -282,14 +320,15 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
       <header className={`sticky top-0 z-40 transition-all duration-300 ease-out ${headerBg}`}>
         {/* Gradient accent underline when scrolled */}
         <div
-          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-[#F05A22] via-primary-600 to-[#F05A22] transition-all duration-700"
+          className="absolute bottom-0 left-0 h-[2px] bg-gradient-to-r from-accent-500 via-primary-600 to-accent-500 transition-all duration-700"
           style={{ width: scrolled ? "100%" : "0%", opacity: scrolled ? 1 : 0 }}
         />
 
         <Container size="xl" className="flex items-center justify-between h-16 lg:h-[68px] gap-4">
 
-          {/* ── Logo ─────────────────────────────────────────────────────── */}
-          <Link href="/" className="flex items-center gap-2.5 group flex-shrink-0">
+          {/* ── Logo + (below 1024px) the call chip, right of it ─────────── */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+          <Link href="/" className="flex items-center gap-2.5 group">
             {logoUrl ? (
               /* Logo image with border + shadow + glow */
               <div
@@ -335,6 +374,18 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
             )}
           </Link>
 
+          {/* Tap-to-call beside the logo below 1024px — the floating call
+              button is desktop-only, and this keeps one obvious call action
+              on phones and tablets without eating nav width. */}
+          <a
+            href={telHref(supportPhone)}
+            aria-label={`Call now — ${supportPhone}`}
+            className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-500 to-accent-600 text-white shadow-wt-accent transition-transform active:scale-95 lg:hidden"
+          >
+            <Phone size={16} />
+          </a>
+          </div>
+
           {/* ── Desktop nav — glass pill wraps ONLY the nav links ─────────── */}
           <nav className={`hidden lg:flex items-center gap-0.5 flex-1 justify-center ${navPillBg}`}>
             {navLinks.map((n, i) => {
@@ -370,9 +421,9 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                   {icon && (
                     <span className={`relative z-10 transition-colors duration-200 ${
                       active
-                        ? overHeroUnscrolled ? "text-[#F5713A]" : "text-primary-500"
+                        ? overHeroUnscrolled ? "text-accent-400" : "text-primary-500"
                         : overHeroUnscrolled
-                          ? "text-white/70 group-hover:text-[#F5713A]"
+                          ? "text-white/70 group-hover:text-accent-400"
                           : "text-ink-4 group-hover:text-primary-500"
                     }`}>
                       {icon}
@@ -383,7 +434,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                   {active && (
                     <span className={`
                       absolute -bottom-[9px] left-1/2 -translate-x-1/2 h-[3px] w-6 rounded-full
-                      ${overHeroUnscrolled ? "bg-[#F5713A]" : "bg-primary-500"}
+                      ${overHeroUnscrolled ? "bg-accent-400" : "bg-primary-500"}
                     `} />
                   )}
                 </Link>
@@ -591,10 +642,16 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
           </button>
         </Container>
 
-        {/* ── Mobile drawer ────────────────────────────────────────────────── */}
+        {/* ── Mobile drawer ──────────────────────────────────────────────────
+            The hairline lives on the drawer itself, so it has to go when the
+            drawer is closed: a collapsed (max-h-0) box still paints its top
+            border, which added a stray 1px to the header height and pushed the
+            full-bleed hero 1px out of register with the bar. */}
         <div
-          className={`lg:hidden border-t border-ink-7/60 bg-white/98 backdrop-blur-xl overflow-hidden transition-all duration-300 ease-out ${
-            open ? "max-h-[580px] opacity-100" : "max-h-0 opacity-0"
+          className={`lg:hidden bg-white/98 backdrop-blur-xl overflow-hidden transition-all duration-300 ease-out ${
+            open
+              ? "max-h-[580px] opacity-100 border-t border-ink-7/60"
+              : "max-h-0 opacity-0 border-t-0"
           }`}
         >
           <Container size="xl" className="py-3 space-y-0.5">
@@ -650,13 +707,6 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
           </Container>
         </div>
       </header>
-
-      <style>{`
-        @keyframes shimmer {
-          0%   { transform: translateX(-100%); }
-          100% { transform: translateX(200%); }
-        }
-      `}</style>
 
       {/* Site-wide auth modal — triggered by the Login / Sign Up button. */}
       <SiteAuthModal

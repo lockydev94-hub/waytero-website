@@ -223,7 +223,7 @@ export default async function PressPage() {
               <div className="flex flex-wrap gap-3">
                 <a
                   href={`mailto:${desk.email}?subject=Press%20enquiry`}
-                  className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-bold transition-all duration-300 hover:-translate-y-0.5 shadow-wt-accent"
+                  className="inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-white font-bold transition-all duration-300 hover:-translate-y-0.5 shadow-wt-accent"
                 >
                   <Mail className="h-4 w-4" aria-hidden />
                   {desk.email}

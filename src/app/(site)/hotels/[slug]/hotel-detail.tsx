@@ -278,7 +278,7 @@ function HotelContent({
               <div className="flex flex-wrap items-center gap-2.5">
                 <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">{hotel.hotel_name}</h1>
                 {hotel.is_featured && (
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-500 text-ink">
+                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-500 text-white">
                     Featured
                   </span>
                 )}

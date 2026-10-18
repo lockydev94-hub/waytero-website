@@ -177,7 +177,7 @@ export default function OfferDetail({ offer }: { offer: PublicOfferDetail }) {
                   {offer.service_type === "TOUR" && <MapPin className="h-3.5 w-3.5" />}
                   {SERVICE_LABEL[offer.service_type]} offer
                 </span>
-                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wide shadow-wt-accent">
+                <span className="inline-flex items-center rounded-full bg-gradient-to-r from-accent-500 to-accent-600 px-3.5 py-1 text-[11px] font-extrabold uppercase tracking-wide text-white shadow-wt-accent">
                   {offer.badge}
                 </span>
               </div>

@@ -177,9 +177,15 @@ body {
   line-height: 1.55;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+/* Kept in @layer base so an anchor's own `text-*` utility still wins. Declared
+   outside any layer it outranked every Tailwind layer, which silently overrode
+   text-white on solid brand surfaces (header CTA, call float, orange badges) and
+   stripped the typography plugin's prose link underline/colour. */
+@layer base {
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 img {

@@ -68,12 +68,15 @@ export default async function SiteLayout({ children }: { children: ReactNode }) 
         heroHasMedia={heroHasMedia}
         hiddenServices={hidden}
         officeHours={desk.hours}
+        whatsappHref={desk.whatsapp}
       />
       <main>{children}</main>
       <Footer cmsData={cms?.footer ?? null} hiddenServices={hidden} places={places} />
       {/* Live support chat — smart-routed to online admin agents */}
       <ChatWidget />
-      {/* Floating Call Now — stacked left of the chat launcher, no overlap */}
+      {/* Floating Call Now — desktop only, stacked vertically above the chat
+          launcher (both flush to the right edge). Below 1024px the call lives
+          in the header as a chip next to the logo instead. */}
       <CallNowButton />
       {/* Left-edge enquiry + feedback tabs, the enquiry modal and the
           bottom-left callback card. All one step behind the floats (z-40). */}

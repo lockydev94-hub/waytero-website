@@ -64,13 +64,14 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
 
   return (
     <section
-      className="relative isolate flex min-h-[100dvh] flex-col justify-center overflow-hidden text-white"
-      style={{
-        // Full-bleed: covers announcement bar + header height (36px bar + 68px header = ~104px)
-        // We use negative margin-top to pull the section up behind the sticky header
-        marginTop: hasMedia ? "-104px" : "0",
-        paddingTop: hasMedia ? "104px" : "0",
-      }}
+      /* Full-bleed: the media runs up behind the sticky header only, so it must
+         pull up by exactly the header height (h-16 → 64px, lg:h-[68px]) and pad
+         the same amount to keep the copy centred below the bar. It stops short
+         of the utility strip above the header — the strip is solid navy and has
+         to stay readable, so the hero is no longer allowed to cover it. */
+      className={`relative isolate flex min-h-[100dvh] flex-col justify-center overflow-hidden text-white${
+        hasMedia ? " -mt-16 lg:-mt-[68px] pt-16 lg:pt-[68px]" : ""
+      }`}
     >
       {/* ── Background: video takes priority over image ─────────────────── */}
       {bgVideo && (
@@ -184,7 +185,7 @@ export default function HeroSection({ variant, hiddenServices = [], offers = [] 
           <MotionFadeIn delay={0.2} className="mt-5 flex flex-wrap items-center justify-center gap-3">
             <a
               href={ctaLink!}
-              className="inline-flex items-center gap-2 h-10 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink text-sm font-bold shadow-[0_4px_20px_rgba(240,90,34,0.45)] hover:shadow-[0_6px_28px_rgba(240,90,34,0.55)] transition-all hover:-translate-y-0.5 active:translate-y-0"
+              className="inline-flex items-center gap-2 h-10 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-white text-sm font-bold shadow-[0_4px_20px_rgba(240,90,34,0.45)] hover:shadow-[0_6px_28px_rgba(240,90,34,0.55)] transition-all hover:-translate-y-0.5 active:translate-y-0"
             >
               {ctaText}
               <ArrowRight className="h-4 w-4" />

@@ -132,7 +132,7 @@ async function EmergencyBand() {
           <div className="flex flex-wrap gap-3 relative">
             <a
               href={desk.tel}
-              className="group/cta inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-ink font-bold transition-all duration-300 ease-[var(--ease-wt)] shadow-wt-accent hover:-translate-y-0.5 overflow-hidden relative"
+              className="group/cta inline-flex items-center gap-2 h-12 px-6 rounded-xl bg-accent-500 hover:bg-accent-600 text-white font-bold transition-all duration-300 ease-[var(--ease-wt)] shadow-wt-accent hover:-translate-y-0.5 overflow-hidden relative"
             >
               <span aria-hidden className="pointer-events-none absolute inset-y-0 w-1/3 bg-white/25 blur-md animate-shine" />
               <Phone className="h-4 w-4 relative" aria-hidden />

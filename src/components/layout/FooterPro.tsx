@@ -7,7 +7,7 @@ import {
 import { Container, MotionGlow } from "@/components/ui";
 import type { SiteFooterData } from "@/types/cms";
 import { displayPhone, telHref } from "@/lib/supportPhone";
-import { BRAND_SOCIALS } from "@/lib/brand";
+import { BRAND, BRAND_SOCIALS } from "@/lib/brand";
 import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
 // ── Fallback data ──────────────────────────────────────────────
@@ -144,13 +144,21 @@ export default function Footer({ cmsData, hiddenServices = [], places = [] }: Pr
             {/* Logo */}
             <Link href="/" className="inline-flex items-center gap-3 mb-5 group">
               {logoUrl ? (
-                <Image
-                  src={logoUrl}
-                  alt="WayTero"
-                  width={140}
-                  height={40}
-                  className="h-10 w-auto object-contain brightness-0 invert"
-                />
+                /* The uploaded logo is a dark/transparent PNG — inverting it to
+                   white left it invisible on the navy. It sits on its own white
+                   plate instead, so it reads on any admin-uploaded artwork. */
+                <span
+                  className="inline-flex items-center rounded-[10px] bg-white p-[3px]"
+                  style={{ boxShadow: "0 0 0 1px rgba(255,255,255,0.22), 0 4px 18px rgba(0,0,0,0.35)" }}
+                >
+                  <Image
+                    src={logoUrl}
+                    alt={BRAND.name}
+                    width={140}
+                    height={40}
+                    className="h-10 w-auto object-contain"
+                  />
+                </span>
               ) : (
                 <>
                   <div className="h-10 w-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
@@ -312,7 +320,7 @@ export default function Footer({ cmsData, hiddenServices = [], places = [] }: Pr
         <div className="flex flex-wrap items-center gap-4 text-xs" style={{ color: "rgba(255,255,255,0.3)" }}>
           <a
             href={telHref(displayPhone(cmsData?.support_phone))}
-            className="inline-flex items-center gap-1.5 transition-colors duration-300 hover:!text-white"
+            className="inline-flex items-center gap-1.5 transition-colors duration-300 hover:text-white"
           >
             <Phone className="h-3.5 w-3.5" />
             {displayPhone(cmsData?.support_phone)}

@@ -84,7 +84,7 @@ export default async function FeaturedHotelsSection({ variant, bg = "muted" }: F
                         </div>
                       )}
                       {h.is_featured && (
-                        <span className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-500 text-ink shadow-wt-accent">
+                        <span className="absolute top-3 left-3 z-10 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-accent-500 text-white shadow-wt-accent">
                           Featured
                         </span>
                       )}
