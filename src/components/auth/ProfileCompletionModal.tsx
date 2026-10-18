@@ -20,6 +20,7 @@
  */
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, Phone, User, Mail, Loader2, CheckCircle2, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -238,7 +239,10 @@ export default function ProfileCompletionModal({
         ? "We need your name so drivers and partners can address you correctly."
         : "We'll send booking confirmations and updates here. You can skip this — mobile OTP works too.";
 
-  return (
+  // Portalled to <body>: this modal is mounted inside the profile page's
+  // `lg:sticky` sidebar, and position: sticky creates a stacking context that
+  // would trap z-[600] below the page header.
+  return createPortal(
     <div
       className="fixed inset-0 z-[600] flex items-end sm:items-center justify-center sm:p-4 bg-[#0B1B3B]/60 backdrop-blur-sm"
       role="dialog"
@@ -481,6 +485,7 @@ export default function ProfileCompletionModal({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

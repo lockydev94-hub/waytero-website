@@ -10,6 +10,18 @@ import { cabService } from "@/services/cabService";
  */
 export type AuthMode = "EMAIL" | "MOBILE";
 
+/** Whether the account has a usable mobile. `has_real_mobile` is computed by
+ *  GET /customers/me; the client-side test is only a fallback for a profile
+ *  payload from a backend that predates the field. */
+function isRealMobile(profile: {
+  has_real_mobile?: boolean;
+  mobile_number?: string | null;
+}): boolean {
+  if (typeof profile.has_real_mobile === "boolean") return profile.has_real_mobile;
+  const m = profile.mobile_number ?? "";
+  return /^[6-9]\d{9}$/.test(m);
+}
+
 export interface AuthState {
   mode: AuthMode | null;
   user: { id?: string; name?: string; email?: string; phone?: string; avatar?: string } | null;
@@ -213,7 +225,7 @@ export const useAuth = create<AuthState>()(
           // Check if profile completion is needed (new OTP user has name="Customer")
           const profile = await cabService.getCustomerMe().catch(() => null);
           if (profile) {
-            const hasMobile = !!profile.mobile_number;
+            const hasMobile = isRealMobile(profile);
             const hasName = !!(profile.first_name && profile.first_name !== "Customer");
             set({ hasCompleteProfile: !!(hasMobile && hasName) });
           } else {
@@ -307,7 +319,7 @@ export const useAuth = create<AuthState>()(
           const res = await api.get("/customers/me");
           const profile = res.data?.data || res.data;
           if (!profile) throw new Error("No profile data");
-          const hasMobile = !!(profile.mobile_number && !profile.mobile_number.startsWith("fb_"));
+          const hasMobile = isRealMobile(profile);
           const hasName = !!(profile.first_name && profile.first_name !== "Customer");
           set({
             hasCompleteProfile: hasMobile && hasName,

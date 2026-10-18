@@ -226,7 +226,12 @@ async function get<T>(path: string, params?: Record<string, string | number>): P
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) {
     const json = await res.json().catch(() => ({}));
-    throw new Error(json?.detail ?? `${res.status} ${res.statusText}`);
+    // Carry the backend `code` (e.g. MOBILE_REQUIRED) so callers can branch on
+    // it instead of matching message text.
+    throw Object.assign(
+      new Error(json?.detail ?? json?.message ?? `${res.status} ${res.statusText}`),
+      { code: json?.code as string | undefined },
+    );
   }
   return res.json();
 }
@@ -238,7 +243,11 @@ async function post<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(json?.detail ?? json?.message ?? `${res.status} ${res.statusText}`);
+  if (!res.ok)
+    throw Object.assign(
+      new Error(json?.detail ?? json?.message ?? `${res.status} ${res.statusText}`),
+      { code: json?.code as string | undefined },
+    );
   return json;
 }
 
@@ -286,12 +295,16 @@ export const hotelService = {
    *  Returns the reservation + master booking numbers and the canonical
    *  server-computed total. */
   createBooking: async (body: CreateHotelBookingIn): Promise<CreateHotelBookingOut> => {
-    const { default: api } = await import("@/lib/api");
-    const res = await api.post<{ success: boolean; data: CreateHotelBookingOut }>(
-      "/public/hotel/create-booking",
-      body,
-    );
-    return res.data.data;
+    const { default: api, toFriendlyError } = await import("@/lib/api");
+    try {
+      const res = await api.post<{ success: boolean; data: CreateHotelBookingOut }>(
+        "/public/hotel/create-booking",
+        body,
+      );
+      return res.data.data;
+    } catch (e) {
+      throw toFriendlyError(e);
+    }
   },
 };
 

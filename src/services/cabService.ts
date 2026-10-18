@@ -185,6 +185,10 @@ export interface CustomerMeOut {
   first_name?: string | null;
   last_name?: string | null;
   mobile_number?: string | null;
+  /** Server-computed: mobile_number is a usable number, not the `fb_`
+   *  placeholder a Google-only account gets. Single source of truth for the
+   *  "must add a mobile before booking" rule. */
+  has_real_mobile?: boolean;
   email?: string | null;
   city_id?: number | null;
 }
@@ -348,23 +352,24 @@ export const cabService = {
    *  should surface that warning to the customer so they know why the
    *  total might differ from the quote step. */
   createBooking: async (body: CreateCabBookingIn) => {
-    const { default: api } = await import("@/lib/api");
-    const res = await api.post<{
-      success: boolean;
-      data: {
-        master_booking_number: string;
-        cab_booking_number: string;
-        status: string;
-        estimated_amount: number;
-        coupon_code: string | null;
-        coupon_discount: number;
-        warning: string | null;
-      };
-    }>(
-      "/public/cab/create-booking",
-      body,
-    );
-    return res.data.data;
+    const { default: api, toFriendlyError } = await import("@/lib/api");
+    try {
+      const res = await api.post<{
+        success: boolean;
+        data: {
+          master_booking_number: string;
+          cab_booking_number: string;
+          status: string;
+          estimated_amount: number;
+          coupon_code: string | null;
+          coupon_discount: number;
+          warning: string | null;
+        };
+      }>("/public/cab/create-booking", body);
+      return res.data.data;
+    } catch (e) {
+      throw toFriendlyError(e);
+    }
   },
 };
 

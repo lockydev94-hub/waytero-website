@@ -6,7 +6,8 @@
  * Shows the property (gallery, description, amenities, policy) plus every
  * active room category with its per-night price and availability for the
  * selected stay. "Book" prices the stay server-side (GET quote), then runs
- * the same flow as cabs: BookingAuthGate → HotelBookingReviewModal →
+ * the same flow as cabs: BookingAuthGate → ProfileCompletionModal (when the
+ * account has no real mobile) → HotelBookingReviewModal →
  * POST /public/hotel/create-booking → /bookings.
  *
  * Doc Ref: BRD Part 4 §57-92, public_hotel_api.py
@@ -24,6 +25,7 @@ import {
 import { Container, Card, MotionGlow, MotionReveal } from "@/components/ui";
 import HotelDateRangePicker from "@/components/forms/HotelDateRangePicker";
 import BookingAuthGate from "@/components/booking/BookingAuthGate";
+import ProfileCompletionModal from "@/components/auth/ProfileCompletionModal";
 import HotelBookingReviewModal from "@/components/booking/HotelBookingReviewModal";
 import HotelBookingSuccessModal, {
   type HotelBookingSuccessData,
@@ -98,6 +100,7 @@ function HotelContent({
   const [quote, setQuote] = useState<HotelQuoteOut | null>(null);
   const [quoting, setQuoting] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [successBooking, setSuccessBooking] = useState<HotelBookingSuccessData | null>(null);
@@ -164,7 +167,15 @@ function HotelContent({
       });
       setQuote(q);
       if (auth.user) {
-        setReviewOpen(true);
+        // Signed in is not enough: a Google-only account still carries the
+        // `fb_` placeholder mobile, and the platform requires a real number
+        // before any booking. Ask for it (or the missing name) first.
+        await useAuth.getState().checkProfileCompletion();
+        if (useAuth.getState().hasCompleteProfile) {
+          setReviewOpen(true);
+        } else {
+          setProfileOpen(true);
+        }
       } else {
         setAuthOpen(true);
       }
@@ -577,14 +588,44 @@ function HotelContent({
         </div>
       </Container>
 
-      {/* ── Booking flow: auth gate → review modal ─────────── */}
+      {/* ── Booking flow: auth gate → profile completion → review modal ── */}
       <BookingAuthGate
         open={authOpen}
         onClose={() => { setAuthOpen(false); setSelectedCat(null); setQuote(null); }}
-        onAuthenticated={() => { setAuthOpen(false); setReviewOpen(true); }}
+        onAuthenticated={async () => {
+          setAuthOpen(false);
+          await useAuth.getState().checkProfileCompletion();
+          // Read the freshly-computed flag from the store — the closure's
+          // snapshot predates the await above.
+          if (!useAuth.getState().hasCompleteProfile) {
+            setProfileOpen(true);
+            return;
+          }
+          setReviewOpen(true);
+        }}
         heading="Sign in to book your stay"
         subheading="We'll keep your reservation safe under your account."
       />
+
+      <ProfileCompletionModal
+        open={profileOpen}
+        onClose={() => {
+          // Abort: the stay is not booked and the selection is dropped.
+          setProfileOpen(false);
+          setSelectedCat(null);
+          setQuote(null);
+        }}
+        initialEmail={auth.user?.email}
+        initialMobile={auth.user?.phone}
+        initialName={auth.user?.name}
+        onComplete={() => {
+          // Keep `selectedCat`/`quote` — the review modal only renders while
+          // they are set; this is a continue, not an abort.
+          setProfileOpen(false);
+          setReviewOpen(true);
+        }}
+      />
+
       <HotelBookingReviewModal
         open={reviewOpen}
         onClose={() => { setReviewOpen(false); setSelectedCat(null); setQuote(null); }}

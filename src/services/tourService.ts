@@ -1,4 +1,4 @@
-import apiClient from "@/lib/api";
+import apiClient, { toFriendlyError } from "@/lib/api";
 
 export interface PublicTourPackage {
   id: number; slug: string; package_code: string; package_name: string; package_type: string; destination: string; city_id: number; city_name?: string;
@@ -97,7 +97,12 @@ export const tourService = {
     apiClient.get(`/public/tours/packages/${packageId}/quote`, { params: { persons } }).then(r => r.data),
 
   book: (data: any) =>
-    apiClient.post("/public/tours/bookings", data).then(r => r.data),
+    apiClient
+      .post("/public/tours/bookings", data)
+      .then((r) => r.data)
+      .catch((e) => {
+        throw toFriendlyError(e);
+      }),
 
   /**
    * Returns the top destinations (cities) with active tour packages.

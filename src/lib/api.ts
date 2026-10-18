@@ -95,6 +95,23 @@ apiClient.interceptors.response.use(
   },
 );
 
+/** Turn an axios failure into an Error carrying the backend's friendly message
+ *  and its machine-readable `code` (e.g. MOBILE_REQUIRED), so a submit handler
+ *  can branch on the code instead of matching message text. Raw AxiosErrors
+ *  only say "Request failed with status code 422". */
+export function toFriendlyError(error: unknown): Error {
+  if (axios.isAxiosError(error)) {
+    const data = error.response?.data as
+      | { message?: string; detail?: string; code?: string }
+      | undefined;
+    return Object.assign(
+      new Error(data?.message ?? data?.detail ?? error.message),
+      { code: data?.code, status: error.response?.status },
+    );
+  }
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 function clearSession() {
   Object.values(TOKEN_KEYS).forEach((k) => localStorage.removeItem(k));
   // Reset the zustand auth store too — otherwise the persisted `user` keeps
