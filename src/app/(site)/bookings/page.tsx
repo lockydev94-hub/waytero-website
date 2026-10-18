@@ -332,28 +332,30 @@ export default function MyBookingsPage() {
               })}
             </div>
 
-            <div className="flex items-end gap-2">
+            <div className="flex flex-wrap items-end gap-2">
               <Input
                 aria-label="Search bookings"
                 placeholder="Booking number or service"
                 leftIcon={<Search className="h-4 w-4" />}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                wrapperClassName="flex-1 lg:w-72 lg:flex-none"
+                wrapperClassName="w-full lg:w-80"
               />
-              {wsStatus === "open" && (
-                <Badge tone="success" size="sm" dot className="mb-3" title="Live updates on">
-                  Live
-                </Badge>
-              )}
-              <button
-                type="button"
-                onClick={() => list.refetch()}
-                aria-label="Refresh bookings"
-                className="h-11 w-11 flex-shrink-0 rounded-xl border border-ink-7 inline-flex items-center justify-center text-ink-4 hover:text-primary-600 hover:bg-primary-50 transition-colors"
-              >
-                <RefreshCw size={16} className={list.isFetching ? "animate-spin" : ""} />
-              </button>
+              <div className="flex items-center gap-2">
+                {wsStatus === "open" && (
+                  <Badge tone="success" size="sm" dot title="Live updates on">
+                    Live
+                  </Badge>
+                )}
+                <button
+                  type="button"
+                  onClick={() => list.refetch()}
+                  aria-label="Refresh bookings"
+                  className="h-11 w-11 flex-shrink-0 rounded-xl border border-ink-7 inline-flex items-center justify-center text-ink-4 hover:text-primary-600 hover:bg-primary-50 transition-colors"
+                >
+                  <RefreshCw size={16} className={list.isFetching ? "animate-spin" : ""} />
+                </button>
+              </div>
             </div>
           </div>
 
