@@ -33,6 +33,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotifications";
 import { cabService, type PublicCity } from "@/services/cabService";
 import customerProfileService, {
   type CustomerProfile,
@@ -65,6 +66,7 @@ function errorMessage(e: unknown): string {
 
 export default function CustomerProfilePage() {
   const auth = useAuth();
+  const { count: unread } = useUnreadNotificationCount();
   const qc = useQueryClient();
 
   const [authOpen, setAuthOpen] = useState(false);
@@ -139,7 +141,7 @@ export default function CustomerProfilePage() {
         bg="muted"
         overlay="dots-faint"
       />
-      <AccountTabs items={accountTabs()} active="/profile" />
+      <AccountTabs items={accountTabs(unread)} active="/profile" />
 
       <Section bg="white" pad="sm">
         <Container size="lg">

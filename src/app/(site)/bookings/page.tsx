@@ -37,6 +37,7 @@ import {
 } from "@/lib/cancellation";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotifications";
 import PageHero from "@/components/sections/PageHero";
 import AccountTabs, { accountTabs } from "@/components/layout/AccountTabs";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
@@ -75,6 +76,7 @@ function errorMessage(e: unknown): string {
 
 export default function MyBookingsPage() {
   const auth = useAuth();
+  const { count: unread } = useUnreadNotificationCount();
   const qc = useQueryClient();
   const [authOpen, setAuthOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState<string | null>(null);
@@ -301,7 +303,7 @@ export default function MyBookingsPage() {
         bg="muted"
         overlay="dots-faint"
       />
-      <AccountTabs items={accountTabs()} active="/bookings" />
+      <AccountTabs items={accountTabs(unread)} active="/bookings" />
 
       <Section bg="white" pad="sm">
         <Container size="lg">

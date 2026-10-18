@@ -15,7 +15,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LayoutDashboard, User, Wallet } from "lucide-react";
+import { Bell, LayoutDashboard, User, Wallet } from "lucide-react";
 import { Badge, Container } from "@/components/ui";
 
 export interface AccountTab {
@@ -27,12 +27,15 @@ export interface AccountTab {
 }
 
 /** The account sections, in nav order. One list so a new page is added in one
- *  place rather than five. */
-export function accountTabs(): AccountTab[] {
+ *  place rather than five. `unread` lights up the notifications tab from
+ *  wherever it is called — the same query backs the header bell, so the two
+ *  cannot disagree. */
+export function accountTabs(unread?: number): AccountTab[] {
   return [
     { href: "/profile", label: "Profile", icon: <User /> },
     { href: "/bookings", label: "Bookings", icon: <LayoutDashboard /> },
     { href: "/wallet", label: "Wallet", icon: <Wallet /> },
+    { href: "/notifications", label: "Notifications", icon: <Bell />, badge: unread },
   ];
 }
 

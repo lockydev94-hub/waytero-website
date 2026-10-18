@@ -8,10 +8,11 @@ import {
   Menu, X, Phone, ChevronDown,
   Car, Building2, Compass, Navigation,
   Info, Handshake, MessageCircle, UserCircle2, Users, Newspaper,
-  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy,
+  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy, Bell,
 } from "lucide-react";
 import { Container } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotifications";
 import { displayPhone, telHref } from "@/lib/supportPhone";
 import { BRAND } from "@/lib/brand";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
@@ -46,6 +47,15 @@ const SECONDARY = [
   { label: "About",           href: "/about" },
   { label: "Become a Partner", href: "/partner" },
   { label: "Contact",         href: "/contact" },
+];
+
+// The signed-in pages. On a phone the avatar dropdown does not exist, so until
+// now the drawer gave a customer no route at all to their own account.
+const ACCOUNT_LINKS = [
+  { label: "My Profile",    href: "/profile",       icon: <UserCircle2     className="h-[15px] w-[15px]" /> },
+  { label: "My Bookings",   href: "/bookings",      icon: <LayoutDashboard className="h-[15px] w-[15px]" /> },
+  { label: "My Wallet",     href: "/wallet",        icon: <WalletIcon      className="h-[15px] w-[15px]" /> },
+  { label: "Notifications", href: "/notifications", icon: <Bell            className="h-[15px] w-[15px]" /> },
 ];
 
 const DEFAULT_TAGLINE       = BRAND.tagline;
@@ -87,6 +97,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
   const profileRef = useRef<HTMLDivElement>(null);
 
   const isAuthed = !!auth.user;
+  const { count: unread } = useUnreadNotificationCount();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -507,6 +518,29 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
             )}
 
             {showLogin && isAuthed && (
+              <Link
+                href="/notifications"
+                aria-label={
+                  unread > 0 ? `Notifications, ${unread} unread` : "Notifications"
+                }
+                className={`
+                  relative inline-flex h-10 w-10 items-center justify-center rounded-xl border
+                  transition-all duration-200 cursor-pointer
+                  ${overHeroUnscrolled
+                    ? "border-white/30 hover:bg-white/15 hover:border-white/50 text-white"
+                    : "border-ink-7 hover:border-primary-300 hover:bg-primary-50/40 text-ink-2"}
+                `}
+              >
+                <Bell className="h-[18px] w-[18px]" />
+                {unread > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-accent-500 px-1 text-[10px] font-bold leading-none text-white">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </Link>
+            )}
+
+            {showLogin && isAuthed && (
               <div ref={profileRef} className="relative">
                 <button
                   type="button"
@@ -591,6 +625,20 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                         <UserCircle2 className="h-4 w-4 text-ink-4" />
                         My Profile
                       </Link>
+                      <Link
+                        href="/notifications"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-ink-2 hover:bg-orange-50 hover:text-[#E04A12] transition-colors"
+                        role="menuitem"
+                      >
+                        <Bell className="h-4 w-4 text-ink-4" />
+                        Notifications
+                        {unread > 0 && (
+                          <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent-500 px-1.5 text-[10px] font-bold text-white">
+                            {unread > 9 ? "9+" : unread}
+                          </span>
+                        )}
+                      </Link>
                     </div>
                     <div className="border-t border-ink-8 py-1.5">
                       <button
@@ -650,7 +698,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
         <div
           className={`lg:hidden bg-white/98 backdrop-blur-xl overflow-hidden transition-all duration-300 ease-out ${
             open
-              ? "max-h-[580px] opacity-100 border-t border-ink-7/60"
+              ? "max-h-[700px] opacity-100 border-t border-ink-7/60"
               : "max-h-0 opacity-0 border-t-0"
           }`}
         >
@@ -674,6 +722,41 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                 </Link>
               );
             })}
+            {showLogin && isAuthed && (
+              <div className="mt-2 border-t border-ink-7/40 pt-2">
+                <div className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                  Account
+                </div>
+                {/* Two columns, not four rows — the drawer already carries
+                    eight nav links and a taller block would not fit a phone. */}
+                <div className="grid grid-cols-2 gap-1.5 px-0.5">
+                  {ACCOUNT_LINKS.map((n) => {
+                    const badge = n.href === "/notifications" ? unread : 0;
+                    return (
+                      <Link
+                        key={`acct-${n.href}`}
+                        href={n.href}
+                        className={`flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition-all duration-150 ${
+                          isActive(n.href)
+                            ? "text-primary-600 bg-primary-50"
+                            : "text-ink-2 hover:bg-orange-50 hover:text-[#E04A12]"
+                        }`}
+                      >
+                        <span className={isActive(n.href) ? "text-primary-400" : "text-ink-4"}>
+                          {n.icon}
+                        </span>
+                        <span className="truncate">{n.label.replace(/^My /, "")}</span>
+                        {badge > 0 && (
+                          <span className="ml-auto inline-flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-accent-500 px-1.5 text-[10px] font-bold text-white">
+                            {badge > 9 ? "9+" : badge}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="pt-3 pb-1 flex gap-2 border-t border-ink-7/40 mt-2">
               {showLogin && !isAuthed && (
                 <button

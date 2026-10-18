@@ -27,6 +27,7 @@ import {
 import PageHero from "@/components/sections/PageHero";
 import AccountTabs, { accountTabs } from "@/components/layout/AccountTabs";
 import { useAuth } from "@/hooks/useAuth";
+import { useUnreadNotificationCount } from "@/hooks/useUnreadNotifications";
 import walletService, { type WalletSummary, type WalletLedgerEntry } from "@/services/walletService";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
 
@@ -87,6 +88,7 @@ function LedgerRow({ entry }: { entry: WalletLedgerEntry }) {
 
 export default function WalletPage() {
   const auth = useAuth();
+  const { count: unread } = useUnreadNotificationCount();
   const [authOpen, setAuthOpen] = useState(false);
   const [ledgerPage, setLedgerPage] = useState(1);
   const [loadedEntries, setLoadedEntries] = useState<WalletLedgerEntry[]>([]);
@@ -168,7 +170,7 @@ export default function WalletPage() {
         bg="muted"
         overlay="dots-faint"
       />
-      <AccountTabs items={accountTabs()} active="/wallet" />
+      <AccountTabs items={accountTabs(unread)} active="/wallet" />
 
       <Section bg="white" pad="sm" id="balance">
         <Container size="lg">
