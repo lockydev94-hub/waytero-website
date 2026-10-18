@@ -14,12 +14,37 @@
 // ============================================================
 
 import { useState } from "react";
+import { usePathname } from "next/navigation";
 import { PhoneOutgoing, X } from "lucide-react";
 import CallbackForm from "@/components/capture/CallbackForm";
 
+/**
+ * Lead capture for people who have not booked yet. The card is fixed to the
+ * bottom-left corner, so on a page whose form reaches the left edge of the
+ * container it covers live controls — everywhere a signed-in customer manages
+ * their own account, and on the sign-in / password flows, it is in the way and
+ * asking someone who already has an account to leave a number.
+ */
+const SUPPRESSED_PREFIXES = [
+  "/profile",
+  "/bookings",
+  "/wallet",
+  "/notifications",
+  "/account-security",
+  "/account-deletion",
+  "/feedback",
+  "/login",
+  "/register",
+  "/forgot-password",
+];
+
 export default function CallbackCard() {
   const [dismissed, setDismissed] = useState(false);
+  const pathname = usePathname();
   if (dismissed) return null;
+  if (SUPPRESSED_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return null;
+  }
 
   return (
     <aside
