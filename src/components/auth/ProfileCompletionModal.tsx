@@ -184,10 +184,12 @@ export default function ProfileCompletionModal({
     }
     setLoading(true);
     try {
-      const { default: api } = await import("@/lib/api");
+      const { default: api, toFriendlyError } = await import("@/lib/api");
       await api.patch("/customers/me", {
         first_name: firstName.trim(),
         last_name: lastName.trim() || undefined,
+      }).catch((e) => {
+        throw toFriendlyError(e);
       });
       await auth.checkProfileCompletion();
       toast.success("Profile updated");

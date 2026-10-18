@@ -277,8 +277,13 @@ export const cabService = {
    *  Google sign-in when no SMS provider is integrated; when SMS is active use
    *  sendOtp + attachMobile instead. */
   saveMobile: (mobile: string) =>
-    import("@/lib/api").then(({ default: api }) =>
-      api.patch<CustomerMeOut>("/customers/me/mobile", { mobile_number: mobile }).then((r) => r.data),
+    import("@/lib/api").then(({ default: api, toFriendlyError }) =>
+      api
+        .patch<CustomerMeOut>("/customers/me/mobile", { mobile_number: mobile })
+        .then((r) => r.data)
+        .catch((e) => {
+          throw toFriendlyError(e);
+        }),
     ),
 
   // ── OTP login (backend issues the tokens; dev_otp returned in non-prod) ──
@@ -340,8 +345,13 @@ export const cabService = {
 
   /** Attach / update the email on the current account (mobile-OTP login flow). */
   updateEmail: (email: string) =>
-    import("@/lib/api").then(({ default: api }) =>
-      api.patch<CustomerMeOut>("/customers/me/email", { email }).then((r) => r.data),
+    import("@/lib/api").then(({ default: api, toFriendlyError }) =>
+      api
+        .patch<CustomerMeOut>("/customers/me/email", { email })
+        .then((r) => r.data)
+        .catch((e) => {
+          throw toFriendlyError(e);
+        }),
     ),
 
   /** Auth required — token auto-attached by the apiClient interceptor.
