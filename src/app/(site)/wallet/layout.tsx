@@ -6,7 +6,7 @@ export async function generateMetadata() {
   return pageMetadata("wallet", "/wallet", {
     title: "Travel Wallet",
     description:
-      "WayTero Travel Wallet — instant refunds, transparent balance, and a full transaction audit trail.",
+      "WayTero Travel Wallet — transparent balance and a full transaction audit trail.",
     keywords: ["travel wallet", "refund wallet", "WayTero wallet"],
   });
 }

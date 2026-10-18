@@ -3,7 +3,9 @@ import { ReactNode } from "react";
 interface EmptyStateProps {
   icon?: ReactNode;
   title: string;
-  description?: string;
+  /** A node, not just a string, so a second sentence can be its own line
+   *  instead of being concatenated onto the first. */
+  description?: ReactNode;
   action?: ReactNode;
   className?: string;
 }

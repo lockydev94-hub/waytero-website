@@ -22,9 +22,10 @@ import {
   Calendar, Hash,
 } from "lucide-react";
 import {
-  Badge, Breadcrumb, Button, ButtonLink, Card, Container, EmptyState, IconBox, Section, Skeleton,
+  Badge, Button, ButtonLink, Card, Container, EmptyState, IconBox, Section, Skeleton,
 } from "@/components/ui";
 import PageHero from "@/components/sections/PageHero";
+import AccountTabs, { accountTabs } from "@/components/layout/AccountTabs";
 import { useAuth } from "@/hooks/useAuth";
 import walletService, { type WalletSummary, type WalletLedgerEntry } from "@/services/walletService";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
@@ -167,11 +168,10 @@ export default function WalletPage() {
         bg="muted"
         overlay="dots-faint"
       />
+      <AccountTabs items={accountTabs()} active="/wallet" />
 
       <Section bg="white" pad="sm" id="balance">
         <Container size="lg">
-          <Breadcrumb items={[{ label: "My Wallet" }]} className="mb-5" />
-
           {summaryQuery.isError ? (
             <EmptyState
               icon={<WalletIcon />}

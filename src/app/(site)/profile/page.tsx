@@ -1,20 +1,19 @@
 "use client";
 
 /**
- * /profile — customer account page (premium redesign).
+ * /profile — customer account page.
  *
- * Shows identity (name, mobile, email, customer code, referral), lets the
- * customer edit personal details (first/last name, gender, date of birth,
- * city) and manage saved addresses (add / set default / delete). Links out
- * to My Bookings.
+ * Shows identity (name, customer code, referral, member-since) and contact
+ * details, lets the customer edit personal details (first/last name, gender,
+ * date of birth, city) and manage saved addresses (add / set default /
+ * delete). Cross-account navigation comes from the shared AccountTabs shell.
  *
  * Doc Ref: API Doc — Customer endpoints (GET/PATCH /customers/me,
  * /customers/me/addresses)
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import {
   User,
@@ -23,13 +22,11 @@ import {
   MapPin,
   Calendar,
   Tag,
-  ChevronRight,
   Loader2,
   Plus,
   Trash2,
   Star,
   ShieldCheck,
-  LayoutDashboard,
   LogIn,
   Home,
   Briefcase,
@@ -42,7 +39,12 @@ import customerProfileService, {
   type CustomerAddress,
 } from "@/services/customerProfileService";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
-import { Card, Button, IconBox, MotionGlow } from "@/components/ui";
+import PageHero from "@/components/sections/PageHero";
+import AccountTabs, { accountTabs } from "@/components/layout/AccountTabs";
+import {
+  Avatar, Badge, Button, Card, Container, EmptyState, IconBox, Input, Section,
+  Select, Skeleton, SkeletonText, MotionGlow,
+} from "@/components/ui";
 
 const GENDER_LABELS: Record<string, string> = {
   MALE: "Male",
@@ -56,17 +58,12 @@ const ADDRESS_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
-const fieldCls =
-  "w-full h-11 rounded-xl bg-white border border-ink-7 px-4 text-sm focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15";
-const labelCls = "block text-xs font-bold uppercase tracking-wider text-ink-3 mb-2";
-
 function errorMessage(e: unknown): string {
   const err = e as { response?: { data?: { message?: string; detail?: string } }; message?: string };
   return err?.response?.data?.message || err?.response?.data?.detail || err?.message || "Something went wrong";
 }
 
 export default function CustomerProfilePage() {
-  const router = useRouter();
   const auth = useAuth();
   const qc = useQueryClient();
 
@@ -100,9 +97,7 @@ export default function CustomerProfilePage() {
           <MotionGlow color="primary" intensity={0.18} size={520}>
             <Card variant="premium" className="p-8 text-center relative overflow-hidden bg-white/85 backdrop-blur-md">
               <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-              <div className="mx-auto h-16 w-16 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center mb-4 shadow-wt-primary group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-                <User className="h-8 w-8" />
-              </div>
+              <IconBox icon={<User />} tone="primary" size="xl" gradient glow className="mx-auto mb-4" />
               <h1 className="text-2xl font-extrabold text-ink tracking-tight">
                 Sign in to view your <span className="text-gradient-primary">profile</span>
               </h1>
@@ -135,106 +130,93 @@ export default function CustomerProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50/40 via-white to-accent-50/20">
-      {/* ── Hero ──────────────────────────────────────────── */}
-      <div className="relative bg-ink text-white overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -top-32 -right-32 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl" />
-        <div aria-hidden className="pointer-events-none absolute -bottom-24 -left-24 h-64 w-64 rounded-full bg-accent-500/15 blur-3xl" />
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 pt-10 pb-12 sm:pt-14 sm:pb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-xs font-semibold tracking-wider uppercase mb-4">
-            <User className="h-3.5 w-3.5" /> Account
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
-            My <span className="text-gradient-primary">Profile</span>
-          </h1>
-          <p className="mt-3 text-sm sm:text-base text-white/70 max-w-2xl">
-            Keep your details current so drivers and partners can reach you easily. Your
-            mobile stays private for OTP verification and trip updates.
-          </p>
-        </div>
-      </div>
+    <>
+      <PageHero
+        eyebrow="Account"
+        title="My Profile"
+        accent="Profile"
+        description="Keep your details current so the partner and the driver on your booking can reach you."
+        bg="muted"
+        overlay="dots-faint"
+      />
+      <AccountTabs items={accountTabs()} active="/profile" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 -mt-6 sm:-mt-8 pb-12">
-        {profileQuery.isLoading && (
-          <div className="grid lg:grid-cols-[340px_1fr] gap-5 sm:gap-6">
-            <div className="space-y-5">
-              <div className="bg-white border border-ink-7 rounded-2xl p-6 animate-pulse h-64" />
-            </div>
-            <div className="space-y-5">
-              <div className="bg-white border border-ink-7 rounded-2xl p-6 animate-pulse h-72" />
-            </div>
-          </div>
-        )}
-
-        {profileQuery.isError && (
-          <Card variant="premium" className="p-10 text-center relative overflow-hidden">
-            <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-            <div className="mx-auto h-12 w-12 rounded-2xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center mb-3 shadow-wt-primary">
-              <RefreshCw className="h-6 w-6" />
-            </div>
-            <h3 className="text-lg font-bold text-ink">Couldn't load your profile</h3>
-            <p className="mt-2 text-sm text-ink-3">
-              {errorMessage(profileQuery.error)} If your session expired, sign in again.
-            </p>
-            <Button
-              type="button"
-              variant="gradient-primary"
-              size="md"
-              shine
-              leftIcon={<RefreshCw className="h-4 w-4" />}
-              onClick={() => profileQuery.refetch()}
-              className="mt-4 mx-auto"
-            >
-              Retry
-            </Button>
-          </Card>
-        )}
-
-        {profile && (
-          <div className="grid lg:grid-cols-[340px_1fr] gap-5 sm:gap-6">
-            {/* ── Left rail ─────────────────────────────────── */}
-            <aside className="space-y-5 self-start lg:sticky lg:top-24">
-              <IdentityCard profile={profile} cityName={cityName} />
-              <ContactCard profile={profile} />
-              <Card variant="premium" className="p-5">
-                <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-ink-3 mb-3">
-                  Quick links
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => router.push("/bookings")}
-                  className="group w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-ink-2 hover:bg-primary-50 hover:text-primary-700 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-wt-sm text-left"
-                >
-                  <span className="h-7 w-7 rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-                    <LayoutDashboard className="h-3.5 w-3.5" />
-                  </span>
-                  My Bookings
-                  <ChevronRight className="h-4 w-4 ml-auto text-ink-4 group-hover:text-primary-600 group-hover:translate-x-0.5 transition-all" />
-                </button>
+      <Section bg="white" pad="sm">
+        <Container size="lg">
+          {profileQuery.isLoading && (
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-[340px_1fr]">
+              <Card variant="premium" className="p-6">
+                <Skeleton className="h-16 w-16 rounded-2xl" />
+                <SkeletonText lines={4} className="mt-4" />
               </Card>
-            </aside>
+              <div className="space-y-5">
+                <Card variant="premium" className="p-6">
+                  <SkeletonText lines={7} />
+                </Card>
+                <Card variant="premium" className="p-6">
+                  <SkeletonText lines={3} />
+                </Card>
+              </div>
+            </div>
+          )}
 
-            {/* ── Right column ───────────────────────────────── */}
-            <main className="space-y-5 min-w-0">
-              <EditProfileCard
-                profile={profile}
-                cities={cities}
-                onSaved={(updated) => {
-                  qc.setQueryData<CustomerProfile>(["customer-profile"], updated);
-                  void auth.checkProfileCompletion(); // keep header name in sync
-                }}
-              />
-              <AddressesCard
-                profile={profile}
-                cities={cities}
-                cityName={cityName}
-                onChanged={() => qc.invalidateQueries({ queryKey: ["customer-profile"] })}
-              />
-            </main>
-          </div>
-        )}
-      </div>
-    </div>
+          {profileQuery.isError && (
+            <EmptyState
+              icon={<RefreshCw />}
+              title="Couldn't load your profile"
+              description={
+                <>
+                  {errorMessage(profileQuery.error)}
+                  <span className="mt-1 block text-ink-4">
+                    If your session expired, sign in again.
+                  </span>
+                </>
+              }
+              action={
+                <Button
+                  type="button"
+                  variant="gradient-primary"
+                  size="md"
+                  shine
+                  leftIcon={<RefreshCw className="h-4 w-4" />}
+                  onClick={() => profileQuery.refetch()}
+                >
+                  Retry
+                </Button>
+              }
+            />
+          )}
+
+          {profile && (
+            <div className="grid gap-5 sm:gap-6 lg:grid-cols-[340px_1fr]">
+              {/* ── Left rail ─────────────────────────────────── */}
+              <aside className="space-y-5 self-start lg:sticky lg:top-24">
+                <IdentityCard profile={profile} cityName={cityName} />
+                <ContactCard profile={profile} />
+              </aside>
+
+              {/* ── Right column ───────────────────────────────── */}
+              <main className="space-y-5 min-w-0">
+                <EditProfileCard
+                  profile={profile}
+                  cities={cities}
+                  onSaved={(updated) => {
+                    qc.setQueryData<CustomerProfile>(["customer-profile"], updated);
+                    void auth.checkProfileCompletion(); // keep header name in sync
+                  }}
+                />
+                <AddressesCard
+                  profile={profile}
+                  cities={cities}
+                  cityName={cityName}
+                  onChanged={() => qc.invalidateQueries({ queryKey: ["customer-profile"] })}
+                />
+              </main>
+            </div>
+          )}
+        </Container>
+      </Section>
+    </>
   );
 }
 
@@ -252,7 +234,6 @@ function IdentityCard({
     [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
     profile.email?.split("@")[0] ||
     "Customer";
-  const initial = (fullName.trim()[0] ?? "W").toUpperCase();
   const memberSince = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString(undefined, {
         day: "2-digit",
@@ -262,59 +243,63 @@ function IdentityCard({
     : "—";
 
   return (
-    <Card variant="premium" className="overflow-hidden p-0">
-      <div className="relative h-20 px-6 flex items-end overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary-700 via-primary-600 to-accent-600" />
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/40 to-transparent" />
-        <div aria-hidden className="pointer-events-none absolute -top-12 -right-8 h-32 w-32 rounded-full bg-white/15 blur-2xl" />
-      </div>
-      <div className="px-6 pb-5 -mt-8">
-        <div className="h-16 w-16 rounded-2xl inline-flex items-center justify-center text-2xl font-black text-white shadow-lg border-4 border-white bg-gradient-to-br from-primary-500 to-primary-700">
-          {initial}
-        </div>
-        <h2 className="mt-3 text-xl font-extrabold text-ink tracking-tight break-words">{fullName}</h2>
-        <div className="mt-2 space-y-1.5 text-xs text-ink-4">
-          <div className="flex items-center gap-1.5">
-            <IdCardGlyph />
-            {profile.customer_code}
+    <Card variant="premium" padded={false}>
+      <div className="p-5">
+        <div className="flex items-center gap-3">
+          <Avatar name={fullName} size="lg" />
+          <div className="min-w-0">
+            <h2 className="text-lg font-extrabold text-ink tracking-tight break-words leading-snug">
+              {fullName}
+            </h2>
+            <p className="mt-0.5 text-[11px] font-semibold uppercase tracking-wider text-ink-4">
+              Customer · {profile.customer_code}
+            </p>
           </div>
+        </div>
+
+        <dl className="mt-4 space-y-2 text-xs">
           {profile.referral_code && (
-            <div className="flex items-center gap-1.5">
-              <Tag className="h-3.5 w-3.5" /> Referral · {profile.referral_code}
-            </div>
+            <MetaRow icon={<Tag />} label="Referral code" value={profile.referral_code} />
           )}
           {profile.city_id != null && (
-            <div className="flex items-center gap-1.5">
-              <MapPin className="h-3.5 w-3.5" /> {cityName(profile.city_id)}
-            </div>
+            <MetaRow icon={<MapPin />} label="City" value={cityName(profile.city_id)} />
           )}
-          <div className="flex items-center gap-1.5">
-            <Calendar className="h-3.5 w-3.5" /> Member since {memberSince}
-          </div>
-        </div>
+          <MetaRow icon={<Calendar />} label="Member since" value={memberSince} />
+        </dl>
       </div>
-      <div className="px-6 py-3 border-t border-ink-8 bg-gradient-to-r from-emerald-50/40 to-white flex items-center gap-2 text-[11px] text-ink-4">
-        <span className="h-5 w-5 rounded-md bg-gradient-to-br from-emerald-400 to-emerald-600 text-white inline-flex items-center justify-center">
-          <ShieldCheck className="h-3 w-3" />
+
+      <div className="flex items-center justify-between gap-3 border-t border-ink-8 px-5 py-3">
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-ink-4">
+          <ShieldCheck className="h-3.5 w-3.5 text-ink-3" aria-hidden />
+          Account status
         </span>
-        {profile.is_active ? "Account active" : "Account inactive"}
+        <Badge tone={profile.is_active ? "success" : "warning"} size="sm" dot>
+          {profile.is_active ? "Active" : "Inactive"}
+        </Badge>
       </div>
     </Card>
   );
 }
 
-function IdCardGlyph() {
+function MetaRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="text-ink-4">
-      <path
-        d="M4 6h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-      />
-      <circle cx="8.5" cy="12" r="1.8" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M5.5 15.5c.7-1.4 1.7-2 3-2s2.3.6 3 2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M15 10h4M15 13h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-    </svg>
+    <div className="flex items-center gap-2">
+      <span className="text-ink-4 [&>svg]:h-3.5 [&>svg]:w-3.5" aria-hidden>
+        {icon}
+      </span>
+      <dt className="text-ink-4">{label}</dt>
+      <dd className="ml-auto font-semibold text-ink-2 text-right break-words min-w-0">
+        {value}
+      </dd>
+    </div>
   );
 }
 
@@ -324,34 +309,32 @@ function IdCardGlyph() {
 function ContactCard({ profile }: { profile: CustomerProfile }) {
   const mobileDisplay =
     profile.mobile_number && !profile.mobile_number.startsWith("fb_")
-      ? `+91 ${profile.mobile_number}`
-      : "Not verified";
+      ? profile.mobile_number
+      : "Not set";
   return (
-    <Card variant="premium" className="p-5">
-      <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-gradient-primary mb-3">
-        Contact details
-      </h3>
-      <div className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center flex-shrink-0 shadow-wt-sm">
-            <Phone className="h-4 w-4" />
+    <Card variant="premium" padded={false}>
+      <div className="p-5">
+        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-gradient-primary mb-4">
+          Contact details
+        </h3>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <IconBox icon={<Phone />} tone="primary" size="sm" />
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Mobile</div>
+              <div className="text-sm font-semibold text-ink truncate">{mobileDisplay}</div>
+            </div>
           </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Mobile</div>
-            <div className="text-sm font-semibold text-ink truncate">{mobileDisplay}</div>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-violet-500 to-violet-700 text-white inline-flex items-center justify-center flex-shrink-0 shadow-wt-sm">
-            <Mail className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Email</div>
-            <div className="text-sm font-semibold text-ink truncate">{profile.email || "—"}</div>
+          <div className="flex items-center gap-3">
+            <IconBox icon={<Mail />} tone="info" size="sm" />
+            <div className="min-w-0">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Email</div>
+              <div className="text-sm font-semibold text-ink truncate">{profile.email || "—"}</div>
+            </div>
           </div>
         </div>
       </div>
-      <p className="mt-3 text-[11px] text-ink-4 leading-snug">
+      <p className="border-t border-ink-8 px-5 py-3 text-[11px] text-ink-4 leading-snug">
         Your mobile is used for OTP logins and trip updates. Changes are verified via OTP.
       </p>
     </Card>
@@ -411,68 +394,55 @@ function EditProfileCard({
   return (
     <Card variant="premium" className="relative overflow-hidden p-5 sm:p-6">
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-      <div className="flex items-center gap-2 mb-4">
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center shadow-wt-sm">
-          <User className="h-4 w-4" />
-        </div>
+      <div className="flex items-center gap-3 mb-5">
+        <IconBox icon={<User />} tone="primary" size="sm" />
         <div>
           <h3 className="text-sm font-extrabold text-ink">Personal details</h3>
-          <p className="text-[11px] text-ink-4">How drivers and partners address you.</p>
+          <p className="text-[11px] text-ink-4">How the partner and the driver on your booking address you.</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className={labelCls}>First name</label>
-          <input
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            placeholder="First name"
-            className={fieldCls}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Last name</label>
-          <input
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            placeholder="Last name"
-            className={fieldCls}
-          />
-        </div>
-        <div>
-          <label className={labelCls}>Gender</label>
-          <select value={gender} onChange={(e) => setGender(e.target.value)} className={fieldCls}>
-            <option value="">Select</option>
-            {Object.entries(GENDER_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className={labelCls}>Date of birth</label>
-          <input
-            type="date"
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-            className={fieldCls}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <label className={labelCls}>City</label>
-          <select value={cityId} onChange={(e) => setCityId(e.target.value)} className={fieldCls}>
-            <option value="">Select city</option>
-            {cities.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Input
+          label="First name"
+          required
+          value={firstName}
+          onChange={(e) => setFirstName(e.target.value)}
+          placeholder="First name"
+        />
+        <Input
+          label="Last name"
+          value={lastName}
+          onChange={(e) => setLastName(e.target.value)}
+          placeholder="Last name"
+        />
+        <Select label="Gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+          <option value="">Select</option>
+          {Object.entries(GENDER_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </Select>
+        <Input
+          label="Date of birth"
+          type="date"
+          value={dateOfBirth}
+          onChange={(e) => setDateOfBirth(e.target.value)}
+        />
+        <Select
+          label="City"
+          wrapperClassName="sm:col-span-2"
+          value={cityId}
+          onChange={(e) => setCityId(e.target.value)}
+        >
+          <option value="">Select city</option>
+          {cities.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </Select>
       </div>
 
       <Button
@@ -575,11 +545,9 @@ function AddressesCard({
   return (
     <Card variant="premium" className="relative overflow-hidden p-5 sm:p-6">
       <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-500/70 to-transparent" />
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 text-white inline-flex items-center justify-center shadow-wt-sm">
-            <MapPin className="h-4 w-4" />
-          </div>
+      <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="flex items-center gap-3">
+          <IconBox icon={<MapPin />} tone="success" size="sm" />
           <div>
             <h3 className="text-sm font-extrabold text-ink">Saved addresses</h3>
             <p className="text-[11px] text-ink-4">Pickups and drop-offs you use often.</p>
@@ -599,67 +567,59 @@ function AddressesCard({
       {showForm && (
         <div className="rounded-2xl border border-primary-200 bg-primary-50/30 p-4 mb-4 space-y-3">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className={labelCls}>Type</label>
-              <select value={type} onChange={(e) => setType(e.target.value)} className={fieldCls}>
-                {Object.entries(ADDRESS_TYPE_LABELS).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label className={labelCls}>City</label>
-              <select value={city} onChange={(e) => setCity(e.target.value)} className={fieldCls}>
-                <option value="">Select city</option>
-                {cities.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <Select
+              label="Type"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+            >
+              {Object.entries(ADDRESS_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </Select>
+            <Select
+              label="City"
+              wrapperClassName="sm:col-span-2"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            >
+              <option value="">Select city</option>
+              {cities.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </Select>
           </div>
-          <div>
-            <label className={labelCls}>Address line 1</label>
-            <input
-              type="text"
-              value={line1}
-              onChange={(e) => setLine1(e.target.value)}
-              placeholder="House no., street, area"
-              className={fieldCls}
-            />
-          </div>
+          <Input
+            label="Address line 1"
+            required
+            value={line1}
+            onChange={(e) => setLine1(e.target.value)}
+            placeholder="House no., street, area"
+          />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className={labelCls}>Address line 2 (optional)</label>
-              <input
-                type="text"
-                value={line2}
-                onChange={(e) => setLine2(e.target.value)}
-                placeholder="Landmark, building"
-                className={fieldCls}
-              />
-            </div>
-            <div>
-              <label className={labelCls}>Postal code</label>
-              <input
-                type="text"
-                inputMode="numeric"
-                value={postal}
-                onChange={(e) => setPostal(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                placeholder="PIN code"
-                className={fieldCls}
-              />
-            </div>
+            <Input
+              label="Address line 2 (optional)"
+              value={line2}
+              onChange={(e) => setLine2(e.target.value)}
+              placeholder="Landmark, building"
+            />
+            <Input
+              label="Postal code"
+              inputMode="numeric"
+              value={postal}
+              onChange={(e) => setPostal(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              placeholder="PIN code"
+            />
           </div>
           <label className="flex items-center gap-2 text-sm text-ink-2 cursor-pointer">
             <input
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
-              className="h-4 w-4 rounded border-ink-7 text-primary-600 focus:ring-primary-600/20 accent-[#F05A22]"
+              className="h-4 w-4 rounded border-ink-7 text-primary-600 focus:ring-primary-600/20 accent-primary-600"
             />
             Set as my default address
           </label>
@@ -678,13 +638,12 @@ function AddressesCard({
       )}
 
       {addresses.length === 0 && !showForm && (
-        <div className="rounded-xl bg-gradient-to-br from-ink-9/40 to-white border border-ink-8 p-6 text-center">
-          <div className="mx-auto h-10 w-10 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center mb-2 shadow-wt-sm">
-            <MapPin className="h-4 w-4" />
-          </div>
-          <p className="text-sm font-semibold text-ink">No saved addresses</p>
-          <p className="text-xs text-ink-4 mt-1">Add a home or work address for faster booking.</p>
-        </div>
+        <EmptyState
+          icon={<MapPin />}
+          title="No saved addresses"
+          description="Add a home or work address to reuse it on your next booking."
+          className="m-0"
+        />
       )}
 
       <ul className="space-y-2.5">
@@ -719,18 +678,16 @@ function AddressRow({
   const TypeIcon = address.address_type === "WORK" ? Briefcase : address.address_type === "OTHER" ? Star : Home;
   return (
     <li className="group rounded-xl border border-ink-8 bg-white px-4 py-3 flex items-start gap-3 transition-all duration-300 ease-[var(--ease-wt)] hover:-translate-y-0.5 hover:border-primary-200 hover:shadow-wt-sm">
-      <span className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white inline-flex items-center justify-center flex-shrink-0 group-hover:scale-110 group-hover:-rotate-3 transition-transform">
-        <TypeIcon className="h-4 w-4" />
-      </span>
+      <IconBox icon={<TypeIcon />} tone="primary" size="sm" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-xs font-bold uppercase tracking-wider text-gradient-primary">
             {ADDRESS_TYPE_LABELS[address.address_type ?? "OTHER"] ?? "Other"}
           </span>
           {address.is_default && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase tracking-wider">
-              <Star className="h-2.5 w-2.5" /> Default
-            </span>
+            <Badge tone="success" size="sm" icon={<Star className="h-2.5 w-2.5" />}>
+              Default
+            </Badge>
           )}
         </div>
         <div className="text-sm text-ink mt-0.5">
@@ -742,12 +699,12 @@ function AddressRow({
             {address.postal_code ? ` · ${address.postal_code}` : ""}
           </div>
         )}
-        <div className="mt-1.5 flex items-center gap-3">
+        <div className="mt-2 flex items-center gap-2">
           {!address.is_default && (
             <button
               type="button"
               onClick={onSetDefault}
-              className="text-[11px] font-bold text-primary-600 hover:text-primary-700"
+              className="rounded-lg px-2 py-1 text-[11px] font-bold text-primary-700 hover:bg-primary-50 transition-colors"
             >
               Set as default
             </button>
@@ -755,7 +712,7 @@ function AddressRow({
           <button
             type="button"
             onClick={onDelete}
-            className="text-[11px] font-bold text-red-600 hover:text-red-700 inline-flex items-center gap-1"
+            className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-danger hover:bg-danger-soft transition-colors"
           >
             <Trash2 className="h-3 w-3" /> Delete
           </button>
