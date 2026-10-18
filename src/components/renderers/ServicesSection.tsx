@@ -51,7 +51,7 @@ export default function ServicesSection({ variant, bg = "muted", hidden = [] }: 
 
         <Carousel ariaLabel="Services">
           {items.map((s) => {
-            const Icon = typeof s.icon === "string" && ICONS[s.icon] ? ICONS[s.icon] : s.icon || Car;
+            const Icon = typeof s.icon === "string" ? (ICONS[s.icon] ?? Car) : s.icon || Car;
             const tone = (["primary", "accent", "success", "info"] as const).includes(s.tone as never) ? (s.tone as never) : "primary";
             return (
               <MotionStaggerItem

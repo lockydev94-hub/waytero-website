@@ -34,9 +34,9 @@ export default function TestimonialsSection({ variant, bg = "muted" }: Testimoni
       <Container size="lg">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Customer testimonials">
-          {items.map((t) => (
+          {items.map((t, idx) => (
             <MotionStaggerItem
-              key={t.name}
+              key={`${t.name}-${idx}`}
               className="h-full w-[86%] min-w-[290px] max-w-[736px] shrink-0 grow snap-start sm:w-[475px]"
             >
               <MotionGlow color="primary" intensity={0.18} size={300} className="h-full rounded-2xl">

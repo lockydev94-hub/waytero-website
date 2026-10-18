@@ -47,7 +47,7 @@ export default function WhyUsSection({ variant, bg = "white" }: WhyUsSectionProp
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Why WayTero">
           {items.map((r) => {
-            const Icon = typeof r.icon === "string" && ICONS[r.icon] ? ICONS[r.icon] : r.icon || Zap;
+            const Icon = typeof r.icon === "string" ? (ICONS[r.icon] ?? Zap) : r.icon || Zap;
             const tone = (["primary", "success", "accent", "info", "warning", "danger"] as const).includes(r.tone as never) ? (r.tone as never) : "primary";
             return (
               <MotionStaggerItem
