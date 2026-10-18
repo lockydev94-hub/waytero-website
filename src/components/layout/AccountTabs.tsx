@@ -15,7 +15,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { Bell, LayoutDashboard, User, Wallet } from "lucide-react";
+import { Bell, LayoutDashboard, ShieldCheck, User, Wallet } from "lucide-react";
 import { Badge, Container } from "@/components/ui";
 
 export interface AccountTab {
@@ -36,6 +36,7 @@ export function accountTabs(unread?: number): AccountTab[] {
     { href: "/bookings", label: "Bookings", icon: <LayoutDashboard /> },
     { href: "/wallet", label: "Wallet", icon: <Wallet /> },
     { href: "/notifications", label: "Notifications", icon: <Bell />, badge: unread },
+    { href: "/account-security", label: "Security", icon: <ShieldCheck /> },
   ];
 }
 

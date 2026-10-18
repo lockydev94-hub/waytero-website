@@ -110,7 +110,7 @@ export default function AccountDeletionPage() {
 
   return (
     <>
-      <Section bg="white" pad="lg" className="bg-gradient-to-br from-danger-50/50 via-white to-white">
+      <Section bg="white" pad="lg" className="bg-gradient-to-br from-danger-soft/50 via-white to-white">
         <Container size="lg">
           <PageHeader
             eyebrow={loggedIn ? "Delete my account" : "Account deletion request"}

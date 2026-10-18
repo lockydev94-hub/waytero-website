@@ -8,7 +8,7 @@ import {
   Menu, X, Phone, ChevronDown,
   Car, Building2, Compass, Navigation,
   Info, Handshake, MessageCircle, UserCircle2, Users, Newspaper,
-  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy, Bell,
+  LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy, Bell, ShieldCheck,
 } from "lucide-react";
 import { Container } from "@/components/ui";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +56,7 @@ const ACCOUNT_LINKS = [
   { label: "My Bookings",   href: "/bookings",      icon: <LayoutDashboard className="h-[15px] w-[15px]" /> },
   { label: "My Wallet",     href: "/wallet",        icon: <WalletIcon      className="h-[15px] w-[15px]" /> },
   { label: "Notifications", href: "/notifications", icon: <Bell            className="h-[15px] w-[15px]" /> },
+  { label: "Security",      href: "/account-security", icon: <ShieldCheck  className="h-[15px] w-[15px]" /> },
 ];
 
 const DEFAULT_TAGLINE       = BRAND.tagline;
@@ -638,6 +639,15 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                             {unread > 9 ? "9+" : unread}
                           </span>
                         )}
+                      </Link>
+                      <Link
+                        href="/account-security"
+                        onClick={() => setProfileOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-ink-2 hover:bg-orange-50 hover:text-[#E04A12] transition-colors"
+                        role="menuitem"
+                      >
+                        <ShieldCheck className="h-4 w-4 text-ink-4" />
+                        Account security
                       </Link>
                     </div>
                     <div className="border-t border-ink-8 py-1.5">

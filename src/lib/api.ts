@@ -26,6 +26,19 @@ const apiClient: AxiosInstance = axios.create({
   headers: { "Content-Type": "application/json", Accept: "application/json" },
 });
 
+// A 401 from some endpoints is the answer to the question, not a dead session:
+// POST /auth/change-password returns 401 for "Current password is incorrect".
+// Those callers set this flag so the interceptor hands the error back instead
+// of refreshing, clearing the session and popping the sign-in modal.
+declare module "axios" {
+  export interface AxiosRequestConfig {
+    _noSessionRefresh?: boolean;
+  }
+  export interface InternalAxiosRequestConfig {
+    _noSessionRefresh?: boolean;
+  }
+}
+
 apiClient.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   const token = localStorage.getItem(TOKEN_KEYS.ACCESS);
   if (token) config.headers["Authorization"] = `Bearer ${token}`;
@@ -36,7 +49,11 @@ apiClient.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
-    if (error.response?.status === 401 && !original._retry) {
+    if (
+      error.response?.status === 401 &&
+      !original._retry &&
+      !original._noSessionRefresh
+    ) {
       const refreshToken = localStorage.getItem(TOKEN_KEYS.REFRESH);
       if (!refreshToken) {
         clearSession();

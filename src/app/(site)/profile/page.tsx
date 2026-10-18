@@ -40,6 +40,7 @@ import customerProfileService, {
   type CustomerAddress,
 } from "@/services/customerProfileService";
 import SiteAuthModal from "@/components/auth/SiteAuthModal";
+import ProfileCompletionModal from "@/components/auth/ProfileCompletionModal";
 import PageHero from "@/components/sections/PageHero";
 import AccountTabs, { accountTabs } from "@/components/layout/AccountTabs";
 import {
@@ -194,7 +195,10 @@ export default function CustomerProfilePage() {
               {/* ── Left rail ─────────────────────────────────── */}
               <aside className="space-y-5 self-start lg:sticky lg:top-24">
                 <IdentityCard profile={profile} cityName={cityName} />
-                <ContactCard profile={profile} />
+                <ContactCard
+                  profile={profile}
+                  onChanged={() => qc.invalidateQueries({ queryKey: ["customer-profile"] })}
+                />
               </aside>
 
               {/* ── Right column ───────────────────────────────── */}
@@ -306,39 +310,139 @@ function MetaRow({
 }
 
 /* ========================================================================
- * ContactCard — mobile + email (read-only for now).
+ * ContactCard — mobile + email.
+ *
+ * The mobile change goes through ProfileCompletionModal rather than a plain
+ * PATCH: /customers/me/mobile stores whatever it is given, and a number that
+ * was never OTP-verified would break the customer's next login.
  * ====================================================================== */
-function ContactCard({ profile }: { profile: CustomerProfile }) {
+function ContactCard({
+  profile,
+  onChanged,
+}: {
+  profile: CustomerProfile;
+  onChanged: () => void;
+}) {
+  const auth = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [emailDraft, setEmailDraft] = useState(profile.email ?? "");
+  const [savingEmail, setSavingEmail] = useState(false);
+
   const mobileDisplay =
     profile.mobile_number && !profile.mobile_number.startsWith("fb_")
       ? profile.mobile_number
       : "Not set";
+
+  const saveEmail = async () => {
+    const value = emailDraft.trim();
+    if (!value) return;
+    setSavingEmail(true);
+    try {
+      await auth.updateEmail(value);
+      toast.success("Email updated");
+      setEditingEmail(false);
+      onChanged();
+    } catch (e) {
+      toast.error(errorMessage(e));
+    } finally {
+      setSavingEmail(false);
+    }
+  };
+
   return (
     <Card variant="premium" padded={false}>
-      <div className="p-5">
-        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-gradient-primary mb-4">
+      <div className="space-y-4 p-5">
+        <h3 className="text-[11px] font-extrabold uppercase tracking-[0.12em] text-gradient-primary">
           Contact details
         </h3>
-        <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <IconBox icon={<Phone />} tone="primary" size="sm" />
-            <div className="min-w-0">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Mobile</div>
-              <div className="text-sm font-semibold text-ink truncate">{mobileDisplay}</div>
-            </div>
+
+        <div className="flex items-center gap-3">
+          <IconBox icon={<Phone />} tone="primary" size="sm" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Mobile</div>
+            <div className="text-sm font-semibold text-ink truncate">{mobileDisplay}</div>
           </div>
+          <Button variant="ghost" size="sm" onClick={() => setMobileOpen(true)}>
+            Change
+          </Button>
+        </div>
+
+        <div>
           <div className="flex items-center gap-3">
             <IconBox icon={<Mail />} tone="info" size="sm" />
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="text-[10px] font-bold uppercase tracking-wider text-ink-4">Email</div>
-              <div className="text-sm font-semibold text-ink truncate">{profile.email || "—"}</div>
+              <div className="text-sm font-semibold text-ink truncate">
+                {profile.email || "Not set"}
+              </div>
             </div>
+            {!editingEmail && (
+              <Button variant="ghost" size="sm" onClick={() => setEditingEmail(true)}>
+                Edit
+              </Button>
+            )}
           </div>
+
+          {/* The editor spans the card — in the 340px rail a side-by-side
+              input would be too narrow to read an address in. */}
+          {editingEmail && (
+            <div className="mt-3">
+              <Input
+                type="email"
+                value={emailDraft}
+                autoFocus
+                onChange={(e) => setEmailDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    void saveEmail();
+                  }
+                  if (e.key === "Escape") setEditingEmail(false);
+                }}
+              />
+              <div className="mt-2 flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setEmailDraft(profile.email ?? "");
+                    setEditingEmail(false);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  loading={savingEmail}
+                  disabled={!emailDraft.trim()}
+                  onClick={() => void saveEmail()}
+                >
+                  Save
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <p className="border-t border-ink-8 px-5 py-3 text-[11px] text-ink-4 leading-snug">
-        Your mobile is used for OTP logins and trip updates. Changes are verified via OTP.
+        Your mobile number signs you in and identifies your account. Email
+        receives receipts and booking updates.
       </p>
+
+      <ProfileCompletionModal
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        initialMobile={profile.mobile_number}
+        initialName={[profile.first_name, profile.last_name].filter(Boolean).join(" ") || null}
+        initialEmail={profile.email}
+        onComplete={() => {
+          setMobileOpen(false);
+          onChanged();
+          void auth.checkProfileCompletion();
+        }}
+      />
     </Card>
   );
 }
