@@ -4,11 +4,6 @@ const BASE = "http://localhost:3002";
 const API = "http://localhost:8000/api/v1/public";
 const PAGES = ["", "about", "contact", "careers", "press", "support", "safety", "security", "privacy", "terms", "cookies", "refund", "sitemap", "booking-instructions", "partner", "track", "wallet"];
 const normalize = (title) => title.replace(/\s*(?:[-–—|·:]\s*)?WayTero\s*$/i, "").trim();
-const fallback = {
-  phone: "7978322649",
-  email: "support@waytero.com",
-  address: "Avinue Appartment, Gothapatana, Bhubaneswar - 751003",
-};
 const fabricated = /90000 00001|8480889870|1800-WAYTERO|(?:press|careers|security|privacy)@waytero\.com|CIN U63090|twitter\.com\/waytero|linkedin\.com\/company\/waytero|12,000\+ subscribers/;
 let checks = 0;
 function check(name, value) {
@@ -53,7 +48,15 @@ function check(name, value) {
       );
       check(`${slug || "home"}: database organization socials`, JSON.stringify(organization.sameAs) === JSON.stringify(Object.values(profile.social_links)));
       if (slug === "contact") {
-        await page.waitForFunction((phone) => document.querySelector('main a[href^="tel:"]')?.textContent === phone, profile.support_phone);
+        // The contact hero carries a "Call <number>" CTA, so the first tel:
+        // anchor is not the bare number — match any tel link that shows it.
+        await page.waitForFunction(
+          (phone) =>
+            [...document.querySelectorAll('main a[href^="tel:"]')].some(
+              (a) => a.textContent.includes(phone),
+            ),
+          profile.support_phone,
+        );
         const main = page.locator("main");
         check("contact: database phone", (await main.innerText()).includes(profile.support_phone));
         check("contact: database email", (await main.innerText()).includes(profile.support_email));
@@ -64,7 +67,9 @@ function check(name, value) {
         check("contact: empty form does not claim success", await page.getByText("Message sent!", { exact: true }).count() === 0);
       }
       if (slug === "careers") {
-        check("careers: honest no-roles state", await page.getByText("No roles listed right now", { exact: true }).count() === 1);
+        // Round 6 rebuilt /careers: the honest empty state is now the section
+        // title plus a "No open roles" card heading.
+        check("careers: honest no-roles state", await page.getByText("Nothing is posted right now", { exact: true }).count() === 1 && await page.getByText("No open roles", { exact: true }).count() === 1);
       }
       if (!slug) {
         check("home: unsupported newsletter hidden", await page.locator("#newsletter").count() === 0);
@@ -78,22 +83,22 @@ function check(name, value) {
     check("all pages: no browser runtime errors", errors.length === 0);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${BASE}/contact`, { waitUntil: "networkidle" });
-    await page.waitForFunction((phone) => document.querySelector('main a[href^="tel:"]')?.textContent === phone, profile.support_phone);
+    await page.waitForFunction(
+      (phone) =>
+        [...document.querySelectorAll('main a[href^="tel:"]')].some(
+          (a) => a.textContent.includes(phone),
+        ),
+      profile.support_phone,
+    );
     await page.waitForFunction(() => document.documentElement.scrollWidth <= innerWidth);
     check("contact: mobile fits viewport", await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
     await page.screenshot({ path: `${__dirname}/shots/brand-contact-mobile.png` });
-    for (const status of [200, 503]) {
-      await page.route("**/public/platform-profile", (route) => route.fulfill({ status, contentType: "application/json", body: "{}" }));
-      await Promise.all([
-        page.waitForResponse((response) => response.url().includes("/public/platform-profile") && response.status() === status),
-        page.reload({ waitUntil: "networkidle" }),
-      ]);
-      const main = await page.locator("main").innerText();
-      check(`contact: approved phone fallback (${status})`, main.includes(fallback.phone));
-      check(`contact: approved email fallback (${status})`, main.includes(fallback.email));
-      check(`contact: approved address fallback (${status})`, main.includes(fallback.address));
-      await page.unroute("**/public/platform-profile");
-    }
+    // The "what if the API is down" checks used to live here, mocking
+    // /public/platform-profile with page.route(). They could never work: the
+    // contact page is a server component and the brand-master fallback is
+    // applied on the server, so no browser mock reaches it — two of the three
+    // passed only because the configured email and address happen to equal the
+    // constants. That path is covered by _qa/offline-contact-qa.js.
     console.log(`RESULT: ${checks} passed`);
   } finally {
     await browser.close();

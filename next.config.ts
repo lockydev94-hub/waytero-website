@@ -1,6 +1,10 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Two `next dev` processes in one project share .next and corrupt each
+  // other's output, so _qa/offline-contact-qa.js renders into its own copy.
+  distDir: process.env.WAYTERO_DIST_DIR ?? ".next",
+
   // ── Image domains for WayTero (MinIO, CDN, Cloudinary etc.)
   images: {
     remotePatterns: [
