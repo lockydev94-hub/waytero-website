@@ -19,6 +19,7 @@ import { Star, MapPin, Wifi, Coffee, Waves, Building2, BedDouble, ChevronRight }
 import { Container, Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { hotelService, type PublicHotelSearchItem, type PublicHotelCity } from "@/services/hotelService";
+import { citySlug } from "@/lib/citySlug";
 import type { BandTone } from "@/types/cms";
 
 const INR = (n: number | string) =>
@@ -153,7 +154,7 @@ export function HotelPopularCityChips() {
       {top.map((c) => (
         <Link
           key={c.id}
-          href={`/hotels/results?city_id=${c.id}`}
+          href={`/hotels/results?city=${citySlug(c.name)}`}
           className="px-3.5 h-8 rounded-full bg-white/10 backdrop-blur border border-white/20 hover:bg-white/20 hover:border-white/40 text-xs font-semibold text-white/90 inline-flex items-center gap-1.5 transition-colors"
         >
           <MapPin className="h-3 w-3 text-accent-400" />
@@ -283,7 +284,11 @@ export default function HotelExploreSection({
         {!loading && !error && hotels.length > 0 && (
           <div className="mt-10 text-center">
             <Link
-              href={activeCity ? `/hotels/results?city_id=${activeCity}` : "/hotels/results"}
+              href={
+                activeCity
+                  ? `/hotels/results?city=${citySlug(cities.find(c => c.id === activeCity)?.name)}`
+                  : "/hotels/results"
+              }
               className="inline-flex items-center gap-2 h-12 px-7 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold shadow-wt-primary transition-all hover:-translate-y-0.5"
             >
               <BedDouble className="h-4 w-4" /> View all {total} hotels

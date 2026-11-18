@@ -5,9 +5,11 @@ import type { BandTone } from "@/types/cms";
 
 // ============================================================
 // LandingStatsStrip — the honest numbers row.
-// <640: grid-cols-2 · sm: up to 4 · lg: 4 (5 when 5 items)
-// Numeric values count up via MotionScrollCounter; pre-formatted
-// strings (₹ prices from the backend) render as-is.
+//
+// Laid out like the homepage's STATS band: a centred heading with accent
+// dashes and an auto-fitting row capped at ~900px, so three stats fill the
+// band instead of leaving a hole in a fixed four-column grid. The count is
+// the content, so the card stays quiet — navy figure, one label, soft ring.
 // ============================================================
 
 export default function LandingStatsStrip({
@@ -18,35 +20,39 @@ export default function LandingStatsStrip({
 }: {
   stats: LandingStat[];
   title?: string | null;
-  // Service pages alternate white/muted bands; the tone is the caller's call.
   bg?: BandTone;
-  // Homepage rhythm is tighter than a marketing band's; /cabs passes "home"/"tight".
   pad?: "home" | "tight" | "sm" | "md" | "lg";
 }) {
   if (!stats.length) return null;
 
   return (
     <Section bg={bg} pad={pad}>
-      <Container size="xl">
+      <Container size="wide">
         {title && (
           <MotionFadeIn>
-            <h2 className="mb-5 text-xl font-extrabold tracking-tight text-ink sm:text-2xl">
-              {title}
+            <h2 className="flex items-center justify-center gap-2.5 text-center text-[21px] font-extrabold tracking-[-0.01em] text-ink sm:text-[23px] lg:text-[25px]">
+              <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-accent-500" />
+              <span>{title}</span>
+              <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-accent-500" />
             </h2>
           </MotionFadeIn>
         )}
         <MotionStagger
-          className={`grid gap-3 sm:gap-4 grid-cols-2 ${
-            stats.length >= 5 ? "sm:grid-cols-3 lg:grid-cols-5" : "sm:grid-cols-4 lg:grid-cols-4"
+          className={`mx-auto mt-5 grid max-w-[900px] gap-3 sm:gap-4 grid-cols-2 ${
+            stats.length === 3
+              ? "sm:grid-cols-3"
+              : stats.length >= 5
+                ? "sm:grid-cols-3 lg:grid-cols-5"
+                : "sm:grid-cols-4"
           }`}
         >
           {stats.map((s, i) => (
             <MotionStaggerItem key={i}>
-              <div className="h-full rounded-2xl border border-ink-7 bg-gradient-to-b from-white to-ink-1/40 p-4 text-center sm:p-5">
-                <div className="text-xl font-extrabold text-primary-600 sm:text-2xl lg:text-3xl">
+              <div className="h-full rounded-2xl bg-white p-5 text-center shadow-[0_10px_30px_-22px_rgba(16,24,40,0.45)] ring-1 ring-black/[0.05]">
+                <div className="text-[30px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink">
                   <StatValue stat={s} />
                 </div>
-                <div className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-ink-4 sm:text-xs">
+                <div className="mt-1.5 text-[12.5px] font-medium text-ink-4">
                   {s.label}
                 </div>
               </div>

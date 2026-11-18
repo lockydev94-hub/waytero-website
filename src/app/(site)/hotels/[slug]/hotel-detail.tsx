@@ -37,6 +37,7 @@ import {
   type HotelQuoteOut,
 } from "@/services/hotelService";
 import { useAuth } from "@/hooks/useAuth";
+import { citySlug } from "@/lib/citySlug";
 
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -276,7 +277,13 @@ function HotelContent({
             <span className="mx-2">/</span>
             <button
               type="button"
-              onClick={() => router.push(`/hotels/results?city_id=${hotel.city_id}`)}
+              onClick={() =>
+                router.push(
+                  hotel.city_name
+                    ? `/hotels/results?city=${citySlug(hotel.city_name)}`
+                    : "/hotels/results",
+                )
+              }
               className="hover:text-white transition-colors"
             >
               {hotel.city_name}

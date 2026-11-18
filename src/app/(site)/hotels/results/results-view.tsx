@@ -3,8 +3,9 @@
 /**
  * /hotels/results — city/place based hotel list with starting nightly prices.
  *
- * Reads the search from the URL (city_id, q, check_in, check_out, guests,
- * rooms) and queries GET /public/hotel/search. Each card links to the hotel
+ * Reads the search from the URL (city, q, check_in, check_out, guests,
+ * rooms) and queries GET /public/hotel/search. `city` is the readable slug
+ * (`bhubaneswar`); legacy numeric `city_id` links still resolve. Each card links to the hotel
  * details page (/hotels/{slug}) carrying the stay dates forward so the room
  * categories render with availability + server-side quotes.
  *
@@ -21,6 +22,7 @@ import {
 import { Container, Card, MotionGlow } from "@/components/ui";
 import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
 import { hotelService, type PublicHotelCity, type PublicHotelSearchItem } from "@/services/hotelService";
+import { citySlug, findCityBySlug } from "@/lib/citySlug";
 
 type SortMode = "recommended" | "price_asc" | "price_desc" | "rating";
 
@@ -32,6 +34,7 @@ function ResultsContent() {
   const params = useSearchParams() ?? new URLSearchParams();
 
   const cityParam = params.get("city_id");
+  const citySlugParam = params.get("city");
   const qParam = params.get("q") ?? "";
   const checkIn = params.get("check_in") ?? "";
   const checkOut = params.get("check_out") ?? "";
@@ -41,6 +44,9 @@ function ResultsContent() {
   // ── State ─────────────────────────────────────────────────────────────
   const [cities, setCities] = useState<PublicHotelCity[]>([]);
   const [cityId, setCityId] = useState<number | null>(cityParam ? Number(cityParam) : null);
+  // `?city=bhubaneswar` needs the city feed before the hotel query can run;
+  // hold the first fetch until that lookup resolves.
+  const [cityResolved, setCityResolved] = useState(!citySlugParam || !!cityParam);
   const [query, setQuery] = useState(qParam);
   const [items, setItems] = useState<PublicHotelSearchItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -60,8 +66,16 @@ function ResultsContent() {
     hotelService.getCities().then(setCities).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!citySlugParam || cities.length === 0) return;
+    const match = findCityBySlug(cities, citySlugParam);
+    if (match) setCityId(match.id);
+    setCityResolved(true);
+  }, [cities, citySlugParam]);
+
   // ── Fetch results whenever the search criteria change ─────────────────
   useEffect(() => {
+    if (!cityResolved) return;
     if (cityId == null && !query.trim()) {
       setItems([]);
       setTotal(0);
@@ -97,19 +111,20 @@ function ResultsContent() {
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load hotels"))
       .finally(() => setLoading(false));
-  }, [cityId, query, checkIn, checkOut, starRating, priceMin, priceMax, sortMode]);
+  }, [cityId, cityResolved, query, checkIn, checkOut, starRating, priceMin, priceMax, sortMode]);
 
   // ── Apply a new search (edit search from sidebar / enter) ─────────────
   const runSearch = useCallback((nextCity: number | null, nextQuery: string) => {
     const sp = new URLSearchParams();
-    if (nextCity) sp.set("city_id", String(nextCity));
+    const nextCityName = cities.find((c) => c.id === nextCity)?.name;
+    if (nextCityName) sp.set("city", citySlug(nextCityName));
     if (nextQuery.trim()) sp.set("q", nextQuery.trim());
     if (checkIn) sp.set("check_in", checkIn);
     if (checkOut) sp.set("check_out", checkOut);
     sp.set("guests", String(guests));
     sp.set("rooms", String(rooms));
     router.push(`/hotels/results?${sp.toString()}`);
-  }, [checkIn, checkOut, guests, rooms, router]);
+  }, [checkIn, checkOut, guests, rooms, router, cities]);
 
   const cityName = cities.find((c) => c.id === cityId)?.name ?? (query || "India");
 

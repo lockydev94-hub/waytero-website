@@ -137,7 +137,7 @@ export function toMetadata(
     keywords: seo.keywords,
     alternates: {
       canonical,
-      languages: { "en-in": canonical, en: canonical },
+      languages: { "en-in": canonical, en: canonical, "x-default": canonical },
       ...(extraAlternates as object | undefined),
     },
     openGraph: {

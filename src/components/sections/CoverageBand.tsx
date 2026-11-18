@@ -4,6 +4,7 @@ import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } f
 import { API_BASE } from "@/lib/apiBase";
 import { getAvailability, serviceVisible, type ServiceKey } from "@/lib/availability";
 import { getLandingRefs } from "@/lib/landingIndex";
+import { citySlug } from "@/lib/citySlug";
 import type { BandTone } from "@/types/cms";
 
 /* ============================================================
@@ -85,13 +86,19 @@ export default async function CoverageBand({
     getLandingRefs(),
   ]);
 
-  // Published CITY_CABS landing pages, keyed by the city they are about, so a
-  // cab chip can point at real content instead of the generic /cabs form.
-  const cabLanding = new Map<string, string>();
-  for (const r of refs) {
-    if (r.page_type !== "CITY_CABS" || !r.canonical_path) continue;
-    cabLanding.set(r.scope.display_name.trim().toLowerCase(), r.canonical_path);
-  }
+  // Published city landing pages, keyed by the city they are about, so a chip
+  // can point at real editorial content instead of a filtered search URL.
+  const landingFor = (pageType: string) => {
+    const map = new Map<string, string>();
+    for (const r of refs) {
+      if (r.page_type !== pageType || !r.canonical_path) continue;
+      map.set(r.scope.display_name.trim().toLowerCase(), r.canonical_path);
+    }
+    return map;
+  };
+  const cabLanding = landingFor("CITY_CABS");
+  const hotelLanding = landingFor("CITY_HOTELS");
+  const tourLanding = landingFor("CITY_TOURS");
 
   const columns: Column[] = [];
 
@@ -132,7 +139,9 @@ export default async function CoverageBand({
           key: `hotel-${c.id}`,
           name: c.name,
           meta: plural(c.count, "stay", "stays"),
-          href: `/hotels/results?city_id=${c.id}`,
+          href:
+            hotelLanding.get(c.name.toLowerCase()) ??
+            `/hotels/results?city=${citySlug(c.name)}`,
         })),
       });
   }
@@ -153,7 +162,9 @@ export default async function CoverageBand({
           key: `tour-${c.id}`,
           name: c.name,
           meta: plural(c.count, "package", "packages"),
-          href: `/tours?city_id=${c.id}&destination=${encodeURIComponent(c.name)}`,
+          href:
+            tourLanding.get(c.name.toLowerCase()) ??
+            `/tours?city=${citySlug(c.name)}&destination=${encodeURIComponent(c.name)}`,
         })),
       });
   }

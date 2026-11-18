@@ -10,6 +10,7 @@
 // ============================================================
 
 import type { LandingBlock, LandingBundle } from "@/lib/landingIndex";
+import { citySlug } from "@/lib/citySlug";
 import LandingProse from "@/components/landing/LandingProse";
 import LandingHighlights from "@/components/landing/LandingHighlights";
 import LandingStatsStrip from "@/components/landing/LandingStatsStrip";
@@ -63,7 +64,7 @@ export default function LandingBlockRenderer({
         <LandingHotelGrid
           hotels={data.hotels}
           title={block.title}
-          cityId={data.scope.kind === "city" ? data.scope.id : null}
+          cityName={data.scope.kind === "city" ? data.scope.name : null}
         />
       );
     case "tour_grid":
@@ -73,7 +74,7 @@ export default function LandingBlockRenderer({
           title={block.title}
           resultsHref={
             data.scope.kind === "city"
-              ? `/tours?city_id=${data.scope.id}`
+              ? `/tours?city=${citySlug(data.scope.name)}`
               : "/tours"
           }
         />

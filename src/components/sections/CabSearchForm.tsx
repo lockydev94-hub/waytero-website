@@ -12,7 +12,7 @@
  *  • Custom date + time picker (no native datetime-local ugly input)
  *  • Trip type selector: LOCAL | OUTSTATION | AIRPORT | ROUND_TRIP
  *  • Passenger count picker
- *  • On submit → /cabs/results?pickup=...&drop=...&city_id=...&trip_type=...&date=...&time=...&pax=...&distance_km=...
+ *  • On submit → /cabs/results?pickup=...&drop=...&city=...&trip_type=...&date=...&time=...&pax=...&distance_km=...
  */
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -24,10 +24,11 @@ import {
 } from "lucide-react";
 import { cabService, type PublicCity, type PublicTripType } from "@/services/cabService";
 import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
-import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
+import NotServedHint from "@/components/forms/NotServedHint";
 import { outOfServiceArea } from "@/lib/serviceArea";
 import { carryOfferContext } from "@/lib/offerParams";
 import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
+import { citySlug, findCityBySlug } from "@/lib/citySlug";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 interface PlaceSuggestion {
@@ -610,13 +611,9 @@ function LocationInput({
           </button>
         )}
       </div>
-      {outOfArea && (
-        <OutOfServiceAreaNotice
-          area={outOfArea}
-          onDismiss={() => setOutOfArea(null)}
-          className="mt-2"
-        />
-      )}
+      {/* Chip in the field; explanation on hover/focus so the field keeps
+          its height (see NotServedHint). */}
+      {outOfArea && <NotServedHint area={outOfArea} className="mt-1" />}
       {open && suggestions.length > 0 && dropdownRect && typeof document !== "undefined" &&
         createPortal(
           <div
@@ -690,12 +687,16 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("trip_type") ?? "";
   });
-  // /cabs?city_id=5 — landing-page city chips preselect the right city.
-  const [deepLinkCityId] = useState<number | null>(() => {
-    if (typeof window === "undefined") return null;
-    const raw = new URLSearchParams(window.location.search).get("city_id");
-    const n = raw ? Number(raw) : NaN;
-    return Number.isInteger(n) && n > 0 ? n : null;
+  // /cabs?city=bhubaneswar — landing-page city chips preselect the right
+  // city by readable slug. Legacy `city_id` links are still resolved.
+  const [deepLinkCity] = useState<{ slug: string | null; id: number | null }>(() => {
+    if (typeof window === "undefined") return { slug: null, id: null };
+    const sp = new URLSearchParams(window.location.search);
+    const id = Number(sp.get("city_id") ?? "");
+    return {
+      slug: sp.get("city"),
+      id: Number.isInteger(id) && id > 0 ? id : null,
+    };
   });
   const [pickup, setPickup]       = useState<LocationValue>({ label: "" });
   const [drop, setDrop]           = useState<LocationValue>({ label: "" });
@@ -782,22 +783,31 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     cabService.getCities().then(setCities).catch(() => {});
   }, [useCityMode, cities.length]);
 
-  // Pick a default city once the list arrives — deep-linked city_id first,
-  // then Bhubaneswar, then first city with lat/lng, then first city. Avoids
-  // querying Places with an empty bias while cities load.
+  // Pick a default city once the list arrives — deep-linked city slug/id
+  // first, then Bhubaneswar, then first city with lat/lng, then first city.
+  // Avoids querying Places with an empty bias while cities load.
   useEffect(() => {
     if (selectedCity || cities.length === 0) return;
-    const linked = deepLinkCityId ? cities.find(c => c.id === deepLinkCityId) : undefined;
+    const linked = deepLinkCity.slug
+      ? findCityBySlug(cities, deepLinkCity.slug)
+      : deepLinkCity.id
+        ? cities.find(c => c.id === deepLinkCity.id)
+        : undefined;
     const bbs = cities.find(c => c.city_code === "BBS");
     const withCoords = cities.find(c => c.latitude != null && c.longitude != null);
     setSelectedCity(linked ?? bbs ?? withCoords ?? cities[0] ?? null);
-  }, [cities, selectedCity, deepLinkCityId]);
+  }, [cities, selectedCity, deepLinkCity]);
 
   // Fetch active trip types — these are the only bookable trip types.
   useEffect(() => {
     cabService.getTripTypes().then((list) => {
       setTripTypes(list);
-      setTripType((curr) => curr || list[0]?.code || "");
+      // A deep link (?trip_type=ONE_WAY) must not survive the admin switching
+      // that product off. Keep the requested code only while it is still in
+      // the server's bookable list.
+      setTripType((curr) =>
+        curr && list.some((t) => t.code === curr) ? curr : list[0]?.code || "",
+      );
     }).catch(() => setTripTypes([]));
   }, []);
 
@@ -809,9 +819,21 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   //   ONE_WAY      — pickup + drop (one-way inter-city, explicit)
   //   AIRPORT      — pickup + drop
   //   ROUND_TRIP   — pickup only (return to same pickup), requires return date
+  //   DAILY        — Cab Rent: pickup + schedule, no drop; sold per day from
+  //                  the rate card (12h/100km each, driver + halt included)
   const requiresDrop = tripType === "OUTSTATION" || tripType === "ONE_WAY" || tripType === "AIRPORT";
-  const requiresReturnDate = tripType === "ROUND_TRIP";
+  const isRental = tripType === "DAILY";
+  const requiresReturnDate = tripType === "ROUND_TRIP" || isRental;
   const isRoundTrip = tripType === "ROUND_TRIP";
+
+  const rentalDays = (() => {
+    if (!isRental || !dateTime.date || !returnDateTime.date) return 1;
+    // Whole 24-hour periods, rounded up — matches the backend's rental day count.
+    const start = new Date(dateTime.date); start.setHours(dateTime.hour, dateTime.minute, 0, 0);
+    const end = new Date(returnDateTime.date); end.setHours(returnDateTime.hour, returnDateTime.minute, 0, 0);
+    const ms = end.getTime() - start.getTime();
+    return ms <= 0 ? 1 : Math.max(1, Math.ceil(ms / 86_400_000));
+  })();
 
   // Column widths for the wide (xl) layout, per trip type. They have to add up
   // to twelve: the old fixed spans summed to more than that for some trip
@@ -825,7 +847,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
   } as const;
   const spans = requiresDrop
     ? { pickup: SPAN.three, drop: SPAN.three, date: SPAN.three, pax: SPAN.two }
-    : isRoundTrip
+    : requiresReturnDate
       ? { pickup: SPAN.four, drop: "", date: SPAN.three, pax: SPAN.two }
       : { pickup: SPAN.five, drop: "", date: SPAN.four, pax: SPAN.three };
   // Round trip adds a return date (three columns) and drops the swap column,
@@ -837,10 +859,12 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     if (!dateTime.date) e.date = "Select pickup date";
     if (requiresDrop && !drop.label.trim()) e.drop = "Enter drop location";
     if (requiresReturnDate && !returnDateTime.date) {
-      e.returnDate = "Select return date";
+      e.returnDate = isRental ? "Select when the rental ends" : "Select return date";
     } else if (requiresReturnDate && returnDateTime.date && dateTime.date &&
                returnDateTime.date.getTime() <= dateTime.date.getTime()) {
-      e.returnDate = "Return date must be after pickup date";
+      e.returnDate = isRental
+        ? "Rental end must be after pickup"
+        : "Return date must be after pickup date";
     }
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -864,7 +888,7 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
     if (pickup.lng)    params.set("plng", String(pickup.lng));
     if (drop.lat)      params.set("dlat", String(drop.lat));
     if (drop.lng)      params.set("dlng", String(drop.lng));
-    if (isRoundTrip && returnDateTime.date) {
+    if (requiresReturnDate && returnDateTime.date) {
       const rd = returnDateTime.date;
       params.set("return_date",
         `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`);
@@ -884,7 +908,11 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
         cityId = undefined;
       }
     }
-    if (cityId) params.set("city_id", String(cityId));
+    const cityName =
+      pickup.city_name ??
+      cities.find((c) => c.id === cityId)?.name ??
+      selectedCity?.name;
+    if (cityName) params.set("city", citySlug(cityName));
 
     // Auto-compute road distance when both ends have coordinates.
     // Round trip distance = 2× one-way. When only pickup is provided
@@ -897,6 +925,10 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
       let defaultKm = 30;
       if (tripType === "LOCAL") {
         defaultKm = 10;
+      } else if (isRental) {
+        // The daily package allows 100 km per day; the customer has not named a
+        // route, so the package allowance is the honest default.
+        defaultKm = 100 * rentalDays;
       } else if (isRoundTrip) {
         defaultKm = 50;
       }
@@ -1065,13 +1097,17 @@ export default function CabSearchForm({ variant = "page", initialCities = [] }: 
           />
         </Field>
 
-        {/* Return Date — only for ROUND_TRIP */}
-        {isRoundTrip && (
-          <Field label="Return Date & Time" error={errors.returnDate} className="xl:col-span-3">
+        {/* Return date for a round trip; the end of the hire for a rental */}
+        {requiresReturnDate && (
+          <Field
+            label={isRental ? `Rental Ends${rentalDays > 1 ? ` · ${rentalDays} days` : " · 1 day"}` : "Return Date & Time"}
+            error={errors.returnDate}
+            className="xl:col-span-3"
+          >
             <DateTimePicker
               value={returnDateTime}
               onChange={v => { setReturnDateTime(v); setErrors(e => ({...e, returnDate: ""})); }}
-              label="Return Date & Time"
+              label={isRental ? "Rental Ends" : "Return Date & Time"}
               minDate={dateTime.date ?? undefined}
             />
           </Field>

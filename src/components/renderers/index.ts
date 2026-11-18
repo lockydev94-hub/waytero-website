@@ -6,12 +6,14 @@
 export { default as HeroSection } from "./HeroSection";
 export { default as HeroMarquee } from "./HeroMarquee";
 export { default as ServicesSection } from "./ServicesSection";
+export { default as RideTypesSection } from "./RideTypesSection";
 export { default as WhyUsSection } from "./WhyUsSection";
 export { default as TourPackagesSection } from "./TourPackagesSection";
 export { default as TestimonialsSection } from "./TestimonialsSection";
 export { default as StatsSection } from "./StatsSection";
 export { default as PartnersSection } from "./PartnersSection";
 export { default as CtaSection } from "./CtaSection";
+export { default as PartnerCtaSection } from "./PartnerCtaSection";
 export { default as PopularDestinationsSection } from "./PopularDestinationsSection";
 export { default as PopularRoutesSection } from "./PopularRoutesSection";
 export { default as PopularCitiesSection } from "./PopularCitiesSection";

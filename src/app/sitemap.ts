@@ -26,6 +26,7 @@ import { getLandingRefs } from "@/lib/landingIndex";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { getPageBody } from "@/lib/pageBody";
 import { TRIP_SLUGS } from "@/lib/cabTrips";
+import { citySlug } from "@/lib/citySlug";
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
 
@@ -91,7 +92,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: appUrl, lastModified: now, changeFrequency: "daily", priority: 1 },
-    ...(cabVisible ? [{ url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }] : []),
+    ...(cabVisible
+      ? [
+          { url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 },
+          { url: `${appUrl}/cabs/prices`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 },
+        ]
+      : []),
     ...(hotelVisible ? [{ url: `${appUrl}/hotels`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(tourVisible ? [{ url: `${appUrl}/tours`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 }] : []),
     { url: `${appUrl}/blog`, lastModified: now, changeFrequency: "weekly", priority: 0.7 },
@@ -125,6 +131,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tripTypes = cabVisible
     ? await fetchJson<TripTypeRow[]>(`${API_BASE}/public/cab/trip-types`)
     : null;
+  // City-specific price lists — the same published rate card, one crawlable
+  // URL per serviced city (`?city=bhubaneswar`). Their canonical is the city
+  // URL itself, so they can be submitted independently of the national list.
+  const cabCities = cabVisible
+    ? await fetchJson<{ name: string }[]>(`${API_BASE}/public/cab/cities`)
+    : null;
+  const cityPriceUrls: MetadataRoute.Sitemap = (cabCities ?? [])
+    .filter((c) => c.name)
+    .map((c) => ({
+      url: `${appUrl}/cabs/prices?city=${citySlug(c.name)}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    }));
+
   const tripUrls: MetadataRoute.Sitemap = (tripTypes ?? [])
     .map((t) => TRIP_SLUGS[t.code])
     .filter(Boolean)
@@ -242,6 +263,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...staticUrls,
     ...bodyUrls,
     ...tripUrls,
+    ...cityPriceUrls,
     ...routeUrls,
     ...landingUrls,
     ...hotelUrls,

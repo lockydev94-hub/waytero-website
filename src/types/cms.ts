@@ -14,6 +14,7 @@ export type BandTone = "white" | "muted";
 export type SectionKey =
   | "HERO"
   | "SERVICES"
+  | "RIDE_TYPES"
   | "WHY_US"
   | "TOUR_PACKAGES"
   | "TESTIMONIALS"

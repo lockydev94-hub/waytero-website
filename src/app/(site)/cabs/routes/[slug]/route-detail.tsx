@@ -24,20 +24,27 @@ export interface RouteVehicle {
   vehicle_category_id: number;
   category_name: string;
   seating_capacity: number | null;
-  luggage_capacity: number | null;
   image_url: string | null;
   icon_url: string | null;
-  base_fare: number | string;
-  minimum_km: number;
-  per_km_rate: number | string;
+  vehicle_class: string;
+  vehicle_label: string;
+  vehicle_models: string | null;
+  rental_type: string;
+  included_hours: number;
+  included_km: number;
+  package_price: number | string;
+  extra_km: number | string;
+  extra_km_rate: number | string;
+  extra_km_charge: number | string;
+  extra_hour_rate: number | string;
   driver_allowance: number | string;
-  night_charge_applied: number | string;
-  distance_charge: number | string;
-  is_night: boolean;
+  midnight_charge: number | string;
   total: number | string;
-  source: string;
-  actual_distance_km: number | null;
-  billable_km: number | null;
+  rate_source: string;
+  toll_included: boolean;
+  parking_included: boolean;
+  night_halt_included: boolean;
+  actual_distance_km: number;
 }
 
 export interface PublicRoute {
@@ -163,7 +170,9 @@ export default function RouteDetail({
                 Vehicles for this route
               </h2>
               <p className="mt-1 text-sm text-ink-3">
-                Quoted from the same fare rules the booking flow uses — no separate route price list.
+                Priced from the same published rate card the booking flow charges — the outstation
+                package for {actualKm.toFixed(0)} km, with anything beyond its included kilometres
+                itemised.
               </p>
             </div>
             <Link
@@ -185,8 +194,7 @@ export default function RouteDetail({
           ) : (
             <MotionStagger className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {route.vehicles.map((v) => {
-                const billable = Number(v.billable_km ?? actualKm);
-                const billedAtMinimum = billable > actualKm + 0.05;
+                const extraKm = Number(v.extra_km ?? 0);
                 return (
                   <MotionStaggerItem key={v.vehicle_category_id} className="h-full">
                     <MotionGlow color="primary" intensity={0.18} size={280} className="h-full rounded-2xl">
@@ -220,29 +228,42 @@ export default function RouteDetail({
                           </p>
 
                           <dl className="mt-3 space-y-1.5 border-t border-dashed border-ink-6 pt-3 text-[12px]">
-                            <Row label={`Base fare`} value={money(v.base_fare)} />
                             <Row
-                              label={`Distance · ${billable.toFixed(0)} km × ${money(v.per_km_rate)}`}
-                              value={money(v.distance_charge)}
+                              label={`Package · ${v.included_hours}h / ${v.included_km} km`}
+                              value={money(v.package_price)}
                             />
+                            {extraKm > 0 && (
+                              <Row
+                                label={`Extra distance · ${extraKm.toFixed(0)} km × ${money(v.extra_km_rate)}`}
+                                value={money(v.extra_km_charge)}
+                              />
+                            )}
                             {Number(v.driver_allowance) > 0 && (
                               <Row label="Driver allowance" value={money(v.driver_allowance)} />
                             )}
-                            {Number(v.night_charge_applied) > 0 && (
-                              <Row label="Night surcharge" value={money(v.night_charge_applied)} />
+                            {Number(v.midnight_charge) > 0 && (
+                              <Row label="Midnight return charge" value={money(v.midnight_charge)} />
                             )}
                           </dl>
 
-                          {billedAtMinimum && (
+                          {extraKm > 0 && (
                             <p className="mt-2 flex items-start gap-1.5 rounded-lg bg-accent-50 px-2.5 py-1.5 text-[11px] leading-snug text-accent-800">
                               <Info className="mt-px h-3.5 w-3.5 shrink-0" />
-                              {distanceLabel} on the ground, billed at the {v.minimum_km} km minimum this vehicle
-                              carries.
+                              The package covers {v.included_km} km; this {distanceLabel} trip bills the
+                              remaining {extraKm.toFixed(0)} km at {money(v.extra_km_rate)}/km.
                             </p>
                           )}
-                          {Number(v.night_charge_applied) > 0 && (
+                          {(v.toll_included || v.parking_included || v.night_halt_included) && (
                             <p className="mt-2 flex items-center gap-1.5 text-[11px] text-ink-4">
-                              <Clock className="h-3.5 w-3.5" /> Includes the night window surcharge
+                              <Clock className="h-3.5 w-3.5" />
+                              {[
+                                v.toll_included ? "toll" : null,
+                                v.parking_included ? "parking" : null,
+                                v.night_halt_included ? "night halt" : null,
+                              ]
+                                .filter(Boolean)
+                                .join(", ")}{" "}
+                              included
                             </p>
                           )}
 

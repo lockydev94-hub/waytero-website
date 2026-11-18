@@ -65,7 +65,7 @@ export default async function PopularDestinationsSection({ variant, bg = "white"
 
   return (
     <Section bg={bg} pad="home" id="destinations" overlay="dots-faint">
-      <Container size="lg">
+      <Container size="wide">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Popular destinations">
           {destinations.slice(0, 8).map((d) => {

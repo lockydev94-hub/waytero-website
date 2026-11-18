@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import Providers from "@/components/Providers";
 import { publicCmsService } from "@/services/publicCms";
@@ -15,6 +15,16 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+});
+
+// Display face for headlines (the homepage hero, section titles). Jakarta's
+// geometric-humanist letterforms match the shared design's headings; body
+// copy stays on Inter. Both are self-hosted at build time.
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["600", "700", "800"],
+  variable: "--font-jakarta",
 });
 
 // ── Global SEO defaults (overridden per page) ────────────────────────────────
@@ -124,7 +134,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${jakarta.variable}`}>
       <body className="relative">
         <div aria-hidden className="pointer-events-none fixed inset-0 z-[1] bg-noise opacity-[0.4] mix-blend-overlay" />
         <RootJsonLd />

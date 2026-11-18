@@ -29,7 +29,7 @@ export default function NewsletterSection({ variant }: NewsletterSectionProps) {
       <div aria-hidden className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-accent-500/20 blur-3xl animate-blob [animation-delay:6s]" />
       <div aria-hidden className="pointer-events-none absolute top-1/3 left-1/4 h-72 w-72 rounded-full bg-primary-400/15 blur-3xl animate-blob [animation-delay:3s]" />
 
-      <Container size="lg" className="relative">
+      <Container size="wide" className="relative">
         <MotionFadeIn>
           <MotionGlow color="primary" intensity={0.5} size={520} className="relative rounded-3xl overflow-hidden border border-white/10 bg-gradient-to-br from-primary-700/95 via-primary-600/95 to-accent-600/95 px-6 py-12 lg:px-14 lg:py-14 backdrop-blur-md">
             {/* Inner mesh texture */}

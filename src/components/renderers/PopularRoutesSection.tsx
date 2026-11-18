@@ -33,12 +33,17 @@ export default async function PopularRoutesSection({
   variant,
   bg = "white",
   pad = "home",
+  wide = false,
 }: {
   variant: Record<string, unknown>;
   bg?: BandTone;
   // The homepage runs the tight `home` rhythm; service pages stack the
   // standard steps and pass the one that matches their band.
   pad?: "home" | "tight" | "sm" | "md" | "lg";
+  // Homepage bands run edge to edge since the 2026-11 design pass. Kept as
+  // a prop because /cabs, /contact and /hotels share this band and still
+  // line it up with their own `xl` containers.
+  wide?: boolean;
 }) {
   const eyebrow = pick<string>(variant, "variant_tag", "Where people travel");
   const title = pick<string>(variant, "headline", "Popular Routes");
@@ -69,7 +74,7 @@ export default async function PopularRoutesSection({
 
   return (
     <Section bg={bg} pad={pad} id="routes" overlay="grid-faint">
-      <Container size="lg">
+      <Container size={wide ? "wide" : "lg"}>
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
         {/* Server-rendered GET form — a plain submit navigates to the hub,

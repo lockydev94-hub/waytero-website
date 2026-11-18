@@ -9,15 +9,22 @@ import { ReactNode, HTMLAttributes } from "react";
  *  - md  (max-w-5xl, ≈1024px) — booking detail, profile
  *  - lg  (max-w-6xl, ≈1152px) — homepage, marketing
  *  - xl  (max-w-7xl, ≈1280px) — wide dashboards
+ *  - wide (max-w-[1600px]) — homepage bands since the 2026-11 design pass:
+ *         the gutters shrink to the padding alone on laptops, but the page
+ *         still stops before a 27" monitor stretches every card row.
  *  - full (max-w-full) — full-bleed sections
  */
-type ContainerSize = "sm" | "md" | "lg" | "xl" | "full";
+type ContainerSize = "sm" | "md" | "lg" | "xl" | "wide" | "full";
 
 const SIZE: Record<ContainerSize, string> = {
   sm: "max-w-3xl",
   md: "max-w-5xl",
   lg: "max-w-6xl",
   xl: "max-w-7xl",
+  // `lg:px-14` clears the fixed enquiry / feedback tabs pinned to the left
+  // edge (≈52px wide) — at the shared px-8 they sat on top of the first
+  // column of text.
+  wide: "max-w-[1600px] lg:px-14",
   full: "max-w-full",
 };
 

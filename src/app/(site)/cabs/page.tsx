@@ -111,9 +111,15 @@ export default async function CabsPage() {
     <>
       <JsonLd data={faqPageSchema(CAB_FAQS)} />
 
-      <Section bg="white" pad="tight">
-        <Container size="xl">
-          <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center">
+      <Section bg="white" pad="home">
+        <Container size="wide">
+          <div
+            className={
+              cabImage
+                ? "grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px] xl:items-center"
+                : "mx-auto grid max-w-[900px] gap-8"
+            }
+          >
             <div>
               <p className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-primary-600 mb-3">
                 <span className="h-1.5 w-1.5 rounded-full bg-accent-500" aria-hidden />
@@ -154,11 +160,10 @@ export default async function CabsPage() {
 
       <LandingStatsStrip stats={stats} title="Live on WayTero today" bg="muted" pad="tight" />
 
-      {/* Why-cabs promises, as one icon row rather than four boxed cards —
-          with stats, routes, fares, steps and FAQ on the page the boxes were
-          the only thing between the hero and the substance. */}
-      <Section bg="white" pad="tight" overlay="dots-faint">
-        <Container size="xl">
+      {/* Why-cabs promises, in the homepage card language: quiet white card,
+          pastel icon chip, one claim per card. */}
+      <Section bg="white" pad="home" overlay="dots-faint">
+        <Container size="wide">
           <SectionHeader
             eyebrow="Why book cabs with WayTero"
             title="A better cab experience"
@@ -167,14 +172,16 @@ export default async function CabsPage() {
             animatedEyebrow
             scale="home"
           />
-          <MotionStagger className="mt-6 grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map((f) => {
               const Icon = f.icon;
               return (
                 <MotionStaggerItem key={f.title}>
-                  <IconBox icon={<Icon />} tone={f.tone} size="md" glow />
-                  <h3 className="mt-3 text-base font-bold text-ink">{f.title}</h3>
-                  <p className="mt-1.5 text-sm leading-relaxed text-ink-3">{f.desc}</p>
+                  <div className="h-full rounded-2xl bg-white p-5 shadow-[0_10px_30px_-22px_rgba(16,24,40,0.45)] ring-1 ring-black/[0.05] transition-all duration-300 hover:-translate-y-0.5 hover:shadow-wt-lg">
+                    <IconBox icon={<Icon />} tone={f.tone} size="md" glow />
+                    <h3 className="mt-3.5 text-[15px] font-bold text-ink">{f.title}</h3>
+                    <p className="mt-1.5 text-[13px] leading-relaxed text-ink-4">{f.desc}</p>
+                  </div>
                 </MotionStaggerItem>
               );
             })}
@@ -182,11 +189,11 @@ export default async function CabsPage() {
         </Container>
       </Section>
 
-      <PopularRoutesSection bg="muted" pad="tight" variant={{}} />
+      <PopularRoutesSection bg="muted" pad="home" wide variant={{}} />
 
       <CabVehicleFares city={city} />
 
-      <LandingSteps serviceType="CAB" bg="muted" pad="tight" />
+      <LandingSteps serviceType="CAB" bg="muted" pad="home" />
 
       <CabHotelPickups city={city} />
 
@@ -194,12 +201,13 @@ export default async function CabsPage() {
         faqs={CAB_FAQS}
         eyebrow="Before you book"
         title="Cab booking questions, answered"
-        pad="tight"
+        pad="home"
+        bg="white"
         overlay="dots-faint"
       />
 
       <CtaSection
-        pad="tight"
+        pad="home"
         cardSize="compact"
         variant={{
           title: "Ready to ride?",

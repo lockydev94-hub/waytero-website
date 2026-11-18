@@ -78,7 +78,7 @@ export default function OffersSection({ variant, bg = "white", offers, hidden = 
 
   return (
     <Section bg={bg} pad="home" id="offers" overlay="dots-faint">
-      <Container size="lg">
+      <Container size="wide">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
 
         {/* Horizontal snap strip — one card at a time on a phone, all of them

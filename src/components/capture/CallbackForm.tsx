@@ -81,7 +81,7 @@ export default function CallbackForm() {
           aria-label="Mobile number for the call back"
           value={mobile}
           onChange={(e) => setMobile(e.target.value.replace(/\D/g, "").slice(0, 10))}
-          placeholder="98765 43210"
+          placeholder="Enter mobile number"
           className="h-9 min-w-0 flex-1 rounded-lg border border-ink-7 bg-white px-2.5 text-sm text-ink placeholder:text-ink-5 focus:outline-none focus:border-primary-600 focus:ring-2 focus:ring-primary-600/15"
         />
         <button

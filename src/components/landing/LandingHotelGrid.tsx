@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MapPin, BedDouble, Building2, Star } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { INR } from "./format";
+import { citySlug } from "@/lib/citySlug";
 import type { LandingHotel } from "@/lib/landingIndex";
 
 // ============================================================
@@ -15,11 +16,11 @@ import type { LandingHotel } from "@/lib/landingIndex";
 export default function LandingHotelGrid({
   hotels,
   title,
-  cityId,
+  cityName,
 }: {
   hotels: LandingHotel[];
   title?: string | null;
-  cityId?: number | null;
+  cityName?: string | null;
 }) {
   if (!hotels.length) return null;
 
@@ -95,10 +96,10 @@ export default function LandingHotelGrid({
           ))}
         </MotionStagger>
 
-        {cityId ? (
+        {cityName ? (
           <div className="mt-10 text-center">
             <Link
-              href={`/hotels/results?city_id=${cityId}`}
+              href={`/hotels/results?city=${citySlug(cityName)}`}
               className="inline-flex items-center gap-2 rounded-xl border border-primary-200 bg-white px-6 py-3 text-sm font-bold text-primary-700 transition-all hover:-translate-y-0.5 hover:bg-primary-50"
             >
               Search all stays with dates

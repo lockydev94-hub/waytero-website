@@ -23,6 +23,7 @@ import TourFilters, { readFiltersFromParams, type InclusionLine } from "@/compon
 import TourCard from "@/components/tours/TourCard";
 import { Loader2, SearchX, Search as SearchIcon, RefreshCcw } from "lucide-react";
 import { tourService, type PublicTourPackage, type PublicTourDestination } from "@/services/tourService";
+import { citySlug } from "@/lib/citySlug";
 
 export default function ToursListingPage({
   destinations = [],
@@ -39,6 +40,15 @@ export default function ToursListingPage({
   const rawParams = useSearchParams();
   const params = useMemo(() => rawParams ?? new URLSearchParams(), [rawParams]);
   const filters = useMemo(() => readFiltersFromParams(params), [params]);
+  // `?city=bhubaneswar` is resolved against the destination feed the page
+  // already received; the API still filters on the numeric id.
+  const filterCityId = useMemo(
+    () =>
+      filters.city_id ??
+      destinations.find((d) => citySlug(d.city_name) === filters.city)?.city_id ??
+      null,
+    [filters, destinations],
+  );
 
   const [items, setItems] = useState<PublicTourPackage[]>([]);
   const [total, setTotal] = useState(serverTotal);
@@ -54,7 +64,7 @@ export default function ToursListingPage({
     tourService
       .searchAll({
         destination: filters.destination || undefined,
-        city_id: filters.city_id ?? undefined,
+        city_id: filterCityId ?? undefined,
         duration: filters.duration || undefined,
         package_type: filters.package_type || undefined,
         persons: filters.persons || undefined,
@@ -75,7 +85,7 @@ export default function ToursListingPage({
       })
       .catch(e => setError(e instanceof Error ? e.message : "Failed to load tours"))
       .finally(() => setLoading(false));
-  }, [filters]);
+  }, [filters, filterCityId]);
 
   const loadMore = () => {
     const nextPage = page + 1;
@@ -83,7 +93,7 @@ export default function ToursListingPage({
     tourService
       .searchAll({
         destination: filters.destination || undefined,
-        city_id: filters.city_id ?? undefined,
+        city_id: filterCityId ?? undefined,
         duration: filters.duration || undefined,
         package_type: filters.package_type || undefined,
         persons: filters.persons || undefined,
@@ -106,7 +116,7 @@ export default function ToursListingPage({
   return (
     <div className="bg-gradient-to-b from-accent-50/50 via-white to-white">
       {/* ── Popular destinations strip (when no filter) ────── */}
-      {destinations.length > 0 && !filters.destination && !filters.city_id && (
+      {destinations.length > 0 && !filters.destination && !filters.city && !filters.city_id && (
         <Container size="xl" className="py-8">
           <div className="flex items-end justify-between mb-4">
             <div>
@@ -121,7 +131,7 @@ export default function ToursListingPage({
                 type="button"
                 onClick={() => {
                   const sp = new URLSearchParams();
-                  sp.set("city_id", String(d.city_id));
+                  sp.set("city", citySlug(d.city_name));
                   sp.set("destination", d.city_name);
                   router.push(`/tours?${sp.toString()}`);
                 }}

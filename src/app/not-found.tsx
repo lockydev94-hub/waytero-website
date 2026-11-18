@@ -2,7 +2,8 @@ import Link from "next/link";
 import { Car, Hotel, Map, MapPin, Compass } from "lucide-react";
 import { Container, PageHeader, Section, IconBox, Card, MotionGlow, ButtonLink, MotionStagger, MotionStaggerItem } from "@/components/ui";
 
-export const metadata = { title: "Page Not Found — WayTero", description: "The page you were looking for doesn't exist." };
+// The root layout appends "| WayTero", so this title must not repeat the brand.
+export const metadata = { title: "Page Not Found", description: "The page you were looking for doesn't exist." };
 
 export default function NotFound() {
   return (

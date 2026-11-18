@@ -60,6 +60,41 @@ export interface FareBreakdownItem {
   billable_km?: number;
   /** Actual trip distance fed into the fare engine. */
   actual_km?: number;
+  /** Rate-card class this row prices, when the row came from the card. */
+  vehicle_class?: string;
+  vehicle_models?: string | null;
+  /** The package behind this row — present only for card-priced options. */
+  package?: PackageFareItem;
+}
+
+/** One rate-card class, priced as a package for the searched trip.
+ *  The site shows these when the city has a rate card, because this is what
+ *  the desk quotes and what the booking will be priced at. */
+export interface PackageFareItem {
+  vehicle_class: string;
+  vehicle_label: string;
+  vehicle_models?: string | null;
+  seating_capacity?: number | null;
+  vehicle_category_id: number;
+  category_name: string;
+  rental_type: string; // LOCAL | OUTSTATION | DAILY
+  included_hours: number;
+  included_km: number;
+  days: number;
+  price: number;
+  extra_hours: number;
+  extra_hour_rate: number;
+  extra_hour_charge: number;
+  extra_km: number;
+  extra_km_rate: number;
+  extra_km_charge: number;
+  driver_allowance: number;
+  midnight_charge: number;
+  total: number;
+  rate_source: "CITY" | "PLATFORM";
+  toll_included: boolean;
+  parking_included: boolean;
+  night_halt_included: boolean;
 }
 
 export interface FareEstimateOut {
@@ -68,18 +103,73 @@ export interface FareEstimateOut {
   pickup_datetime?: string;
   return_datetime?: string;
   categories: FareBreakdownItem[];
+  /** Empty when the city has no rate card — then `categories` is the answer. */
+  packages?: PackageFareItem[];
+}
+
+export interface CabStopIn {
+  name: string;
+  latitude?: number;
+  longitude?: number;
+  city_id?: number;
+}
+
+/** One place on the route, as the server placed it. `city_name` is what lets the
+ *  results page say "this Local ends in Puri" instead of guessing. */
+export interface TripCheckPoint {
+  name: string;
+  city_id: number | null;
+  city_name: string | null;
+  match: "CITY_ID" | "COORDS" | "NAME" | "NONE";
+  latitude: number | null;
+  longitude: number | null;
+}
+
+/** The server's verdict on whether the chosen trip type matches the places.
+ *  `errors` block the booking; the rest is shown as guidance. */
+export interface TripCheckOut {
+  trip_type: string;
+  is_valid: boolean;
+  errors: string[];
+  warnings: string[];
+  hints: string[];
+  detected_type: string | null;
+  crosses_cities: boolean;
+  cities: string[];
+  pickup: TripCheckPoint;
+  drop: TripCheckPoint | null;
+  stops: TripCheckPoint[];
+  distance_km: number | null;
+  duration: {
+    minutes: number | null;
+    arrival: string | null;
+    source: "AVERAGE_SPEED";
+    avg_speed_kmh: number;
+  };
 }
 
 export interface CreateCabBookingIn {
   city_id: number;
   trip_type: string;
-  vehicle_category_id: number;
+  /** Required for PER_KM; a package booking names `vehicle_class` instead and
+   *  the server derives the category from the card. */
+  vehicle_category_id?: number;
+  /** PACKAGE prices from the rate card — the same figure the results page
+   *  showed. The server re-prices from the class, hours and kilometres. */
+  pricing_mode?: "PACKAGE" | "PER_KM";
+  vehicle_class?: string;
+  hours?: number;
+  km?: number;
+  days?: number;
   pickup_location: string;
   pickup_latitude?: number;
   pickup_longitude?: number;
   drop_location?: string;
   drop_latitude?: number;
   drop_longitude?: number;
+  /** Places the car visits between pickup and drop. The server measures the
+   *  extra legs, so a detour is priced rather than ignored. */
+  stops?: CabStopIn[];
   pickup_datetime: string;
   /** Return date for ROUND_TRIP. ISO datetime. */
   return_datetime?: string;
@@ -259,6 +349,22 @@ export const cabService = {
       ...(pickup_datetime ? { pickup_datetime } : {}),
       ...(return_datetime ? { return_datetime } : {}),
     }),
+
+  /** Does the chosen trip type match these places? The same check the create
+   *  path enforces, so the page can refuse a Local booking that ends in another
+   *  city before the customer fills in the review step. */
+  checkTrip: async (body: {
+    trip_type: string;
+    pickup: CabStopIn;
+    drop?: CabStopIn | null;
+    stops?: CabStopIn[];
+    pickup_datetime?: string;
+    return_datetime?: string;
+    distance_km?: number;
+  }): Promise<TripCheckOut> => {
+    const json = await post<{ data: TripCheckOut }>("/public/cab/trip-check", body);
+    return json.data;
+  },
 
   /** Returns the admin-configured Google Maps API key (or null if not set). */
   getGoogleMapsKey: (): Promise<GoogleMapsKeyOut> =>

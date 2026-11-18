@@ -6,7 +6,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   Menu, X, Phone, ChevronDown,
-  Car, Building2, Compass, Navigation,
+  Car, Building2, Compass, Navigation, IndianRupee,
   Info, Handshake, MessageCircle, UserCircle2, Users, Newspaper,
   LayoutDashboard, LogOut, ChevronUp, Wallet as WalletIcon, LifeBuoy, Bell, ShieldCheck,
 } from "lucide-react";
@@ -23,6 +23,7 @@ import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 // ── Nav icon map ───────────────────────────────────────────────
 const NAV_ICONS: Record<string, React.ReactNode> = {
   "/cabs":   <Car        className="h-[15px] w-[15px]" />,
+  "/cabs/prices": <IndianRupee className="h-[15px] w-[15px]" />,
   "/hotels": <Building2  className="h-[15px] w-[15px]" />,
   "/tours":  <Compass    className="h-[15px] w-[15px]" />,
   "/track":  <Navigation className="h-[15px] w-[15px]" />,
@@ -35,8 +36,11 @@ const SECONDARY_ICONS: Record<string, React.ReactNode> = {
   "/blog":    <Newspaper     className="h-4 w-4" />,
 };
 
+const CAB_PRICES_LINK = { label: "Cab Prices", href: "/cabs/prices" };
+
 const DEFAULT_NAV = [
   { label: "Cabs",   href: "/cabs" },
+  CAB_PRICES_LINK,
   { label: "Hotels", href: "/hotels" },
   { label: "Tours",  href: "/tours" },
   { label: "Track",  href: "/track" },
@@ -181,7 +185,19 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
     pathname === href || pathname.startsWith(href + "/");
 
   const rawCmsNav = (cmsData?.nav_links ?? []).filter((n) => n?.href && n?.label && !isHiddenHref(n.href, hiddenServices));
-  const navLinks  = (rawCmsNav.length > 0 ? rawCmsNav : DEFAULT_NAV).filter((n) => !isHiddenHref(n.href, hiddenServices));
+  // The price list is a page we ship, not a CMS band, so it is guaranteed a
+  // place in the menu even when the admin's nav links replace the defaults —
+  // added right after Cabs, where a fare list belongs.
+  const baseNav = rawCmsNav.length > 0 ? rawCmsNav : DEFAULT_NAV;
+  const withPrices = baseNav.some((n) => n.href === CAB_PRICES_LINK.href)
+    ? baseNav
+    : (() => {
+        const i = baseNav.findIndex((n) => n.href === "/cabs");
+        return i >= 0
+          ? [...baseNav.slice(0, i + 1), CAB_PRICES_LINK, ...baseNav.slice(i + 1)]
+          : [...baseNav, CAB_PRICES_LINK];
+      })();
+  const navLinks  = withPrices.filter((n) => !isHiddenHref(n.href, hiddenServices));
   const mobileLinks = [
     ...navLinks,
     ...SECONDARY.filter((s) => !navLinks.some((n) => n.href === s.href)),

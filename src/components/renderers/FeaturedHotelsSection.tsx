@@ -52,7 +52,7 @@ export default async function FeaturedHotelsSection({ variant, bg = "muted" }: F
 
   return (
     <Section bg={bg} pad="home" id="hotels" overlay="dots-faint">
-      <Container size="lg">
+      <Container size="wide">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <Carousel ariaLabel="Featured hotels">
           {hotels.map((h) => (

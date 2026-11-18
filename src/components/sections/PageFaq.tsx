@@ -26,6 +26,7 @@ export default function PageFaq({
   title = "Frequently Asked Questions",
   subtitle,
   pad = "lg",
+  bg = "muted",
   overlay = "dots",
 }: {
   faqs: FaqItem[];
@@ -33,6 +34,10 @@ export default function PageFaq({
   title?: string;
   subtitle?: string;
   pad?: "home" | "tight" | "sm" | "md" | "lg";
+  // Callers stacking two muted bands in a row (e.g. /cabs, whose "how it
+  // works" band is muted) can put the FAQ on white to keep the homepage's
+  // white/off-white alternation.
+  bg?: "white" | "muted";
   // The white dot pattern disappears on this section's muted (light) surface —
   // callers that want the texture visible pass "dots-faint".
   overlay?: "dots" | "dots-faint" | "grid" | "grid-faint" | "lines" | "none";
@@ -42,7 +47,7 @@ export default function PageFaq({
   if (!faqs.length) return null;
 
   return (
-    <Section bg="muted" pad={pad} id="faq" overlay={overlay}>
+    <Section bg={bg} pad={pad} id="faq" overlay={overlay}>
       <Container size="md">
         <SectionHeader
           eyebrow={eyebrow}

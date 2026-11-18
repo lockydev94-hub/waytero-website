@@ -6,13 +6,22 @@ import {
   Search, ListChecks, BadgeCheck, Route,
 } from "lucide-react";
 import { Container, Section, SectionHeader, Card, IconBox, Breadcrumb } from "@/components/ui";
+import CabRateTable from "@/components/sections/CabRateTable";
+import { pickCabCity, type CabCityRow } from "@/lib/cabCity";
+import {
+  fetchCabPriceList,
+  rentalTypeForTrip,
+  type CabPriceClass,
+} from "@/lib/cabPrices";
 import { MotionFadeIn, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
 import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
 import { enumLabel } from "@/components/landing/format";
 import { API_BASE } from "@/lib/apiBase";
-import { appUrl } from "@/services/seoService";
+import { appUrl, toMetadata } from "@/services/seoService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
+import { citySlug } from "@/lib/citySlug";
+import { getLandingRefs } from "@/lib/landingIndex";
 
 // ============================================================
 // /cabs/[trip] — DB-driven cab trip-type landing pages.
@@ -41,7 +50,7 @@ const TRIP_META: Record<
       "Hourly and full-day local cabs in your city — station transfers, shopping trips, or a full day of errands with a verified driver.",
     Icon: Car,
     bullets: [
-      "Transparent per-km pricing from the live fare engine",
+      "Package prices from the published rate card, shown before you book",
       "Verified, background-checked drivers",
       "Book in under a minute — no calls, no haggling",
     ],
@@ -129,25 +138,35 @@ async function loadTripPage(code: string) {
   }
   if (!tripTypes.some((t) => t.code === code)) return null;
 
-  // Cities first — the fare sheet is priced for the first serviced city
-  // (real city, real rules), never a hardcoded id.
-  let cities: Array<{ id: number; name: string; state_name: string | null }> = [];
+  // The city must be the one the rest of the site quotes — the one with its
+  // own fare rules — not `cities[0]`, which is alphabetical (Ahmedabad) and
+  // has no card of its own.
+  let cities: CabCityRow[] = [];
   try {
     const res = await fetch(`${API_BASE}/public/cab/cities`, {
       next: { revalidate: 300 },
     });
-    if (res.ok) cities = await res.json();
+    if (res.ok) cities = (await res.json()) as CabCityRow[];
   } catch {
     cities = [];
   }
+  const city = pickCabCity(cities);
+
+  // The card is what bookable searches are quoted from, so it is the page's
+  // primary price source. `rows` (the per-km fare sheet) is only the
+  // fallback for a city with no card at all.
+  const priceList = city ? await fetchCabPriceList(city.id) : null;
+  const classes: CabPriceClass[] = priceList?.classes ?? [];
+  const rentalType = rentalTypeForTrip(code);
+  const hasCard = classes.some((c) =>
+    c.packages.some((p) => p.rental_type === rentalType),
+  );
 
   let rows: FareMatrixRow[] = [];
-  let cityName: string | null = null;
-  if (cities.length > 0) {
-    cityName = cities[0].name;
+  if (!hasCard && city) {
     try {
       const res = await fetch(
-        `${API_BASE}/public/cab/cities/${cities[0].id}/fare-matrix?distance_km=10`,
+        `${API_BASE}/public/cab/cities/${city.id}/fare-matrix?distance_km=10`,
         { next: { revalidate: 300 } },
       );
       if (res.ok) {
@@ -161,7 +180,15 @@ async function loadTripPage(code: string) {
     }
   }
 
-  return { cities, rows, cityName };
+  return {
+    cities,
+    rows,
+    cityName: priceList?.city_name ?? city?.name ?? null,
+    cityId: city?.id ?? null,
+    classes,
+    rentalType,
+    hasCard,
+  };
 }
 
 export function generateStaticParams() {
@@ -188,11 +215,20 @@ export async function generateMetadata({
   const code = SLUG_TO_CODE[trip];
   const meta = code ? TRIP_META[code] : null;
   if (!meta) return { title: "Cab Booking" };
-  return {
-    title: `${meta.h1} in India — Upfront Fares`,
-    description: meta.blurb.slice(0, 300),
-    alternates: { canonical: `/cabs/${meta.slug}` },
-  };
+  return toMetadata(
+    {
+      title: `${meta.h1} in India — Upfront Fares`,
+      description: meta.blurb.slice(0, 300),
+      keywords: [
+        `${meta.name.toLowerCase()} cab booking`,
+        `${meta.name.toLowerCase()} taxi India`,
+        "cab booking",
+        "upfront fares",
+        "verified drivers",
+      ],
+    },
+    `/cabs/${meta.slug}`,
+  );
 }
 
 const INR = (n: number | string) =>
@@ -202,7 +238,7 @@ const INR = (n: number | string) =>
 // JSON-LD (both required for eligibility; SEO audit §4).
 const TRIP_FAQS: Record<string, FaqItem[]> = {
   LOCAL: [
-    { question: "How is local cab fare calculated?", answer: "Fare = base fare (includes a set number of km) + per-km rate beyond that + driver allowance. The full breakdown is shown before you pay — no surge, no hidden charges." },
+    { question: "How is local cab fare calculated?", answer: "Your city's rate card sells local hire as packages — for example 8 hours and 80 km at a set price. Use beyond the included hours or kilometres is billed at the card's extra-hour and extra-km rates, and anything not included is itemised before you pay. No surge, no hidden charges." },
     { question: "Can I book a cab for a full day?", answer: "Yes. Choose Local in the booking form and set your pickup time — full-day packages are priced by the same transparent fare engine, and the total is always shown upfront." },
     { question: "Are the drivers verified?", answer: "Every WayTero driver is background-checked with ID and licence on file, and vehicles carry valid documents verified by our team before going live." },
     { question: "What payment methods can I use?", answer: "UPI, debit/credit cards, net-banking, and WayTero Wallet. Wallet refunds land instantly when a booking is cancelled per policy." },
@@ -214,14 +250,14 @@ const TRIP_FAQS: Record<string, FaqItem[]> = {
     { question: "Can I book an airport cab at night?", answer: "Yes. Cabs are available 24×7. Night-timing pickups carry a clearly displayed night charge that's included in your upfront quote." },
   ],
   OUTSTATION: [
-    { question: "What does outstation fare include?", answer: "Base fare, per-km rate beyond the included km, and driver allowance. Night charges and tolls (where applicable) are shown separately in your quote before booking." },
+    { question: "What does outstation fare include?", answer: "An outstation package: included hours and kilometres, the driver allowance, and the extra-km rate for distance beyond the package. Night charges and tolls (where applicable) are shown separately in your quote before booking." },
     { question: "Is GST included in the shown fare?", answer: "The quoted fare is pre-tax. GST is added at trip close and itemised on your invoice — the estimate you see is always honest about this." },
     { question: "Can I book a one-way outstation drop?", answer: "Yes — one-way pricing is the whole point of WayTero outstation cabs. Choose One Way in the booking form and pay only for your leg." },
     { question: "How do I track my outstation trip?", answer: "Open the Track page with your booking number. Once a driver is assigned it shows the status, the driver's name and contact and the vehicle — there is no live map." },
   ],
   ONE_WAY: [
-    { question: "How is one-way pricing different?", answer: "You pay only for the distance of your own journey — the driver's return leg isn't billed to you. The per-km math is shown in your fare breakdown." },
-    { question: "Is there a minimum distance for one-way trips?", answer: "Each fare rule includes a minimum-km allowance in the base fare. If your trip is shorter, you simply pay the base fare — nothing extra." },
+    { question: "How is one-way pricing different?", answer: "You pay only for the distance of your own journey — the driver's return leg isn't billed to you. Your quote uses the outstation package, and any distance beyond its included kilometres is billed at the card's extra-km rate." },
+    { question: "Is there a minimum distance for one-way trips?", answer: "The outstation package includes a set number of kilometres. A shorter trip simply costs the package price — nothing extra is added." },
     { question: "Can I add stops along the way?", answer: "Add special instructions when booking — the driver and support team see them. Long detours may be repriced transparently before you confirm." },
     { question: "What if I need to cancel?", answer: "The charge follows the ladder in force at the moment you cancel, and the refund preview shows the exact amount before you commit. Approved refunds land in your WayTero wallet, which you can spend on any future booking." },
   ],
@@ -245,7 +281,15 @@ export default async function CabTripPage({
 
   const data = await loadTripPage(code);
   if (!data) notFound(); // no active pricing rules → nothing to sell yet
-  const { cities, rows, cityName } = data;
+  const { cities, rows, cityName, classes, rentalType, hasCard } = data;
+  // A city with a published CITY_CABS page gets that editorial URL; the rest
+  // fall back to the filtered booking form using a readable slug, never an id.
+  const refs = await getLandingRefs();
+  const cityLanding = new Map(
+    refs
+      .filter((r) => r.page_type === "CITY_CABS" && r.canonical_path)
+      .map((r) => [r.scope.display_name.trim().toLowerCase(), r.canonical_path]),
+  );
 
   const Icon = meta.Icon;
 
@@ -325,7 +369,46 @@ export default async function CabTripPage({
         </Container>
       </Section>
 
-      {/* ── Live pricing table (DB-driven fare matrix, 10 km sample) ── */}
+      {/* ── Published prices (rate card, per vehicle class) ───── */}
+      {hasCard && (
+        <Section bg="white" pad="lg" id="trip-prices">
+          <Container size="lg">
+            <SectionHeader
+              eyebrow={`Upfront pricing${cityName ? ` · ${cityName}` : ""}`}
+              title={
+                cityName
+                  ? `${meta.name} cab prices in ${cityName}`
+                  : `${meta.name} cab prices`
+              }
+              subtitle="Package prices from the published rate card — the same sheet your booking is charged from. Your exact quote is calculated for your route, date and pickup time before you pay."
+            />
+            <CabRateTable
+              classes={classes}
+              rentalType={rentalType}
+              cityName={cityName}
+              tripType={code}
+            />
+            <p className="mt-3 text-xs leading-relaxed text-ink-4">
+              Prices exclude GST and tolls unless a row says otherwise. Extra
+              kilometres and hours beyond the package are billed at the rates
+              above; a night pickup adds the night charge the fare rules define.{" "}
+              {rentalType === "LOCAL" && code !== "LOCAL"
+                ? "Airport transfers are priced as a same-city local package. "
+                : ""}
+              {code === "ROUND_TRIP"
+                ? "A round trip spanning several days is charged the Cab Rent daily package. "
+                : ""}
+              <Link href="/cabs/prices" className="font-bold text-primary-700 hover:underline">
+                See the full price list for every city
+              </Link>
+              .
+            </p>
+          </Container>
+        </Section>
+      )}
+
+      {/* Fallback: a city with no rate card falls back to the per-km fare
+          sheet, which is what the booking flow quotes there too. */}
       {rows.length > 0 && (
         <Section bg="white" pad="lg">
           <Container size="lg">
@@ -392,7 +475,10 @@ export default async function CabTripPage({
               {cities.map((c) => (
                 <Link
                   key={c.id}
-                  href={`/cabs?city_id=${c.id}&trip_type=${code}`}
+                  href={
+                    cityLanding.get(c.name.toLowerCase()) ??
+                    `/cabs?city=${citySlug(c.name)}&trip_type=${code}`
+                  }
                   className="inline-flex items-center gap-1.5 rounded-full border border-ink-7 bg-white px-4 py-2 text-sm font-semibold text-ink-2 transition-all hover:border-primary-300 hover:text-primary-700"
                 >
                   <MapPin className="h-3.5 w-3.5 text-primary-500" />

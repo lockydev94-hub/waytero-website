@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Star, BedDouble, ArrowUpRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { API_BASE } from "@/lib/apiBase";
+import { citySlug } from "@/lib/citySlug";
 import type { BandTone } from "@/types/cms";
 
 /* ============================================================
@@ -72,7 +73,11 @@ export default async function TourPartnerHotelsBand({
           {hotels.map((h) => (
             <MotionStaggerItem key={h.id}>
               <Link
-                href={h.slug ? `/hotels/${h.slug}` : `/hotels/results?city_id=${h.city_id}`}
+                href={
+                  h.slug
+                    ? `/hotels/${h.slug}`
+                    : `/hotels/results?city=${citySlug(h.city_name)}`
+                }
                 className="group block border-b border-ink-7 py-2.5 transition-colors hover:text-primary-700"
               >
                 <span className="flex items-baseline gap-2">

@@ -1,10 +1,12 @@
-import { Users, Hotel, Car, MapPin } from "lucide-react";
-import { Container, Section, IconBox } from "@/components/ui";
-import { MotionFadeIn, MotionScrollCounter, MotionStagger, MotionStaggerItem } from "@/components/ui";
-import { pick } from "@/types/cms";
+import { Users, Hotel, Car, MapPin, Route, Package, type LucideIcon } from "lucide-react";
+import { Container, Section } from "@/components/ui";
+import { MotionFadeIn, MotionScrollCounter } from "@/components/ui";
+import { pick, type BandTone } from "@/types/cms";
 
 interface StatsSectionProps {
   variant: Record<string, unknown>;
+  /** Homepage tone, decided by HomepageServer. */
+  bg?: BandTone;
 }
 
 interface Stat {
@@ -13,76 +15,79 @@ interface Stat {
   label: string;
 }
 
-const ICONS = [Users, Hotel, Car, MapPin];
-const TONES = ["primary", "accent", "success", "info"] as const;
+/** Icon and pastel tone per label, so a new stat the admin adds still gets a
+ *  sensible chip instead of repeating the first one in the list. */
+const LABEL_ICONS: { match: RegExp; icon: LucideIcon; tone: string }[] = [
+  { match: /cit(y|ies)|destination/i, icon: MapPin, tone: "bg-primary-50 text-primary-600" },
+  { match: /tour|package/i, icon: Package, tone: "bg-accent-50 text-accent-600" },
+  { match: /route/i, icon: Route, tone: "bg-success-soft text-emerald-600" },
+  { match: /hotel|stay|room/i, icon: Hotel, tone: "bg-rose-50 text-rose-500" },
+  { match: /cab|ride|driver|car/i, icon: Car, tone: "bg-info-soft text-sky-600" },
+  { match: /travel|customer|user|partner/i, icon: Users, tone: "bg-violet-50 text-violet-600" },
+];
 
-export default function StatsSection({ variant }: StatsSectionProps) {
-  const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "By the numbers"));
+function chipFor(label: string, index: number) {
+  const hit = LABEL_ICONS.find((l) => l.match.test(label));
+  if (hit) return hit;
+  const fallback = LABEL_ICONS[index % LABEL_ICONS.length];
+  return { icon: fallback.icon, tone: fallback.tone };
+}
+
+/**
+ * StatsSection — "Numbers that speak".
+ *
+ * A light band of plain number cards: the count is the content, so the card
+ * stays quiet (pastel icon chip, navy figure, one label) and the row is a
+ * grid that fills whatever the admin seeds into `content.stats` — the old
+ * fixed four-column grid left holes with three stats and put the band on a
+ * navy slab that fought the rest of the page.
+ *
+ * No fallback numbers: an invented "50,000+ travellers" is exactly the fake
+ * data the owner ruled out, so an empty list hides the band.
+ */
+export default function StatsSection({ variant, bg = "white" }: StatsSectionProps) {
   const headline = pick<string>(variant, "headline", "Numbers that speak");
-  // No fallback numbers — an invented "50,000+ travelers" is exactly the
-  // fake data the owner ruled out. Empty list → section hidden.
+  const subtitle = pick<string>(variant, "subheadline", "");
   const stats = pick<Stat[]>(variant, "stats", []);
   if (stats.length === 0) return null;
 
   return (
-    <Section bg="ink" pad="home" id="stats" className="relative overflow-hidden" overlay="grid">
-      {/* Premium depth — animated mesh blobs + grid overlay */}
-      <div aria-hidden className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary-500/30 blur-3xl animate-blob" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-28 -right-24 h-96 w-96 rounded-full bg-accent-500/25 blur-3xl animate-blob [animation-delay:4s]" />
-      <div aria-hidden className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-72 w-72 rounded-full bg-primary-400/15 blur-3xl animate-blob [animation-delay:7s]" />
-
-      <Container size="lg" className="relative">
-        {/* Same rhythm as SectionHeader scale="home" — kept local because this
-            band is on dark ink and needs accent colours, not a dark override
-            inside the shared header. */}
-        <MotionFadeIn className="text-center mb-6 lg:mb-7">
-          <p className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] text-accent-300 mb-2.5">
-            <span className="h-1.5 w-1.5 rounded-full bg-accent-400" aria-hidden /> {eyebrow}
-          </p>
-          <h2 className="text-2xl sm:text-[1.9rem] lg:text-[2.15rem] font-extrabold text-white leading-[1.15] tracking-[-0.02em]">
-            <span className="text-gradient-accent">{headline}</span>
+    <Section bg={bg} pad="none" id="stats" className="relative overflow-hidden pt-7 pb-8 lg:pt-8 lg:pb-10">
+      <Container size="wide">
+        <div className="text-center">
+          <h2 className="flex items-center justify-center gap-2.5 text-[21px] font-extrabold tracking-[-0.01em] text-ink sm:text-[23px] lg:text-[25px]">
+            <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-accent-500" />
+            <span>{headline}</span>
+            <span aria-hidden className="h-[3px] w-4 shrink-0 rounded-full bg-accent-500" />
           </h2>
-          <div className="mt-3 h-[3px] w-14 rounded-full bg-gradient-to-r from-primary-400 via-accent-400 to-primary-400 mx-auto" aria-hidden />
-        </MotionFadeIn>
-        <MotionStagger className="grid grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6">
-          {stats.map((s, i) => (
-            <MotionStaggerItem key={s.label}>
-              <StatCell stat={s} icon={ICONS[i % ICONS.length]} tone={TONES[i % TONES.length]} delay={i * 0.08} />
-            </MotionStaggerItem>
-          ))}
-        </MotionStagger>
+          {subtitle && <p className="mt-1.5 text-[13px] leading-relaxed text-ink-4">{subtitle}</p>}
+        </div>
+
+        {/* Capped and centred: three stats spread across a 1328px band read as
+            stretched, and the row is only as wide as its content needs. */}
+        <div
+          className="mx-auto mt-5 grid max-w-[900px] gap-3 sm:gap-4"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}
+        >
+          {stats.map((stat, i) => {
+            const { icon: Icon, tone } = chipFor(stat.label, i);
+            return (
+              <MotionFadeIn key={stat.label} delay={Math.min(i, 4) * 0.06}>
+                <div className="h-full rounded-2xl bg-white p-5 text-center shadow-[0_10px_30px_-22px_rgba(16,24,40,0.45)] ring-1 ring-black/[0.05]">
+                  <span className={`mx-auto grid h-10 w-10 place-items-center rounded-xl ${tone}`}>
+                    <Icon className="h-5 w-5" aria-hidden />
+                  </span>
+                  <div className="mt-2.5 text-[30px] font-extrabold leading-none tracking-[-0.02em] tabular-nums text-ink">
+                    <MotionScrollCounter value={stat.value} duration={1.4} />
+                    {stat.suffix ?? ""}
+                  </div>
+                  <div className="mt-1.5 text-[12.5px] font-medium text-ink-4">{stat.label}</div>
+                </div>
+              </MotionFadeIn>
+            );
+          })}
+        </div>
       </Container>
     </Section>
-  );
-}
-
-function StatCell({ stat, icon: Icon, tone, delay }: { stat: Stat; icon: typeof Users; tone: "primary" | "accent" | "success" | "info"; delay: number }) {
-  return (
-    <MotionFadeIn delay={delay}>
-      <div className="group relative h-full text-center rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-md p-6 transition-all duration-300 ease-[var(--ease-wt)] hover:bg-white/[0.08] hover:border-white/25 hover:-translate-y-1.5 hover:shadow-[0_8px_32px_rgba(26,86,219,0.25)] overflow-hidden">
-        {/* Premium gradient hairline that brightens on hover */}
-        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary-400/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-        {/* Inner corner glow */}
-        <div aria-hidden className="pointer-events-none absolute -top-12 -right-12 h-28 w-28 rounded-full bg-primary-500/20 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-
-        <div className="relative flex justify-center mb-4">
-          <IconBox
-            icon={<Icon className="h-5 w-5" />}
-            tone={tone}
-            size="md"
-            gradient
-            float
-            className="group-hover:scale-110 transition-transform duration-300"
-          />
-        </div>
-        <div className="relative text-4xl lg:text-5xl font-extrabold tracking-tight tabular-nums">
-          <span className="bg-gradient-to-br from-white via-white to-white/60 bg-clip-text text-transparent">
-            <MotionScrollCounter value={stat.value} duration={1.6} />
-            {stat.suffix ?? ""}
-          </span>
-        </div>
-        <div className="relative mt-2 text-sm text-white/65 font-medium">{stat.label}</div>
-      </div>
-    </MotionFadeIn>
   );
 }

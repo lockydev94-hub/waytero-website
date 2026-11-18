@@ -11,6 +11,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter, RotateCcw, MapPin, Wallet, Users, Clock3, Star, ArrowDownAZ, Check, Info } from "lucide-react";
+import { citySlug } from "@/lib/citySlug";
 
 export type SortMode = "recommended" | "price_asc" | "price_desc" | "newest";
 
@@ -23,6 +24,9 @@ export interface InclusionLine {
 
 export interface TourFilterValues {
   destination: string;
+  /** Readable city filter used in the public URL (`?city=bhubaneswar`). */
+  city: string;
+  /** Numeric id sent to the tour API, resolved from `city` when needed. */
   city_id: number | null;
   duration: string;
   package_type: string;
@@ -34,6 +38,7 @@ export interface TourFilterValues {
 
 export const DEFAULT_FILTERS: TourFilterValues = {
   destination: "",
+  city: "",
   city_id: null,
   duration: "",
   package_type: "",
@@ -94,6 +99,7 @@ export function readFiltersFromParams(params: URLSearchParams | null): TourFilte
   if (!params) return DEFAULT_FILTERS;
   return {
     destination: params.get("destination") ?? "",
+    city: params.get("city") ?? "",
     city_id: params.get("city_id") ? Number(params.get("city_id")) : null,
     duration: params.get("duration") ?? "",
     package_type: params.get("package_type") ?? "",
@@ -107,7 +113,7 @@ export function readFiltersFromParams(params: URLSearchParams | null): TourFilte
 export function filtersToParams(f: TourFilterValues): URLSearchParams {
   const sp = new URLSearchParams();
   if (f.destination.trim()) sp.set("destination", f.destination.trim());
-  if (f.city_id) sp.set("city_id", String(f.city_id));
+  if (f.city) sp.set("city", f.city);
   if (f.duration) sp.set("duration", f.duration);
   if (f.package_type) sp.set("package_type", f.package_type);
   if (f.persons > 0 && f.persons !== 2) sp.set("persons", String(f.persons));
@@ -194,9 +200,17 @@ export default function TourFilters({
               <button
                 key={c.id}
                 type="button"
-                onClick={() => update("city_id", filters.city_id === c.id ? null : c.id)}
+                onClick={() => {
+                  const active =
+                    filters.city_id === c.id || filters.city === citySlug(c.name);
+                  apply({
+                    ...filters,
+                    city: active ? "" : citySlug(c.name),
+                    city_id: active ? null : c.id,
+                  });
+                }}
                 className={`rounded-full px-2.5 py-1 text-[10px] font-bold transition-colors ${
-                  filters.city_id === c.id
+                  filters.city_id === c.id || filters.city === citySlug(c.name)
                     ? "bg-primary-600 text-white"
                     : "bg-ink-9 text-ink-3 hover:bg-primary-50 hover:text-primary-700"
                 }`}

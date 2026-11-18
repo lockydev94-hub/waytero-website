@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Car, Hotel, Map, MapPin, ArrowRight, type LucideIcon } from "lucide-react";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -13,9 +14,14 @@ interface ServiceItem {
   desc?: string;
   link?: string;
   tone?: "primary" | "accent" | "success" | "info";
+  /** Optional per-card overrides. Absent, the design's own copy for that
+   *  vertical is used (see DESIGN below). */
+  badge?: string;
+  headline?: string;
+  cta_text?: string;
+  image?: string;
 }
-import { Container, Section, SectionHeader, IconBox, MotionGlow, Carousel } from "@/components/ui";
-import { MotionStaggerItem } from "@/components/ui";
+import { Container, Section, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick, type BandTone } from "@/types/cms";
 import { isHiddenHref, type ServiceKey } from "@/lib/availability";
 
@@ -29,64 +35,144 @@ interface ServicesSectionProps {
 }
 
 const DEFAULT: ServiceItem[] = [
-  { icon: Car, title: "Cab Booking", desc: "Instant city rides and outstation cabs.", link: "/cabs", tone: "primary" },
-  { icon: Hotel, title: "Hotel Booking", desc: "Handpicked hotels & homestays with transparent pricing.", link: "/hotels", tone: "accent" },
-  { icon: Map, title: "Tour Packages", desc: "Curated tour packages — fully managed, stress-free.", link: "/tours", tone: "success" },
-  { icon: MapPin, title: "Booking Tracking", desc: "Follow any booking by number — status, driver and vehicle once assigned.", link: "/track", tone: "info" },
+  { title: "Cab Booking", desc: "Local, airport, one-way, outstation and round-trip cabs at best prices.", link: "/cabs", tone: "primary" },
+  { title: "Hotel Booking", desc: "Handpicked hotels & homestays with transparent pricing.", link: "/hotels", tone: "accent" },
+  { title: "Tour Packages", desc: "Discover India with curated tours, scenic trips and complete travel experiences.", link: "/tours", tone: "success" },
+  { title: "Booking Tracking", desc: "Follow any booking by number — status, driver and vehicle once assigned.", link: "/track", tone: "info" },
 ];
 
+/**
+ * The design's own copy, per destination vertical. A CMS item only has to
+ * supply `title` + `desc` + `link`; everything else about the card (badge
+ * label, headline, button label, artwork) comes from here, so an admin who
+ * rewrites the description does not silently lose the layout.
+ *
+ * `badge`/`headline`/`cta_text`/`image` on an item override these.
+ */
+const DESIGN: Record<
+  string,
+  { badge: string; headline: string; cta: string; image?: string }
+> = {
+  "/cabs": {
+    badge: "Cab Booking",
+    headline: "Ride Anywhere, Anytime",
+    cta: "Book a Cab",
+    image: "/assets/homepage/02-services/coastal-drive-at-golden-sunrise.webp",
+  },
+  "/tours": {
+    badge: "Tour Packages",
+    headline: "Discover India with Curated Tours",
+    cta: "Explore Packages",
+    image: "/assets/homepage/02-services/sunlit-temple-coast-tour-packages.webp",
+  },
+};
+
+/**
+ * Two palettes, mirroring the shared design: the cab card is warm cream,
+ * everything else is cool blue. `tone: "primary"` picks warm.
+ *
+ * `wash` is the veil painted over the photo — opaque enough on the copy side
+ * to hold 13.5px text, clear by the far edge so the artwork stays a photo and
+ * not a tinted panel. It runs left→right on desktop and top→bottom on phones,
+ * where the card is too narrow for a text column and a photo side by side.
+ */
+const PALETTE = {
+  warm: {
+    badge: "bg-white/85 text-accent-700 ring-accent-200",
+    base: "bg-[#FDF0E1]",
+    wash: "bg-[linear-gradient(180deg,#FFF4E9_0%,#FCE9D6_50%,rgba(252,233,214,0.74)_64%,rgba(252,233,214,0)_92%)] md:bg-[linear-gradient(90deg,#FFF4E9_0%,#FCE9D6_38%,rgba(252,233,214,0.8)_58%,rgba(252,233,214,0)_86%)]",
+  },
+  cool: {
+    badge: "bg-white/85 text-primary-700 ring-primary-200",
+    base: "bg-[#E4F0FE]",
+    wash: "bg-[linear-gradient(180deg,#F1F8FF_0%,#E1EFFE_50%,rgba(225,239,254,0.74)_64%,rgba(225,239,254,0)_92%)] md:bg-[linear-gradient(90deg,#F1F8FF_0%,#E1EFFE_38%,rgba(225,239,254,0.8)_58%,rgba(225,239,254,0)_86%)]",
+  },
+} as const;
+
+function linkKey(link?: string) {
+  if (!link) return "";
+  return link.split("?")[0].replace(/\/+$/, "") || "/";
+}
+
+/**
+ * ServicesSection — the "what we offer" band: two full-bleed photo cards.
+ *
+ * The shared design is a single row of image cards with no section heading —
+ * the photo is the card, and the badge / headline / copy / button sit on a
+ * soft wash over its left side. The headline is carried by each card, so the
+ * CMS's band-level eyebrow / title / subtitle are deliberately not rendered
+ * here (they are still editable and still used by other renderers).
+ */
 export default function ServicesSection({ variant, bg = "muted", hidden = [] }: ServicesSectionProps) {
-  const eyebrow = pick<string>(variant, "variant_tag", pick<string>(variant, "eyebrow", "What we offer"));
+  // The band has no visible heading any more — the cards carry the copy —
+  // but the document still needs one above the card headings.
   const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Everything for Your Journey"));
-  const subtitle = pick<string>(variant, "subheadline", pick<string>(variant, "subtitle", "One platform for every travel need — from your first mile to your last check-out."));
   const items = pick<ServiceItem[]>(variant, "items", DEFAULT).filter(
     (s) => !isHiddenHref(s.link, hidden),
   );
   if (items.length === 0) return null;
 
   return (
-    <Section bg={bg} pad="home" id="services" overlay="dots-faint">
-      <Container size="lg">
-        <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
-
-        <Carousel ariaLabel="Services">
+    <Section bg={bg} pad="none" id="services" className="py-5 lg:py-6">
+      <Container size="wide">
+        <h2 className="sr-only">{title}</h2>
+        <MotionStagger className="grid gap-4 sm:gap-5 md:grid-cols-2">
           {items.map((s) => {
             const Icon = typeof s.icon === "string" ? (ICONS[s.icon] ?? Car) : s.icon || Car;
+            const key = linkKey(s.link);
+            const design = DESIGN[key];
             const tone = (["primary", "accent", "success", "info"] as const).includes(s.tone as never) ? (s.tone as never) : "primary";
-            return (
-              <MotionStaggerItem
-                key={s.title}
-                className="h-full w-[80%] min-w-[250px] max-w-[460px] shrink-0 grow snap-start sm:w-[229px]"
-              >
-                <MotionGlow color={((tone as string) === "info" ? "primary" : tone) as "primary" | "accent" | "success" | "danger"} intensity={0.18} size={260} className="h-full rounded-2xl">
-                  <a
-                    href={s.link}
-                    className="group relative block h-full rounded-2xl bg-white p-6 overflow-hidden transition-all duration-300 ease-[var(--ease-wt)] hover:-translate-y-1.5 hover:shadow-wt-lg border border-ink-7 hover:border-primary-200"
-                  >
-                    {/* Top accent bar reveals on hover */}
-                    <span aria-hidden className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-600 via-primary-400 to-accent-500 scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500" />
-                    {/* Bottom-right corner glow on hover */}
-                    <div aria-hidden className="pointer-events-none absolute -bottom-12 -right-12 h-32 w-32 rounded-full bg-primary-500/15 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            const pal = tone === "primary" ? PALETTE.warm : PALETTE.cool;
 
-                    <IconBox
-                      icon={<Icon />}
-                      tone={tone}
-                      size="lg"
-                      gradient
-                      glow
-                      className="mb-5 group-hover:scale-110 group-hover:-rotate-3 transition-transform duration-300"
+            const badge = s.badge?.trim() || design?.badge || s.title;
+            const headline = s.headline?.trim() || design?.headline || s.title;
+            const desc = s.desc?.trim() || "";
+            const cta = s.cta_text?.trim() || design?.cta || "Explore";
+            const image = s.image?.trim() || design?.image;
+
+            return (
+              <MotionStaggerItem key={`${s.title}-${key}`} className="h-full">
+                <a
+                  href={s.link}
+                  className={`group relative flex h-full min-h-[340px] flex-col overflow-hidden rounded-[18px] shadow-[0_2px_12px_rgba(11,27,59,0.06)] transition-all duration-300 ease-[var(--ease-wt)] hover:-translate-y-1 hover:shadow-wt-lg md:min-h-[268px] ${pal.base}`}
+                >
+                  {image && (
+                    <Image
+                      src={image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 767px) 100vw, 45vw"
+                      className="object-cover object-[68%_center]"
                     />
-                    <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-primary-700 transition-colors">{s.title}</h3>
-                    <p className="text-sm text-ink-3 leading-relaxed mb-5">{s.desc}</p>
-                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary-600 group-hover:gap-2.5 transition-all">
-                      Learn more <ArrowRight className="h-4 w-4" />
+                  )}
+
+                  {/* Veil that lets the copy sit on the photo. */}
+                  <div aria-hidden className={`absolute inset-0 ${pal.wash}`} />
+
+                  <div className="relative z-10 flex flex-1 flex-col p-6 sm:p-7 md:max-w-[60%]">
+                    <span className={`inline-flex w-fit items-center gap-1.5 rounded-full px-3 py-1.5 text-[11.5px] font-semibold leading-none ring-1 ${pal.badge}`}>
+                      <Icon className="h-3.5 w-3.5" aria-hidden />
+                      {badge}
                     </span>
-                  </a>
-                </MotionGlow>
+
+                    <h3 className="mt-3.5 text-[23px] font-extrabold leading-[1.15] tracking-[-0.015em] text-ink md:text-[24px] xl:text-[25px]">
+                      {headline}
+                    </h3>
+
+                    {desc && (
+                      <p className="mt-2.5 max-w-[34ch] text-[13.5px] leading-[1.55] text-ink-3">{desc}</p>
+                    )}
+
+                    <span className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-accent-500 px-5 py-2.5 text-[13px] font-bold text-white shadow-[0_10px_22px_-8px_rgba(240,90,34,0.75)] transition-all duration-300 group-hover:bg-accent-600 md:mt-auto">
+                      {cta}
+                      <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" aria-hidden />
+                    </span>
+                  </div>
+                </a>
               </MotionStaggerItem>
             );
           })}
-        </Carousel>
+        </MotionStagger>
       </Container>
     </Section>
   );

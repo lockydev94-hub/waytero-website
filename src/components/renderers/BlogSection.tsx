@@ -36,7 +36,7 @@ export default async function BlogSection({ variant, bg = "muted" }: BlogSection
 
   return (
     <Section bg={bg} pad="home" id="blog" overlay="dots-faint">
-      <Container size="lg">
+      <Container size="wide">
         <SectionHeader
           eyebrow={eyebrow}
           title={title}

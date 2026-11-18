@@ -3,6 +3,7 @@ import { Star, ArrowUpRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { API_BASE } from "@/lib/apiBase";
 import type { CabCityRow } from "@/lib/cabCity";
+import { citySlug } from "@/lib/citySlug";
 
 /* ============================================================
    CabHotelPickups — hotel NAMES on the cab page, no cards.
@@ -51,8 +52,8 @@ export default async function CabHotelPickups({
   if (!hotels.length) return null;
 
   return (
-    <Section bg="white" pad="tight">
-      <Container size="xl">
+    <Section bg="white" pad="home">
+      <Container size="wide">
         <SectionHeader
           eyebrow="Also in this city"
           title={`Stays in ${city.name} you can book on WayTero`}
@@ -65,7 +66,11 @@ export default async function CabHotelPickups({
           {hotels.map((h) => (
             <MotionStaggerItem key={h.id}>
               <Link
-                href={h.slug ? `/hotels/${h.slug}` : `/hotels/results?city_id=${h.city_id}`}
+                href={
+                  h.slug
+                    ? `/hotels/${h.slug}`
+                    : `/hotels/results?city=${citySlug(city.name)}`
+                }
                 className="group block border-b border-ink-7 py-2.5 transition-colors hover:text-primary-700"
               >
                 <span className="flex items-baseline gap-2">
@@ -97,7 +102,7 @@ export default async function CabHotelPickups({
         </MotionStagger>
         <div className="mt-5">
           <Link
-            href={`/hotels/results?city_id=${city.id}`}
+            href={`/hotels/results?city=${citySlug(city.name)}`}
             className="inline-flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"
           >
             See all stays in {city.name}

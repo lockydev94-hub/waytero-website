@@ -40,7 +40,7 @@ export default function HeroMarquee({ variant }: { variant: Record<string, unkno
 
   return (
     <div className="relative z-20 -mt-9">
-      <Container size="lg">
+      <Container size="wide">
         <div
           className="overflow-hidden rounded-full border border-ink-7 bg-white/85 shadow-wt-xl backdrop-blur-xl [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
         >

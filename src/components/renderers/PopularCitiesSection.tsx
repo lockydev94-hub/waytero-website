@@ -72,7 +72,7 @@ export default async function PopularCitiesSection({
 
   return (
     <Section bg={bg} pad="home" id="cities" overlay="grid-faint">
-      <Container size="lg">
+      <Container size="wide">
         <SectionHeader eyebrow={eyebrow} title={title} subtitle={subtitle} accent="primary" underline animatedEyebrow scale="home" />
         <MotionStagger className="flex flex-wrap justify-center gap-2.5">
           {cities.slice(0, 18).map((c) => (

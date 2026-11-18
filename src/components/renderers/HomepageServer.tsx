@@ -8,12 +8,13 @@ import {
   HeroSection,
   HeroMarquee,
   ServicesSection,
+  RideTypesSection,
   WhyUsSection,
   TourPackagesSection,
   TestimonialsSection,
   StatsSection,
   PartnersSection,
-  CtaSection,
+  PartnerCtaSection,
   PopularDestinationsSection,
   PopularRoutesSection,
   PopularCitiesSection,
@@ -27,6 +28,7 @@ import {
 } from "./index";
 import { Skeleton } from "@/components/ui";
 import IntentBanner from "@/components/sections/IntentBanner";
+import HeroStatsStrip from "@/components/renderers/HeroStatsStrip";
 import { getAvailability, hiddenServices, type ServiceKey } from "@/lib/availability";
 
 /** Section keys whose content is sourced from a single vertical — hidden
@@ -35,6 +37,9 @@ const SECTION_SERVICE: Record<string, ServiceKey> = {
   TOUR_PACKAGES: "TOUR",
   POPULAR_DESTINATIONS: "TOUR",
   FEATURED_HOTELS: "HOTEL",
+  // Ride types are cab trip types — with the cab vertical off there is
+  // nothing for the cards to open.
+  RIDE_TYPES: "CAB",
   // Route pills are cab corridors priced by the cab fare engine.
   POPULAR_ROUTES: "CAB",
   // City pills fall back to /tours when a city has no published landing
@@ -45,7 +50,7 @@ const SECTION_SERVICE: Record<string, ServiceKey> = {
 /** Bands that are never part of the light alternation: the hero paints its
  *  own imagery, STATS and NEWSLETTER are navy. None of them takes a slot, so
  *  a dark band between two lights does not break the rhythm. */
-const DARK_BANDS = new Set(["HERO", "STATS", "NEWSLETTER"]);
+const DARK_BANDS = new Set(["HERO", "NEWSLETTER"]);
 
 /** Bands that fetch their own rows and disappear when there are none. The
  *  counts endpoint mirrors the filters those fetches apply. */
@@ -93,6 +98,13 @@ function bandWillPaint(
   if (section.section_key === "OFFERS")
     return offers.some((o) => !hidden.includes(o.service_type));
 
+  if (section.section_key === "RIDE_TYPES") {
+    // Same rule as SERVICES: no admin list → the renderer's five defaults,
+    // an explicitly emptied list → nothing at all.
+    const items = Array.isArray(v.items) ? (v.items as unknown[]) : null;
+    return items === null ? true : items.length > 0;
+  }
+
   if (section.section_key === "SERVICES") {
     // With no admin list the renderer shows its four defaults, which only
     // vanish together if every vertical is hidden at once.
@@ -118,6 +130,7 @@ export default async function HomepageServer() {
   ]);
   const hidden = hiddenServices(av);
   const sections = (data?.sections?.length ? data.sections : defaultSections()) as HomepageSection[];
+  const storeLinks = data?.footer?.app_store_links;
 
   const visible = sections.filter(
     (s) => !bandIsHiddenByService(s, hidden) && bandWillPaint(s, hidden, offers, counts),
@@ -143,6 +156,7 @@ export default async function HomepageServer() {
           hidden={hidden}
           offers={offers}
           bg={tones.get(s.id)}
+          storeLinks={storeLinks}
         />
       ))}
     </>
@@ -164,11 +178,14 @@ function SectionSwitch({
   hidden,
   offers,
   bg,
+  storeLinks,
 }: {
   section: HomepageSection;
   hidden: ServiceKey[];
   offers: PublicOfferSlide[];
   bg?: BandTone;
+  /** Footer settings' app_store_links — the app band's store badges. */
+  storeLinks?: { android?: string; ios?: string };
 }) {
   const v = section.variant || {};
   // CMS can bind a section to a service type; the section keys above are
@@ -181,7 +198,15 @@ function SectionSwitch({
     case "HERO":
       return (
         <>
-          <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} offers={offers} />
+          {/* The hero and its proof band share one viewport: the wrapper takes
+              the height left under the header and the hero flexes into it, so
+              the card, the photo and the four figures are all on the first
+              screen together — as in the design. */}
+          <div className="lg:flex lg:min-h-[calc(100svh-105px)] lg:flex-col">
+            <HeroSection variant={v} serviceType={section.service_type} hiddenServices={hidden} offers={offers} />
+            {/* Four-cell proof band welded to the hero's bottom edge (design). */}
+            <HeroStatsStrip variant={v} />
+          </div>
           {/* Coupon strip on the hero's bottom edge — a sibling because the
               hero clips its own overflow. */}
           <HeroMarquee variant={v} />
@@ -191,6 +216,8 @@ function SectionSwitch({
       );
     case "SERVICES":
       return <ServicesSection variant={v} hidden={hidden} bg={bg} />;
+    case "RIDE_TYPES":
+      return <RideTypesSection variant={v} bg={bg} />;
     case "WHY_US":
       return <WhyUsSection variant={v} bg={bg} />;
     case "TOUR_PACKAGES":
@@ -198,15 +225,17 @@ function SectionSwitch({
     case "TESTIMONIALS":
       return <TestimonialsSection variant={v} bg={bg} />;
     case "STATS":
-      return <StatsSection variant={v} />;
+      return <StatsSection variant={v} bg={bg} />;
     case "PARTNERS":
       return <PartnersSection variant={v} bg={bg} />;
     case "CTA":
-      return <CtaSection variant={v} pad="home" bg={bg} />;
+      // The homepage closes on partner recruitment; the “Ready for your next
+      // journey?” band still serves the marketing pages (CtaSection).
+      return <PartnerCtaSection variant={v} bg={bg} />;
     case "POPULAR_DESTINATIONS":
       return <PopularDestinationsSection variant={v} bg={bg} />;
     case "POPULAR_ROUTES":
-      return <PopularRoutesSection variant={v} bg={bg} />;
+      return <PopularRoutesSection variant={v} bg={bg} wide />;
     case "POPULAR_CITIES":
       return <PopularCitiesSection variant={v} bg={bg} />;
     case "FEATURED_HOTELS":
@@ -220,7 +249,7 @@ function SectionSwitch({
     case "NEWSLETTER":
       return <NewsletterSection variant={v} />;
     case "APP_DOWNLOAD":
-      return <AppDownloadSection variant={v} bg={bg} />;
+      return <AppDownloadSection variant={v} bg={bg} storeLinks={storeLinks} />;
     case "BLOG":
       return <BlogSection variant={v} bg={bg} />;
     default:
@@ -233,6 +262,7 @@ function defaultSections(): HomepageSection[] {
     { id: 1, section_key: "HERO", display_order: 1, is_active: true, service_type: null, variant: {} },
     { id: 2, section_key: "OFFERS", display_order: 2, is_active: true, service_type: null, variant: {} },
     { id: 3, section_key: "SERVICES", display_order: 3, is_active: true, service_type: null, variant: {} },
+    { id: 19, section_key: "RIDE_TYPES", display_order: 4, is_active: true, service_type: null, variant: {} },
     { id: 4, section_key: "POPULAR_DESTINATIONS", display_order: 4, is_active: true, service_type: null, variant: {} },
     { id: 5, section_key: "POPULAR_ROUTES", display_order: 5, is_active: true, service_type: null, variant: {} },
     { id: 6, section_key: "POPULAR_CITIES", display_order: 6, is_active: true, service_type: null, variant: {} },

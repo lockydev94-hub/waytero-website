@@ -47,14 +47,14 @@ export default function LandingSteps({
 
   return (
     <Section bg={bg} pad={pad}>
-      <Container size="xl">
+      <Container size="wide">
         <SectionHeader
           eyebrow="How it works"
           title={title ?? "Booking with WayTero"}
           align="center"
           scale={pad === "home" || pad === "tight" ? "home" : "default"}
         />
-        <MotionStagger className="mt-8 grid gap-5 sm:grid-cols-3">
+        <MotionStagger className="mx-auto mt-6 grid max-w-5xl gap-5 sm:grid-cols-3">
           {steps.map((s, i) => (
             <MotionStaggerItem key={i}>
               <div className="relative h-full rounded-2xl border border-ink-7 bg-white p-6">

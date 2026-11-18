@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Car, Hotel, Map, Calendar, Users, MapPin, Search } from "lucide-react";
 import { Container } from "@/components/ui";
 import type { ServiceType } from "@/types/cms";
+import { citySlug } from "@/lib/citySlug";
 
 type Tab = ServiceType | "CAB" | "HOTEL" | "TOUR";
 
@@ -231,7 +232,7 @@ function HotelFields() {
     }
     setError(null);
     const params = new URLSearchParams();
-    if (selectedCity) params.set("city_id", String(selectedCity.id));
+    if (selectedCity) params.set("city", citySlug(selectedCity.name));
     else if (cityQuery.trim()) params.set("q", cityQuery.trim());
     if (checkIn) params.set("check_in", checkIn);
     if (checkOut) params.set("check_out", checkOut);

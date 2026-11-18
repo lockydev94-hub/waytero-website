@@ -24,24 +24,25 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Car, Hotel, Map as MapIcon, Search, MapPin, Navigation,
-  Calendar, Clock, Users, ArrowRight, Repeat2, Plane,
+  Calendar, Clock, Users, ArrowRight, Repeat2, Plane, CalendarClock,
   Building2, BedDouble, CalendarRange, Wallet, Sparkles,
   ChevronDown,
 } from "lucide-react";
 import { cabService, type PublicCity, type PublicTripType } from "@/services/cabService";
 import UseMyLocationOption from "@/components/forms/UseMyLocationButton";
-import OutOfServiceAreaNotice from "@/components/forms/OutOfServiceAreaNotice";
+import NotServedHint from "@/components/forms/NotServedHint";
 import { outOfServiceArea } from "@/lib/serviceArea";
 import { carryOfferContext } from "@/lib/offerParams";
 import type { ServiceKey } from "@/lib/availability";
 import { maybeRecordPlaceIntent } from "@/lib/placeIntent";
+import { citySlug } from "@/lib/citySlug";
 import type { PublicTourSuggestion } from "@/services/tourService";
 
 type Tab = "CAB" | "HOTEL" | "TOUR";
 
 // ── Trip-type icon map (backend hint → Lucide icon) ──────────────────────────
 const TRIP_ICON_MAP: Record<string, typeof Car> = {
-  Car, Plane, Navigation, ArrowRight, Repeat2,
+  Car, Plane, Navigation, ArrowRight, Repeat2, CalendarClock,
 };
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -262,11 +263,12 @@ function DateTimePicker({
 
 // ── City chip — biases the autocomplete to the customer's selected city ─────
 function CityChip({
-  cities, selectedCity, onChange,
+  cities, selectedCity, onChange, light = false,
 }: {
   cities: PublicCity[];
   selectedCity: PublicCity | null;
   onChange: (c: PublicCity) => void;
+  light?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -306,7 +308,7 @@ function CityChip({
 
   return (
     <div ref={ref} className="relative inline-block">
-      <span className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-white/70 mr-2 align-middle">
+      <span className={`text-[10px] font-extrabold uppercase tracking-[0.12em] mr-2 align-middle ${light ? "text-ink-4" : "text-white/70"}`}>
         Searching in
       </span>
       <button
@@ -314,7 +316,10 @@ function CityChip({
         onClick={() => setOpen(v => !v)}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 border border-white/20 text-white text-xs font-semibold hover:bg-white/20 transition-colors"
+        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${light
+          ? "bg-ink-9 border border-ink-7 text-ink hover:border-[#F05A22] hover:text-[#F05A22]"
+          : "bg-white/10 border border-white/20 text-white hover:bg-white/20"
+        }`}
       >
         <MapPin className="h-3 w-3 text-[#F05A22]" />
         {selectedCity?.name ?? "Select city"}
@@ -673,13 +678,9 @@ function LockedLocationInput({
           </button>
         )}
       </div>
-      {outOfArea && (
-        <OutOfServiceAreaNotice
-          area={outOfArea}
-          onDismiss={() => setOutOfArea(null)}
-          className="mt-2"
-        />
-      )}
+      {/* Only a chip lives in the field — the full explanation is in a
+          popover, so neither the field nor the search card grows. */}
+      {outOfArea && <NotServedHint area={outOfArea} className="mt-1" />}
       {locked && !outOfArea && (
         <p className="mt-1 text-[10px] text-ink-4">Pick from the dropdown to change.</p>
       )}
@@ -722,13 +723,20 @@ interface CabPanelProps {
   selectedCity: PublicCity | null;
   /** Notify parent when the user picks a different city from the chip. */
   onCityChange: (city: PublicCity) => void;
+  /** Light card treatment (homepage) vs the glass panel. */
+  appearance?: "glass" | "light";
 }
 
-function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityChange }: CabPanelProps) {
+function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityChange, appearance = "glass" }: CabPanelProps) {
   const router = useRouter();
   const useCityMode = !mapsKey || !mapsReady;
+  const light = appearance === "light";
 
-  const [tripType, setTripType] = useState<string>(tripTypes[0]?.code ?? "LOCAL");
+  // Starts empty and takes the backend's first trip type as soon as the list
+  // arrives. The old `?? "LOCAL"` fallback pinned the card to Local, so the
+  // design's default (Airport) never appeared and the drop-location field —
+  // which only Local does not need — was missing from the hero.
+  const [tripType, setTripType] = useState<string>(tripTypes[0]?.code ?? "");
   const [pickup, setPickup] = useState<LocationValue>({ label: "" });
   const [drop, setDrop]     = useState<LocationValue>({ label: "" });
   const [pax, setPax]       = useState(1);
@@ -736,10 +744,11 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
   const [returnDateTime, setReturnDateTime] = useState({ date: null as Date | null, hour: 9, minute: 0 });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // If the trip_types list arrives after first render and the default code
-  // we picked is no longer present, snap to the first available.
+  // Adopt the first server-provided trip type (Airport) on load, and snap to
+  // it again if the configured list changes underneath the selection.
   useEffect(() => {
-    if (tripTypes.length && !tripTypes.some(t => t.code === tripType)) {
+    if (!tripTypes.length) return;
+    if (!tripType || !tripTypes.some(t => t.code === tripType)) {
       setTripType(tripTypes[0].code);
     }
   }, [tripTypes, tripType]);
@@ -750,9 +759,23 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
   //   ONE_WAY      — pickup + drop (one-way inter-city, explicit)
   //   AIRPORT      — pickup + drop
   //   ROUND_TRIP   — pickup only (return to same pickup), requires return date
+  //   DAILY        — Cab Rent: pickup + schedule (rental ends), no drop. Sold per
+  //                  day from the rate card (12h/100km each).
   const requiresDrop = tripType === "OUTSTATION" || tripType === "ONE_WAY" || tripType === "AIRPORT";
-  const requiresReturnDate = tripType === "ROUND_TRIP";
+  const isRental = tripType === "DAILY";
+  const requiresReturnDate = tripType === "ROUND_TRIP" || isRental;
   const isRoundTrip = tripType === "ROUND_TRIP";
+
+  // A rental is bought in whole days; the end date the customer picks is what
+  // decides how many. Same-day hire is one day, not zero.
+  const rentalDays = (() => {
+    if (!isRental || !dateTime.date || !returnDateTime.date) return 1;
+    // Whole 24-hour periods, rounded up — matches the backend's rental day count.
+    const start = new Date(dateTime.date); start.setHours(dateTime.hour, dateTime.minute, 0, 0);
+    const end = new Date(returnDateTime.date); end.setHours(returnDateTime.hour, returnDateTime.minute, 0, 0);
+    const ms = end.getTime() - start.getTime();
+    return ms <= 0 ? 1 : Math.max(1, Math.ceil(ms / 86_400_000));
+  })();
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -764,12 +787,14 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
       if (!useCityMode && !drop.place_id) e.drop = "Pick a place from the suggestions";
       if (useCityMode && !drop.city_id) e.drop = "Drop city is required";
     }
-    // Return date — only for ROUND_TRIP
+    // Return date — for a round trip, or the end of a rental
     if (requiresReturnDate && !returnDateTime.date) {
-      e.returnDate = "Pick a return date";
+      e.returnDate = isRental ? "Pick when the rental ends" : "Pick a return date";
     } else if (requiresReturnDate && returnDateTime.date && dateTime.date &&
                returnDateTime.date.getTime() <= dateTime.date.getTime()) {
-      e.returnDate = "Return date must be after pickup date";
+      e.returnDate = isRental
+        ? "Rental end must be after pickup"
+        : "Return date must be after pickup date";
     }
     // Pickup place/city validation
     if (!useCityMode && !pickup.place_id) e.pickup = "Pick a place from the suggestions";
@@ -792,8 +817,8 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
     if (pickup.lng) params.set("plng", String(pickup.lng));
     if (drop.lat)   params.set("dlat", String(drop.lat));
     if (drop.lng)   params.set("dlng", String(drop.lng));
-    // Return date — encoded so the results page can use it.
-    if (isRoundTrip && returnDateTime.date) {
+    // Return / rental-end date — encoded so the results page can use it.
+    if (requiresReturnDate && returnDateTime.date) {
       const rd = returnDateTime.date;
       params.set("return_date",
         `${rd.getFullYear()}-${String(rd.getMonth()+1).padStart(2,"0")}-${String(rd.getDate()).padStart(2,"0")}`);
@@ -815,7 +840,11 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
         cityId = undefined;
       }
     }
-    if (cityId) params.set("city_id", String(cityId));
+    const cityName =
+      pickup.city_name ??
+      cities.find((c) => c.id === cityId)?.name ??
+      selectedCity?.name;
+    if (cityName) params.set("city", citySlug(cityName));
 
     // Auto-compute road distance when both ends have coordinates (1.25×
     // haversine approximates road distance for tier-2 cities). Round
@@ -834,6 +863,11 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
       let defaultKm = 30;
       if (tripType === "LOCAL") {
         defaultKm = 10;
+      } else if (isRental) {
+        // The daily package allows 100 km per day; anything above that is the
+        // card's extra-km rate. The customer has not described a route, so the
+        // honest default is exactly the package allowance.
+        defaultKm = 100 * rentalDays;
       } else if (isRoundTrip) {
         defaultKm = 50; // 25 km half-loop × 2
       }
@@ -853,12 +887,13 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
         cities={cities}
         selectedCity={selectedCity}
         onChange={onCityChange}
+        light={light}
       />
 
       {/* Trip type sub-tabs (from backend) */}
       <div className="flex flex-wrap gap-2">
         {tripTypes.length === 0 && (
-          <div className="text-xs text-white/70 italic">Loading trip types…</div>
+          <div className={`text-xs italic ${light ? "text-ink-4" : "text-white/70"}`}>Loading trip types…</div>
         )}
         {tripTypes.map(t => {
           const Icon = TRIP_ICON_MAP[t.icon] ?? Car;
@@ -868,7 +903,9 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold transition-all border
                 ${active
                   ? "bg-gradient-to-r from-[#F05A22] to-[#E04A12] text-white border-transparent shadow-[0_4px_16px_rgba(240,90,34,0.45)]"
-                  : "bg-white/8 text-white/85 border-white/15 hover:bg-white/15 hover:border-white/30"
+                  : light
+                    ? "bg-white text-ink-2 border-ink-7 hover:border-[#F05A22] hover:text-[#F05A22]"
+                    : "bg-white/8 text-white/85 border-white/15 hover:bg-white/15 hover:border-white/30"
                 }`}>
               <Icon className="h-3.5 w-3.5" />
               {t.display_name}
@@ -877,12 +914,14 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
         })}
       </div>
 
-      {/* Fields */}
+      {/* Fields. On the light card the two location fields sit side by side
+          even on a phone (the design's 2-up grid), so their min width drops
+          there; the glass panels keep the wider single-column basis. */}
       <div className={FIELD_ROW}>
-        <GlassField label="From" error={errors.pickup} className="flex-[2_1_210px] min-w-[190px]">
+        <GlassField label="Pickup Location" error={errors.pickup} className={light ? "flex-[1_1_150px] min-w-[140px] sm:flex-[2_1_210px] sm:min-w-[190px]" : "flex-[2_1_210px] min-w-[190px]"}>
           <LockedLocationInput
             value={pickup} onChange={v => { setPickup(v); setErrors(e => ({...e, pickup: ""})); }}
-            placeholder="Type 1 letter to start…" icon={MapPin}
+            placeholder="Enter pickup location" icon={MapPin}
             cities={cities} useCityMode={useCityMode} mapsKey={mapsKey}
             selectedCity={selectedCity}
           />
@@ -893,15 +932,18 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
             <div className="hidden @xl:flex items-center self-center flex-none">
               <button type="button" aria-label="Swap pickup and drop"
                 onClick={() => { const t = pickup; setPickup(drop); setDrop(t); }}
-                className="h-9 w-9 rounded-full border border-white/25 bg-white/10 hover:bg-white/20 flex items-center justify-center transition-all text-white">
+                className={`h-9 w-9 rounded-full border flex items-center justify-center transition-all ${light
+                  ? "border-ink-7 bg-white text-ink-3 hover:border-[#F05A22] hover:text-[#F05A22]"
+                  : "border-white/25 bg-white/10 text-white hover:bg-white/20"
+                }`}>
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
 
-            <GlassField label="To" error={errors.drop} className="flex-[2_1_210px] min-w-[190px]">
+            <GlassField label="Drop Location" error={errors.drop} className={light ? "flex-[1_1_150px] min-w-[140px] sm:flex-[2_1_210px] sm:min-w-[190px]" : "flex-[2_1_210px] min-w-[190px]"}>
               <LockedLocationInput
                 value={drop} onChange={v => { setDrop(v); setErrors(e => ({...e, drop: ""})); }}
-                placeholder="Type 1 letter to start…" icon={Navigation}
+                placeholder="Enter drop location" icon={Navigation}
                 cities={cities} useCityMode={useCityMode} mapsKey={mapsKey}
                 selectedCity={selectedCity}
               />
@@ -909,22 +951,33 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           </>
         )}
 
-        <GlassField label="Pickup Date & Time" error={errors.date} className="flex-[1_1_180px] min-w-[168px]">
+        <GlassField label="Travel Date & Time" error={errors.date} className={light ? "flex-[1_1_150px] min-w-[140px] sm:flex-[1_1_180px] sm:min-w-[168px]" : "flex-[1_1_180px] min-w-[168px]"}>
           <DateTimePicker value={dateTime} onChange={v => { setDateTime(v); setErrors(e => ({...e, date: ""})); }} label="Select date" />
         </GlassField>
 
-        {isRoundTrip && (
-          <GlassField label="Return Date & Time" error={errors.returnDate} className="flex-[1_1_180px] min-w-[168px]">
+        {requiresReturnDate && (
+          <GlassField
+            label={isRental ? "Rental Ends" : "Return Date & Time"}
+            error={errors.returnDate}
+            className="flex-[1_1_180px] min-w-[168px]"
+          >
             <DateTimePicker
               value={returnDateTime}
               onChange={v => { setReturnDateTime(v); setErrors(e => ({...e, returnDate: ""})); }}
-              label="Return date"
+              label={isRental ? "rental end" : "return date"}
               minDate={dateTime.date ?? undefined}
             />
           </GlassField>
         )}
+        {isRental && (
+          <GlassField label="Days" className="flex-[0_1_90px] min-w-[80px]">
+            <div className="text-sm font-bold text-ink">
+              {rentalDays} {rentalDays === 1 ? "day" : "days"}
+            </div>
+          </GlassField>
+        )}
 
-        <GlassField label="Passengers" className="flex-[1_1_140px] min-w-[132px]">
+        <GlassField label="Passengers" className={light ? "flex-[1_1_130px] min-w-[120px] sm:flex-[1_1_140px] sm:min-w-[132px]" : "flex-[1_1_140px] min-w-[132px]"}>
           <div className="flex items-center gap-2">
             <Users className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
             <select value={pax} onChange={e => setPax(+e.target.value)}
@@ -934,13 +987,12 @@ function CabPanel({ tripTypes, mapsKey, mapsReady, cities, selectedCity, onCityC
           </div>
         </GlassField>
 
-        <div className="w-full @xl:w-14 @xl:flex-none flex">
+        <div className="flex w-full @xl:w-auto @xl:flex-none">
           <button type="button" onClick={handleSearch}
-            className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+            className="inline-flex h-12 w-full @xl:w-auto items-center justify-center gap-2 rounded-xl px-5 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 shadow-[0_10px_26px_rgba(240,90,34,0.45)]"
             style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
             <Search className="h-4 w-4" />
-            <span className="@xl:hidden">Search</span>
-            <span className="hidden @xl:inline">Go</span>
+            <span className="whitespace-nowrap">Search Cabs</span>
           </button>
         </div>
       </div>
@@ -953,15 +1005,15 @@ function GlassField({ label, error, className = "", children }: {
 }) {
   return (
     <div className={`${className} flex flex-col`}>
-      <div className={`relative h-full px-3.5 py-2 rounded-2xl border transition-all backdrop-blur-md
+      <div className={`relative h-full px-3.5 py-2 rounded-2xl border transition-all
         ${error
-          ? "border-red-400/60 bg-red-500/15"
-          : "border-white/15 bg-white/95 hover:border-white/40 focus-within:border-white/60 focus-within:shadow-[0_8px_24px_rgba(240,90,34,0.25)]"
+          ? "border-red-400 bg-red-50"
+          : "border-ink-7 bg-white hover:border-[#F05A22]/50 focus-within:border-[#F05A22] focus-within:shadow-[0_8px_24px_rgba(240,90,34,0.16)]"
         }`}>
         <div className="text-[9px] font-extrabold text-ink-4 uppercase tracking-[0.10em] mb-0.5 whitespace-nowrap overflow-hidden">{label}</div>
         {children}
       </div>
-      {error && <p className="text-[11px] text-red-200 mt-0.5 px-1 font-medium drop-shadow">{error}</p>}
+      {error && <p className="text-[11px] text-red-600 mt-0.5 px-1 font-medium">{error}</p>}
     </div>
   );
 }
@@ -1044,7 +1096,7 @@ function HotelPanel() {
     e.preventDefault();
     if (!validate()) return;
     const params = new URLSearchParams();
-    if (selectedCity) params.set("city_id", String(selectedCity.id));
+    if (selectedCity) params.set("city", citySlug(selectedCity.name));
     else if (cityQuery.trim()) params.set("q", cityQuery.trim());
     if (checkIn) params.set("check_in", checkIn.toISOString().slice(0, 10));
     if (checkOut) params.set("check_out", checkOut.toISOString().slice(0, 10));
@@ -1139,12 +1191,12 @@ function HotelPanel() {
           </select>
         </div>
       </GlassField>
-      <div className="w-full @xl:w-14 @xl:flex-none flex">
+      <div className="flex w-full @xl:w-auto @xl:flex-none">
         <button type="submit"
-          className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+          className="inline-flex h-12 w-full @xl:w-auto items-center justify-center gap-2 rounded-xl px-5 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 shadow-[0_10px_26px_rgba(240,90,34,0.45)]"
           style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
           <Search className="h-4 w-4" />
-          <span className="@xl:hidden">Search</span>
+          <span className="whitespace-nowrap">Search</span>
         </button>
       </div>
     </form>
@@ -1263,14 +1315,14 @@ function TourPanel() {
 
   return (
     <form onSubmit={submit} className={FIELD_ROW}>
-      <GlassField label="Destination / Tour package" className="flex-[3_1_260px] min-w-[230px]">
+      <GlassField label="Destination / Tour package" className="flex-[1.6_1_210px] min-w-[180px] max-w-[420px]">
         <div ref={fieldRef} className="flex items-center gap-2">
           <Sparkles className="h-4 w-4 text-[#F05A22] flex-shrink-0" />
           <input
             value={destination}
             onChange={e => handleChange(e.target.value)}
             onFocus={() => suggestions.length > 0 && setOpen(true)}
-            placeholder="Search a place or package — Puri, Odisha…"
+            placeholder="Search destinations or packages"
             className="w-full bg-transparent text-sm font-semibold text-ink placeholder:text-ink-4 focus:outline-none"
           />
           {loading && <div className="h-3.5 w-3.5 border-2 border-[#F05A22]/30 border-t-[#F05A22] rounded-full animate-spin flex-shrink-0" />}
@@ -1342,12 +1394,12 @@ function TourPanel() {
           </select>
         </div>
       </GlassField>
-      <div className="w-full @xl:w-14 @xl:flex-none flex">
+      <div className="flex w-full @xl:w-auto @xl:flex-none">
         <button type="submit"
-          className="w-full h-12 rounded-2xl text-white font-extrabold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0 shadow-[0_8px_30px_rgba(240,90,34,0.55)]"
+          className="inline-flex h-12 w-full @xl:w-auto items-center justify-center gap-2 rounded-xl px-5 text-sm font-extrabold text-white transition-all hover:-translate-y-0.5 hover:brightness-105 active:translate-y-0 shadow-[0_10px_26px_rgba(240,90,34,0.45)]"
           style={{ background: "linear-gradient(135deg,#F05A22 0%,#E04A12 60%,#C03A02 100%)" }}>
           <Search className="h-4 w-4" />
-          <span className="@xl:hidden">Search</span>
+          <span className="whitespace-nowrap">Search</span>
         </button>
       </div>
     </form>
@@ -1361,14 +1413,27 @@ interface HeroSearchFormProps {
   /** Verticals hidden site-wide (disabled or zero supply) — their tabs
    *  disappear so the hero never searches into a 404. */
   hiddenServices?: ServiceKey[];
+  /** Card treatment. "light" is the homepage design card (white surface,
+   *  navy tab strip); "glass" is the translucent panel the /hotels and
+   *  /tours hero bands still sit on. */
+  appearance?: "glass" | "light";
+  /** Label for the third tab on the light card — the hero passes the CMS
+   *  CTA copy ("Explore Tour Packages"). */
+  secondaryTabLabel?: string;
 }
 
-export default function HeroSearchForm({ defaultService = "CAB", hiddenServices = [] }: HeroSearchFormProps) {
+export default function HeroSearchForm({
+  defaultService = "CAB",
+  hiddenServices = [],
+  appearance = "glass",
+  secondaryTabLabel = "Explore Tour Packages",
+}: HeroSearchFormProps) {
+  const light = appearance === "light";
   const tabs = useMemo(() => ([
-    { id: "CAB"   as const, label: "Cabs",   icon: Car },
-    { id: "HOTEL" as const, label: "Hotels", icon: Hotel },
-    { id: "TOUR"  as const, label: "Tours",  icon: MapIcon },
-  ].filter((t) => !hiddenServices.includes(t.id))), [hiddenServices]);
+    { id: "CAB"   as const, label: "Cabs",   heroLabel: "Book a Cab",      icon: Car },
+    { id: "HOTEL" as const, label: "Hotels", heroLabel: "Book a Hotel",    icon: Hotel },
+    { id: "TOUR"  as const, label: "Tours",  heroLabel: secondaryTabLabel, icon: MapIcon },
+  ].filter((t) => !hiddenServices.includes(t.id))), [hiddenServices, secondaryTabLabel]);
 
   const [tab, setTab] = useState<Tab>(
     hiddenServices.includes(defaultService)
@@ -1427,6 +1492,54 @@ export default function HeroSearchForm({ defaultService = "CAB", hiddenServices 
     setSelectedCity(bbs ?? withCoords ?? cities[0] ?? null);
   }, [cities, selectedCity]);
 
+  const panels = (
+    <>
+      {tab === "CAB"   && <CabPanel tripTypes={tripTypes} mapsKey={mapsKey} mapsReady={mapsReady} cities={cities} selectedCity={selectedCity} onCityChange={setSelectedCity} appearance={appearance} />}
+      {tab === "HOTEL" && <HotelPanel />}
+      {tab === "TOUR"  && <TourPanel />}
+    </>
+  );
+
+  // ── Light card (homepage design) ──────────────────────────────────────────
+  if (light) {
+    return (
+      <div className="relative">
+        {/* Navy tab strip — the design's "Book a Cab" row. The active tab is a
+            white panel that joins the card below it. */}
+        <div
+          role="tablist"
+          aria-label="Search service"
+          className="flex items-end gap-1 overflow-x-auto rounded-t-[26px] bg-[#0B2447] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        >
+          {tabs.map((t, i) => {
+            const Icon = t.icon;
+            const active = tab === t.id;
+            return (
+              <button key={t.id} role="tab" aria-selected={active}
+                onClick={() => setTab(t.id)}
+                className={`-mb-[2px] inline-flex shrink-0 items-center gap-2 rounded-t-2xl px-3.5 py-2.5 text-[12px] font-bold transition-colors sm:px-4 sm:text-[13px]
+                  ${i === 0 ? "rounded-tl-[26px]" : ""}
+                  ${active
+                    ? "bg-white text-[#F05A22]"
+                    : "text-white/75 hover:bg-white/10 hover:text-white"
+                  }`}>
+                <Icon className="h-4 w-4" />
+                {/* The design keeps the full labels on phones too; the strip
+                    scrolls horizontally if they do not fit. */}
+                <span>{t.heroLabel}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* White card body */}
+        <div className="relative overflow-hidden rounded-b-[26px] bg-white p-3.5 shadow-[0_30px_80px_rgba(4,18,40,0.45)] sm:p-5">
+          <div className="@container">{panels}</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative">
       {/* Outer glow */}
@@ -1460,9 +1573,7 @@ export default function HeroSearchForm({ defaultService = "CAB", hiddenServices 
           </div>
 
           {/* Body */}
-          {tab === "CAB"   && <CabPanel tripTypes={tripTypes} mapsKey={mapsKey} mapsReady={mapsReady} cities={cities} selectedCity={selectedCity} onCityChange={setSelectedCity} />}
-          {tab === "HOTEL" && <HotelPanel />}
-          {tab === "TOUR"  && <TourPanel />}
+          {panels}
         </div>
       </div>
     </div>
