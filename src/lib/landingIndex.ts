@@ -123,20 +123,27 @@ export interface LandingVehicle {
   icon_url: string | null;
 }
 
+// A row is one rate-card package, not a per-km estimate: the city's rental
+// card sells fixed hour/km blocks, and these are the rows checkout prices from.
 export interface LandingFareRow {
   vehicle_category_id: number;
   vehicle_category: string;
+  vehicle_class: string;
+  vehicle_label: string;
+  vehicle_models: string | null;
   seats: number | null;
   luggage: number | null;
   image_url: string | null;
   icon_url: string | null;
-  trip_type: string;
-  base_fare: number;
-  per_km_rate: number;
-  minimum_km: number;
-  sample_distance_km: number;
+  rental_type: "LOCAL" | "OUTSTATION" | "DAILY" | string;
+  included_hours: number;
+  included_km: number;
+  price: number;
+  extra_km_rate: number;
+  extra_hour_rate: number;
+  driver_allowance: number;
   estimated_total: number;
-  source: "city_specific" | "default";
+  source: "CITY" | "PLATFORM";
 }
 
 export interface LandingPrices {

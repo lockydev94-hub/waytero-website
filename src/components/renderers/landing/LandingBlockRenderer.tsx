@@ -44,12 +44,7 @@ export default function LandingBlockRenderer({
       return <LandingFaq faqs={data.faqs} />;
     case "fare_matrix":
       return (
-        <FareTable
-          rows={data.cab_fares}
-          title={block.title}
-          gst={data.gst}
-          sampleDistanceKm={data.meta.sample_distance_km}
-        />
+        <FareTable rows={data.cab_fares} title={block.title} gst={data.gst} />
       );
     case "vehicle_grid":
       return (

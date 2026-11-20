@@ -150,7 +150,7 @@ export function placeCabSchema(opts: {
   city_name?: string | null;
   latitude?: number | null;
   longitude?: number | null;
-  fares: Array<{ vehicle_category: string; trip_type: string; estimated_total: number }>;
+  fares: Array<{ vehicle_category: string; estimated_total: number }>;
 }) {
   const type = opts.kind === "AIRPORT" ? "Airport" : "TrainStation";
   const byCategory = new Map<string, number>();

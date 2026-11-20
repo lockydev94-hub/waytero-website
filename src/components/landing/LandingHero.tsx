@@ -255,8 +255,9 @@ export default function LandingHero({ data }: { data: LandingBundle }) {
                   </dl>
                   {data.prices.cab_from != null && (
                     <p className="mt-4 border-t border-current/10 pt-3 text-[11px] opacity-70">
-                      Cab sample: {data.meta.sample_distance_km} km ride, prices
-                      exclude GST
+                      Cab packages from ₹
+                      {Math.round(data.prices.cab_from).toLocaleString("en-IN")},
+                      GST extra
                     </p>
                   )}
                 </div>
