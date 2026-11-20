@@ -5,13 +5,15 @@
  * fields immediately after login:
  *
  *   1. Google user, no real mobile (Firebase users start with `fb_<hash>`)
- *      → ask mobile, verify a MOBILE_ATTACH OTP, attach it
+ *      → ask mobile; verify a MOBILE_ATTACH OTP when SMS is enabled, or save
+ *        it UNVERIFIED when SMS is not configured yet
  *   2. OTP user, default name = "Customer" → ask first/last name
  *   3. OTP user with no email on file → offer email as an OPTIONAL step
  *      (Save or Skip — the account works either way)
  *
  * On submit we call:
  *   - POST /customers/me/mobile/verify-otp  (OTP-verified mobile attach)
+ *   - PATCH /customers/me/mobile            (no-SMS UNVERIFIED fallback)
  *   - PATCH /customers/me                   (set first_name / last_name)
  *   - PATCH /customers/me/email             (attach email, optional)
  *
@@ -33,6 +35,9 @@ export interface ProfileCompletionModalProps {
   initialEmail?: string | null;
   initialMobile?: string | null;
   initialName?: string | null;
+  /** Start on the mobile step even when the profile already has one — used by
+   *  the Profile page's “Change” action. */
+  forceMobile?: boolean;
   /** Called after a successful save so the caller can resume (e.g. create booking). */
   onComplete?: () => void;
 }
@@ -48,6 +53,7 @@ export default function ProfileCompletionModal({
   initialEmail,
   initialMobile,
   initialName,
+  forceMobile = false,
   onComplete,
 }: ProfileCompletionModalProps) {
   const auth = useAuth();
@@ -77,11 +83,11 @@ export default function ProfileCompletionModal({
     const needsMobile = !initialMobile || initialMobile.startsWith("fb_");
     const needsName = !initialName || initialName === "Customer";
     const needsEmail = !initialEmail;
-    if (needsMobile) setStep("mobile");
+    if (forceMobile || needsMobile) setStep("mobile");
     else if (needsName) setStep("name");
     else if (needsEmail) setStep("email");
     setError(null);
-  }, [open, initialMobile, initialName, initialEmail]);
+  }, [open, initialMobile, initialName, initialEmail, forceMobile]);
 
   // Auth capabilities — the mobile step only verifies an OTP when an SMS
   // provider (MSG91) is integrated; otherwise the number is saved directly
@@ -100,6 +106,10 @@ export default function ProfileCompletionModal({
   };
 
   const nextStepAfterMobile = () => {
+    if (forceMobile) {
+      finish();
+      return;
+    }
     const needsName = !initialName || initialName === "Customer";
     const needsEmail = !initialEmail;
     if (needsName) setStep("name");
@@ -227,7 +237,9 @@ export default function ProfileCompletionModal({
     step === "mobile"
       ? otpSent
         ? "Verify your mobile number"
-        : "Add your mobile number"
+        : forceMobile
+          ? "Update your mobile number"
+          : "Add your mobile number"
       : step === "name"
         ? "Tell us your name"
         : "Add your email (optional)";
@@ -236,7 +248,9 @@ export default function ProfileCompletionModal({
     step === "mobile"
       ? otpSent
         ? `Enter the 6-digit code sent to +91 ${mobile.slice(0, 2)}••••${mobile.slice(-2)}`
-        : "We need a real mobile number to confirm your bookings and share trip updates."
+        : forceMobile
+          ? "Change the number linked to your account. Bookings and trip updates use this number."
+          : "We need a real mobile number to confirm your bookings and share trip updates."
       : step === "name"
         ? "We need your name so drivers and partners can address you correctly."
         : "We'll send booking confirmations and updates here. You can skip this — mobile OTP works too.";
@@ -299,7 +313,11 @@ export default function ProfileCompletionModal({
                 )}
               </div>
 
-              {smsEnabled ? (
+              {auth.authConfig === null ? (
+                <p className="text-xs text-ink-4 -mt-1">
+                  Checking how this number can be verified…
+                </p>
+              ) : smsEnabled ? (
                 <>
                   {otpSent && (
                     <div>

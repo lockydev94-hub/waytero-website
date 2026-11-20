@@ -437,6 +437,7 @@ function ContactCard({
         initialMobile={profile.mobile_number}
         initialName={[profile.first_name, profile.last_name].filter(Boolean).join(" ") || null}
         initialEmail={profile.email}
+        forceMobile
         onComplete={() => {
           setMobileOpen(false);
           onChanged();

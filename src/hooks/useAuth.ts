@@ -287,8 +287,9 @@ export const useAuth = create<AuthState>()(
             },
           });
         } catch {
-          // On failure default to OTP available — never lock customers out.
-          set({ authConfig: { smsConfigured: false, mobileLoginEnabled: true } });
+          // If the capability check fails, do not advertise a mobile OTP path
+          // that may not be able to send a code. Google remains available.
+          set({ authConfig: { smsConfigured: false, mobileLoginEnabled: false } });
         }
       },
 

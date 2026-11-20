@@ -100,7 +100,10 @@ export default function SiteAuthModal({
     if (open) void useAuth.getState().fetchAuthConfig();
   }, [open]);
 
-  const mobileAllowed = auth.authConfig?.mobileLoginEnabled !== false;
+  // Only show mobile when the server explicitly confirms it is enabled.
+  // `authConfig` starts null while the request is in flight; treating that as
+  // “allowed” is what briefly showed Mobile + Google together on a no-SMS site.
+  const mobileAllowed = auth.authConfig?.mobileLoginEnabled === true;
 
   // If the mobile tab isn't available, make sure the Google tab is active.
   useEffect(() => {
@@ -251,8 +254,8 @@ export default function SiteAuthModal({
             </div>
           )}
 
-          <div className="flex gap-1 rounded-xl bg-ink-9 p-1">
-            {mobileAllowed && (
+          {mobileAllowed && (
+            <div className="flex gap-1 rounded-xl bg-ink-9 p-1">
               <button
                 type="button"
                 onClick={() => { setTab("mobile"); setError(null); }}
@@ -262,24 +265,28 @@ export default function SiteAuthModal({
               >
                 <Phone className="h-4 w-4" /> Mobile
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => { setTab("email"); setError(null); }}
-              className={`flex-1 h-10 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${
-                tab === "email" ? "bg-white text-primary-600 shadow-sm" : "text-ink-4 hover:text-ink-2"
-              }`}
-            >
-              <Mail className="h-4 w-4" /> Google
-            </button>
-          </div>
-          {!mobileAllowed && (
-            <p className="text-xs text-ink-4 text-center -mt-2">
-              Mobile OTP login is unavailable right now — sign in with Google to continue.
-            </p>
+              <button
+                type="button"
+                onClick={() => { setTab("email"); setError(null); }}
+                className={`flex-1 h-10 rounded-lg text-sm font-semibold inline-flex items-center justify-center gap-2 transition-all ${
+                  tab === "email" ? "bg-white text-primary-600 shadow-sm" : "text-ink-4 hover:text-ink-2"
+                }`}
+              >
+                <Mail className="h-4 w-4" /> Google
+              </button>
+            </div>
+          )}
+          {auth.authConfig !== null && !mobileAllowed && (
+            <div className="rounded-xl border border-primary-200 bg-primary-50/50 px-4 py-3">
+              <p className="text-sm font-semibold text-ink">Mobile sign-in unavailable</p>
+              <p className="mt-1 text-xs text-ink-3 leading-relaxed">
+                Mobile-number sign-in isn’t enabled yet. Continue with Google —
+                you’ll be asked to add a mobile number for booking updates.
+              </p>
+            </div>
           )}
 
-          {tab === "mobile" && (
+          {mobileAllowed && tab === "mobile" && (
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-ink-3 mb-2">Mobile number</label>
@@ -358,7 +365,7 @@ export default function SiteAuthModal({
             </div>
           )}
 
-          {tab === "email" && (
+          {(!mobileAllowed || tab === "email") && (
             <div className="space-y-4">
               <p className="text-sm text-ink-3">
                 Continue with your Google account. We don't ask for a password —

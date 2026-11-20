@@ -3,7 +3,7 @@
 // Doc Ref: API Doc — Customer endpoints
 //   GET  /customers/me                        → profile
 //   PATCH /customers/me                       → update profile
-//   PATCH /customers/me/mobile                → attach verified mobile
+//   PATCH /customers/me/mobile                → attach mobile (UNVERIFIED when SMS is off)
 //   POST  /customers/me/addresses             → add address
 //   PATCH /customers/me/addresses/{id}/default → set default
 //   DELETE /customers/me/addresses/{id}       → delete address
