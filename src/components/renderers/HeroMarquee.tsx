@@ -10,8 +10,9 @@ import { pick } from "@/types/cms";
  *
  * A sibling of the hero rather than a child: HeroSection sets
  * `overflow-hidden` on its own 100dvh box, so anything pulled to its border
- * would be clipped. The negative top margin lets half the bar sit on the
- * photo and half on the page below.
+ * would be clipped. It used to carry a negative top margin so half the pill
+ * sat on the hero photo; the proof band now sits between the two, so the pill
+ * clears it instead of overlapping its figures.
  *
  * Server component, CSS-only animation — no client JS, so the strip cannot
  * cause a hydration mismatch and respects the global reduced-motion rule.
@@ -39,7 +40,7 @@ export default function HeroMarquee({ variant }: { variant: Record<string, unkno
   const strip = [...items, ...items];
 
   return (
-    <div className="relative z-20 -mt-9">
+    <div className="relative z-20 mt-4">
       <Container size="wide">
         <div
           className="overflow-hidden rounded-full border border-ink-7 bg-white/85 shadow-wt-xl backdrop-blur-xl [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"

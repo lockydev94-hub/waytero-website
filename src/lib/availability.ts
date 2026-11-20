@@ -67,6 +67,18 @@ export const SERVICE_PATHS: Record<ServiceKey, string> = {
   TOUR: "/tours",
 };
 
+/** CMS links are often written in the singular (`/hotel`, `/cab`, `/tour`) —
+ *  the redirect fixes the URL, but link filtering has to recognise them too,
+ *  or a hidden vertical keeps advertising itself on the homepage. */
+function serviceBases(key: ServiceKey): string[] {
+  const plural = SERVICE_PATHS[key];
+  return [plural, plural.replace(/s$/, "")];
+}
+
+function underPath(href: string, base: string): boolean {
+  return href === base || href.startsWith(`${base}/`) || href.startsWith(`${base}?`);
+}
+
 /** True when a (possibly CMS-configured) href points into a hidden
  *  vertical, e.g. "/tours/konark-sun-temple" when TOUR is hidden. */
 export function isHiddenHref(
@@ -74,8 +86,12 @@ export function isHiddenHref(
   hidden: ServiceKey[],
 ): boolean {
   if (!href || hidden.length === 0) return false;
-  return hidden.some((k) => {
-    const p = SERVICE_PATHS[k];
-    return href === p || href.startsWith(p + "/");
-  });
+  // Compare the path only: `/hotels?city=puri` and `/hotels/` both point into
+  // the vertical, and an absolute CMS link must not slip through either.
+  const path = href
+    .replace(/^https?:\/\/[^/]+/i, "")
+    .split("?")[0]
+    .split("#")[0]
+    .replace(/\/+$/, "") || "/";
+  return hidden.some((k) => serviceBases(k).some((base) => underPath(path, base)));
 }
