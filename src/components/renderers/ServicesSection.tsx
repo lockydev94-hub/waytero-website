@@ -89,9 +89,20 @@ const PALETTE = {
   },
 } as const;
 
+/** CMS rows are often saved with the singular service URL (`/cab`, `/hotel`,
+ *  `/tour`); middleware redirects those, so treat them as the canonical
+ *  page here too — otherwise the card falls out of DESIGN and renders as a
+ *  bare panel with no artwork, badge or headline. */
+const SERVICE_ALIASES: Record<string, string> = {
+  "/cab": "/cabs",
+  "/hotel": "/hotels",
+  "/tour": "/tours",
+};
+
 function linkKey(link?: string) {
   if (!link) return "";
-  return link.split("?")[0].replace(/\/+$/, "") || "/";
+  const path = link.split("?")[0].replace(/\/+$/, "") || "/";
+  return SERVICE_ALIASES[path] ?? path;
 }
 
 /**
@@ -121,7 +132,15 @@ export default function ServicesSection({ variant, bg = "muted", hidden = [] }: 
             const Icon = typeof s.icon === "string" ? (ICONS[s.icon] ?? Car) : s.icon || Car;
             const key = linkKey(s.link);
             const design = DESIGN[key];
-            const tone = (["primary", "accent", "success", "info"] as const).includes(s.tone as never) ? (s.tone as never) : "primary";
+            // No tone saved by the admin: keep the design's own colour for
+            // that vertical rather than defaulting every card to warm.
+            const tone = (["primary", "accent", "success", "info"] as const).includes(s.tone as never)
+              ? (s.tone as never)
+              : key === "/tours"
+                ? "success"
+                : key === "/hotels"
+                  ? "accent"
+                  : "primary";
             const pal = tone === "primary" ? PALETTE.warm : PALETTE.cool;
 
             const badge = s.badge?.trim() || design?.badge || s.title;
