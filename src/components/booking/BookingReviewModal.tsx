@@ -3,16 +3,21 @@
 /**
  * BookingReviewModal — pre-booking summary with optional coupon preview.
  *
- * Shown immediately after BookingAuthGate returns a successful auth. The
- * customer can:
- *   1. Read the trip summary (route, time, distance, fare breakdown).
+ * Shown immediately after BookingAuthGate returns a successful auth. This is
+ * the last step before a booking exists, so every field the booking is created
+ * with has to be settable here — the customer can:
+ *   1. Read / edit the trip: pickup and return date-time, passengers, and
+ *      instructions for the driver. Deep links (a route page or a landing
+ *      page "Book now") arrive without a schedule, so without this step a
+ *      booking would be filed for "right now" with no way to say otherwise.
  *   2. Enter a coupon code (optional). We call /coupons/validate to preview
  *      the discount — the coupon is not yet attached to the booking itself;
  *      that's a follow-up to wire coupon persistence into create-booking.
  *   3. Tap "Confirm & Book" to actually create the booking.
  *
- * This component is presentation-only; parent owns selected fare + token +
- * coupon state and the onConfirm handler that hits createBooking.
+ * The parent owns the trip fields (they drive the fare estimate) and the
+ * onConfirm handler that hits createBooking; this component stages edits and
+ * hands them back through onTripChange.
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,6 +34,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Sparkles,
+  Pencil,
+  Info,
 } from "lucide-react";
 import { cabService } from "@/services/cabService";
 import type {
@@ -48,9 +55,25 @@ export interface BookingReviewModalProps {
   bookingDraft: Omit<CreateCabBookingIn, "vehicle_category_id" | "estimated_distance_km" | "passenger_count">;
   pickupLabel: string;
   dropLabel?: string;
-  pickupDateLabel?: string;
-  pickupTimeLabel?: string;
+  /** Trip fields the customer sets or edits in this step. "" = not chosen. */
+  pickupDate: string;
+  pickupTime: string;
+  returnDate: string;
+  returnTime: string;
+  /** Round trip / cab rent carry an end, so the schedule needs both ends. */
+  needsReturn: boolean;
   passengerCount: number;
+  /** Seats in the chosen cab — the passenger count can't exceed it. */
+  maxPassengers: number;
+  notes: string;
+  onTripChange: (next: {
+    date: string;
+    time: string;
+    returnDate: string;
+    returnTime: string;
+    passengers: number;
+    notes: string;
+  }) => void;
   submitting: boolean;
   /** Coupon code carried from an offer page (?coupon=) — pre-filled and
    *  auto-validated once per open. Server still re-validates at booking. */
@@ -67,9 +90,15 @@ export default function BookingReviewModal({
   bookingDraft,
   pickupLabel,
   dropLabel,
-  pickupDateLabel,
-  pickupTimeLabel,
+  pickupDate,
+  pickupTime,
+  returnDate,
+  returnTime,
+  needsReturn,
   passengerCount,
+  maxPassengers,
+  notes,
+  onTripChange,
   submitting,
   initialCoupon,
   offerTitle,
@@ -79,6 +108,91 @@ export default function BookingReviewModal({
   const [applyingCoupon, setApplyingCoupon] = useState(false);
   const [couponResult, setCouponResult] = useState<CouponApplyOut | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
+
+  // ── Trip detail editing ──────────────────────────────────────────────────
+  const [editing, setEditing] = useState(false);
+  const [dDate, setDDate] = useState(pickupDate);
+  const [dTime, setDTime] = useState(pickupTime);
+  const [dReturnDate, setDReturnDate] = useState(returnDate);
+  const [dReturnTime, setDReturnTime] = useState(returnTime);
+  const [dPax, setDPax] = useState(passengerCount);
+  const [dNotes, setDNotes] = useState(notes);
+  const [editError, setEditError] = useState<string | null>(null);
+  const scheduled = Boolean(pickupDate && pickupTime);
+
+  // A closed editor follows the parent's values (the fare is re-quoted after a
+  // save, and the trip can also change from the results page behind us).
+  useEffect(() => {
+    if (editing) return;
+    setDDate(pickupDate);
+    setDTime(pickupTime);
+    setDReturnDate(returnDate);
+    setDReturnTime(returnTime);
+    setDPax(passengerCount);
+    setDNotes(notes);
+    setEditError(null);
+  }, [open, editing, pickupDate, pickupTime, returnDate, returnTime, passengerCount, notes]);
+
+  const startEditing = () => {
+    setDDate(pickupDate);
+    setDTime(pickupTime);
+    setDReturnDate(returnDate);
+    setDReturnTime(returnTime);
+    setDPax(passengerCount);
+    setDNotes(notes);
+    setEditError(null);
+    setEditing(true);
+  };
+
+  /** Local ISO date (not UTC) — the customer picks a wall-clock day. */
+  const todayISO = () => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
+      now.getDate(),
+    ).padStart(2, "0")}`;
+  };
+
+  const saveTripDetails = () => {
+    if (!dDate || !dTime) {
+      setEditError("Choose when the cab should pick you up.");
+      return;
+    }
+    const start = new Date(`${dDate}T${dTime}`);
+    if (!Number.isFinite(start.getTime())) {
+      setEditError("That pickup time isn't valid.");
+      return;
+    }
+    // A minute of slack so "now" isn't rejected while the customer types.
+    if (start.getTime() < Date.now() - 60_000) {
+      setEditError("Pickup can't be in the past.");
+      return;
+    }
+    if (needsReturn) {
+      if (!dReturnDate || !dReturnTime) {
+        setEditError(
+          needsReturn && bookingDraft.trip_type === "ROUND_TRIP"
+            ? "A round trip needs a return date and time."
+            : "Say when the rental ends.",
+        );
+        return;
+      }
+      const end = new Date(`${dReturnDate}T${dReturnTime}`);
+      if (!Number.isFinite(end.getTime()) || end <= start) {
+        setEditError("The return must be after the pickup.");
+        return;
+      }
+    }
+    onTripChange({
+      date: dDate,
+      time: dTime,
+      returnDate: needsReturn ? dReturnDate : "",
+      returnTime: needsReturn ? dReturnTime : "",
+      passengers: dPax,
+      notes: dNotes.trim(),
+    });
+    setEditing(false);
+    setEditError(null);
+  };
 
   const couponRequest = useRef(0);
   const bookingKey = JSON.stringify([bookingDraft, passengerCount, selected.vehicle_category_id, selected.total]);
@@ -183,8 +297,23 @@ export default function BookingReviewModal({
         </div>
 
         <div className="px-5 sm:px-7 py-6 space-y-5 overflow-y-auto flex-1 overscroll-contain">
-          {/* ── Trip summary card ─────────────────────────── */}
+          {/* ── Trip summary + editor ─────────────────────── */}
           <div className="rounded-2xl border border-ink-7 bg-ink-9/30 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                Trip details
+              </span>
+              <button
+                type="button"
+                onClick={() => (editing ? setEditing(false) : startEditing())}
+                disabled={submitting}
+                className="inline-flex items-center gap-1 rounded-lg border border-ink-7 bg-white px-2.5 py-1 text-[11px] font-bold text-ink-2 hover:border-primary-600 hover:text-primary-700 disabled:opacity-60"
+              >
+                {editing ? <X className="h-3 w-3" /> : <Pencil className="h-3 w-3" />}
+                {editing ? "Cancel" : "Edit"}
+              </button>
+            </div>
+
             <div className="flex items-start gap-3">
               <MapPin className="h-4 w-4 text-primary-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1 min-w-0">
@@ -201,29 +330,170 @@ export default function BookingReviewModal({
                 </div>
               </div>
             )}
-            <div className="grid grid-cols-3 gap-3 pt-3 border-t border-ink-7">
-              {(pickupDateLabel || pickupTimeLabel) && (
+
+            {editing ? (
+              <div className="space-y-3 rounded-xl border border-ink-7 bg-white p-3">
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                    Pickup date &amp; time
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={dDate}
+                      min={todayISO()}
+                      onChange={(e) => {
+                        setDDate(e.target.value);
+                        setEditError(null);
+                      }}
+                      className="h-10 w-full rounded-xl border border-ink-7 bg-white px-3 text-sm font-semibold text-ink focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/15"
+                      disabled={submitting}
+                    />
+                    <input
+                      type="time"
+                      value={dTime}
+                      onChange={(e) => {
+                        setDTime(e.target.value);
+                        setEditError(null);
+                      }}
+                      className="h-10 w-full rounded-xl border border-ink-7 bg-white px-3 text-sm font-semibold text-ink focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/15"
+                      disabled={submitting}
+                    />
+                  </div>
+                </div>
+
+                {needsReturn && (
+                  <div>
+                    <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                      {bookingDraft.trip_type === "ROUND_TRIP" ? "Return date & time" : "Rental ends"}
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="date"
+                        value={dReturnDate}
+                        min={dDate || todayISO()}
+                        onChange={(e) => {
+                          setDReturnDate(e.target.value);
+                          setEditError(null);
+                        }}
+                        className="h-10 w-full rounded-xl border border-ink-7 bg-white px-3 text-sm font-semibold text-ink focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/15"
+                        disabled={submitting}
+                      />
+                      <input
+                        type="time"
+                        value={dReturnTime}
+                        onChange={(e) => {
+                          setDReturnTime(e.target.value);
+                          setEditError(null);
+                        }}
+                        className="h-10 w-full rounded-xl border border-ink-7 bg-white px-3 text-sm font-semibold text-ink focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/15"
+                        disabled={submitting}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                    Passengers
+                  </label>
+                  <select
+                    value={dPax}
+                    onChange={(e) => setDPax(Number(e.target.value))}
+                    className="h-10 w-full rounded-xl border border-ink-7 bg-white px-3 text-sm font-semibold text-ink focus:border-primary-600 focus:outline-none"
+                    disabled={submitting}
+                  >
+                    {Array.from(
+                      { length: Math.max(1, Math.min(maxPassengers, 12)) },
+                      (_, i) => i + 1,
+                    ).map((n) => (
+                      <option key={n} value={n}>
+                        {n} passenger{n > 1 ? "s" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-ink-4">
+                    Note for the driver (optional)
+                  </label>
+                  <textarea
+                    value={dNotes}
+                    onChange={(e) => setDNotes(e.target.value.slice(0, 300))}
+                    rows={2}
+                    placeholder="Landmark, luggage, child seat…"
+                    className="w-full rounded-xl border border-ink-7 bg-white px-3 py-2 text-sm text-ink focus:border-primary-600 focus:outline-none focus:ring-2 focus:ring-primary-600/15"
+                    disabled={submitting}
+                  />
+                </div>
+
+                {editError && (
+                  <div className="flex items-start gap-2 text-xs text-red-700">
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                    <span>{editError}</span>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={saveTripDetails}
+                  disabled={submitting}
+                  className="h-10 w-full rounded-xl bg-ink text-sm font-bold text-white hover:bg-ink/90 disabled:opacity-60"
+                >
+                  Save trip details
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-3 gap-3 pt-3 border-t border-ink-7">
                 <div className="col-span-2 flex items-start gap-2">
                   <Calendar className="h-4 w-4 text-ink-4 mt-0.5 flex-shrink-0" />
                   <div className="text-xs">
-                    <div className="font-bold uppercase tracking-wider text-ink-4">Pickup at</div>
-                    <div className="font-semibold text-ink">
-                      {pickupDateLabel ?? ""}
-                      {pickupDateLabel && pickupTimeLabel ? " · " : ""}
-                      {pickupTimeLabel ?? ""}
+                    <div className="font-bold uppercase tracking-wider text-ink-4">
+                      {needsReturn ? "Pickup · return" : "Pickup at"}
                     </div>
+                    {scheduled ? (
+                      <div className="font-semibold text-ink">
+                        {formatDateTime(pickupDate, pickupTime)}
+                        {needsReturn && returnDate && returnTime && (
+                          <> → {formatDateTime(returnDate, returnTime)}</>
+                        )}
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={startEditing}
+                        className="font-bold text-primary-700 underline underline-offset-2"
+                      >
+                        Choose pickup date &amp; time
+                      </button>
+                    )}
                   </div>
                 </div>
-              )}
-              <div className="flex items-start gap-2">
-                <Users className="h-4 w-4 text-ink-4 mt-0.5 flex-shrink-0" />
-                <div className="text-xs">
-                  <div className="font-bold uppercase tracking-wider text-ink-4">Seats</div>
-                  <div className="font-semibold text-ink">{passengerCount}</div>
+                <div className="flex items-start gap-2">
+                  <Users className="h-4 w-4 text-ink-4 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs">
+                    <div className="font-bold uppercase tracking-wider text-ink-4">Seats</div>
+                    <div className="font-semibold text-ink">{passengerCount}</div>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+
+            {!editing && notes && (
+              <div className="flex items-start gap-2 border-t border-ink-7 pt-3 text-xs text-ink-3">
+                <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                <span className="min-w-0 break-words">{notes}</span>
+              </div>
+            )}
           </div>
+
+          {!scheduled && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+              <AlertCircle className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+              <span>Pick a pickup date and time so the cab reaches you when you need it.</span>
+            </div>
+          )}
 
           {/* ── Cab + fare card ───────────────────────────── */}
           <div className="rounded-2xl border border-ink-7 p-4">
@@ -355,7 +625,8 @@ export default function BookingReviewModal({
                   : {},
               )
             }
-            disabled={submitting || applyingCoupon}
+            disabled={submitting || applyingCoupon || editing || !scheduled}
+            title={!scheduled ? "Choose a pickup date and time first" : undefined}
             className="w-full h-12 rounded-xl text-white font-bold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(240,90,34,0.40)] disabled:opacity-60"
             style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
           >
@@ -379,4 +650,17 @@ export default function BookingReviewModal({
 // import just for one number format.
 function INR(n: number): string {
   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+}
+
+/** "2026-11-21" + "09:30" → "21 Nov, 9:30 am" (IST wall clock, as chosen). */
+function formatDateTime(date: string, time: string): string {
+  const d = new Date(`${date}T${time}`);
+  if (Number.isNaN(d.getTime())) return `${date} ${time}`.trim();
+  return d.toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
 }

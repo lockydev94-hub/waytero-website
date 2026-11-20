@@ -77,6 +77,12 @@ const TRIP_LABELS: Record<string, string> = {
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
+/** Set a query value, or remove the key when the customer cleared it. */
+function setQueryValue(sp: URLSearchParams, key: string, value: string) {
+  if (value) sp.set(key, value);
+  else sp.delete(key);
+}
+
 /**
  * A rate-card class presented in the same shape as a per-km fare row, so the
  * existing filters, sorting and review step work unchanged.
@@ -114,6 +120,20 @@ const optionKey = (c: FareBreakdownItem) =>
 
 // ── Filter helper (pure, client-side) ─────────────────────────────────────
 type SortMode = "recommended" | "price_asc" | "price_desc";
+
+/** A staged edit from the mismatch modal. Nothing here hits the fare until
+ *  the customer saves; `newStop` is the input box, not part of the route. */
+interface RouteDraft {
+  pickup: string;
+  drop: string;
+  date: string;
+  time: string;
+  returnDate: string;
+  returnTime: string;
+  stops: CabStopIn[];
+  newStop: string;
+}
+
 interface FilterState {
   selected: Set<number>;       // empty set = "all visible"
   minSeats: number;
@@ -152,19 +172,24 @@ function ResultsContent() {
   const rawParams = useSearchParams();
   const params = useMemo(() => rawParams ?? new URLSearchParams(), [rawParams]);
 
-  const pickup = params.get("pickup") ?? "";
-  const drop = params.get("drop") ?? "";
-  const plat = params.get("plat");
-  const plng = params.get("plng");
-  const dlat = params.get("dlat");
-  const dlng = params.get("dlng");
+  // Route values are editable from the trip-warning modal, so they live in
+  // state. The URL is still kept in sync for shareable links.
+  const [pickup, setPickup] = useState(params.get("pickup") ?? "");
+  const [drop, setDrop] = useState(params.get("drop") ?? "");
+  const [plat, setPlat] = useState<string | null>(params.get("plat"));
+  const [plng, setPlng] = useState<string | null>(params.get("plng"));
+  const [dlat, setDlat] = useState<string | null>(params.get("dlat"));
+  const [dlng, setDlng] = useState<string | null>(params.get("dlng"));
   const cityParam = params.get("city_id");
   const citySlugParam = params.get("city");
-  const date = params.get("date") ?? "";
-  const time = params.get("time") ?? "";
-  const returnDate = params.get("return_date") ?? "";
-  const returnTime = params.get("return_time") ?? "";
-  const pax = Number(params.get("pax") ?? "1");
+  const [date, setDate] = useState(params.get("date") ?? "");
+  const [time, setTime] = useState(params.get("time") ?? "");
+  const [returnDate, setReturnDate] = useState(params.get("return_date") ?? "");
+  const [returnTime, setReturnTime] = useState(params.get("return_time") ?? "");
+  // Passengers and driver notes are part of the booking, so they are editable
+  // too (the review step can change them before the booking exists).
+  const [pax, setPax] = useState(Number(params.get("pax") ?? "1"));
+  const [notes, setNotes] = useState("");
   const distanceParam = params.get("distance_km");
   // Offer ride-through (carried from /offers/{slug} CTAs): slug is the
   // attribution hint sent to create-booking; coupon auto-applies in the
@@ -178,7 +203,9 @@ function ResultsContent() {
   // Default to LOCAL — the most common cab booking type in India. The search
   // forms always include trip_type in the URL, so this only affects bare
   // deep-links.
-  const [tripType, setTripType] = useState<string>(params.get("trip_type") ?? "LOCAL");
+  const [tripType, setTripType] = useState<string>(
+    (params.get("trip_type") ?? "LOCAL").toUpperCase(),
+  );
   // A Cab Rent has no destination — it is sold by the day. The URL may still
   // carry one from a different search, so the drop is dropped rather than
   // labelled "not allowed" everywhere below.
@@ -209,15 +236,52 @@ function ResultsContent() {
   const [newStop, setNewStop] = useState("");
   const [tripCheck, setTripCheck] = useState<TripCheckOut | null>(null);
   const [tripCheckLoading, setTripCheckLoading] = useState(false);
+  // A mismatch opens a modal once per server verdict, not on every render.
+  // Closing it leaves the booking blocked; the Book button reopens it.
+  const [tripWarningOpen, setTripWarningOpen] = useState(false);
+  const [tripWarningEditing, setTripWarningEditing] = useState(false);
+  const [routeDraft, setRouteDraft] = useState<RouteDraft | null>(null);
+  const [routeDraftError, setRouteDraftError] = useState<string | null>(null);
+  const tripWarningShown = useRef<string | null>(null);
+  // A saved route edit makes the customer's original search distance stale;
+  // the server's measured route must be allowed to replace it.
+  const routeEditedRef = useRef(false);
 
   // What the server says the trip is: blocks booking when the type and the
-  // places disagree (a Local ending in another city).
-  const tripBlocked = (tripCheck?.errors.length ?? 0) > 0;
-  const tripErrors = tripCheck?.errors ?? [];
-  const tripHints = [...(tripCheck?.warnings ?? []), ...(tripCheck?.hints ?? [])];
+  // places disagree (a Local ending in another city). Ignore a verdict that
+  // belongs to the previous trip type while the new check is still in flight.
+  const tripCheckMatches = tripCheck?.trip_type === tripType;
+  const tripBlocked = tripCheckMatches && (tripCheck?.errors.length ?? 0) > 0;
+  const tripErrors = tripCheckMatches ? (tripCheck?.errors ?? []) : [];
+  const tripHints = tripCheckMatches
+    ? [...(tripCheck?.warnings ?? []), ...(tripCheck?.hints ?? [])]
+    : [];
+
+  const tripErrorSignature = tripErrors.length
+    ? `${tripType}|${tripCheck?.detected_type ?? ""}|${tripErrors.join("|")}`
+    : "";
+
+  // Show the mismatch as a modal as soon as the server reports one. The
+  // signature keeps a dismissed modal closed until the verdict actually changes.
+  useEffect(() => {
+    if (!tripErrorSignature) {
+      tripWarningShown.current = null;
+      setTripWarningOpen(false);
+      setTripWarningEditing(false);
+      setRouteDraft(null);
+      setRouteDraftError(null);
+      return;
+    }
+    if (tripWarningShown.current === tripErrorSignature) return;
+    tripWarningShown.current = tripErrorSignature;
+    setTripWarningOpen(true);
+  }, [tripErrorSignature]);
 
   // Booking flow state
   const [selected, setSelected] = useState<FareBreakdownItem | null>(null);
+  // A schedule edit re-quotes the fare; the same cab class stays selected
+  // across that new estimate instead of dropping the customer back to zero.
+  const keepSelection = useRef<string | null>(null);
   const [authOpen, setAuthOpen] = useState(false);
   const [reviewOpen, setReviewOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -300,7 +364,7 @@ function ResultsContent() {
   useEffect(() => {
     if (urlSynced.current) return;
     urlSynced.current = true;
-    const fromUrl = params.get("trip_type");
+    const fromUrl = params.get("trip_type")?.toUpperCase();
     if (fromUrl && fromUrl !== tripType) setTripType(fromUrl);
     // We intentionally do not depend on params/tripType — single sync only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -355,7 +419,13 @@ function ResultsContent() {
   // than at the payment step. Debounced because a typed stop fires per key.
   useEffect(() => {
     if (!pickup) return;
+    let cancelled = false;
+    // Drop the previous verdict immediately: otherwise switching trip type
+    // briefly shows the old type's warning, and a dismissed modal can reappear
+    // with stale text while the debounced check is still pending.
+    setTripCheck(null);
     const handle = window.setTimeout(() => {
+      if (cancelled) return;
       setTripCheckLoading(true);
       cabService
         .checkTrip({
@@ -378,11 +448,20 @@ function ResultsContent() {
           return_datetime:
             returnDate && returnTime ? `${returnDate}T${returnTime}:00+05:30` : undefined,
         })
-        .then(setTripCheck)
-        .catch(() => setTripCheck(null))
-        .finally(() => setTripCheckLoading(false));
+        .then((res) => {
+          if (!cancelled) setTripCheck(res);
+        })
+        .catch(() => {
+          if (!cancelled) setTripCheck(null);
+        })
+        .finally(() => {
+          if (!cancelled) setTripCheckLoading(false);
+        });
     }, 500);
-    return () => window.clearTimeout(handle);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
     // `distanceKm` is deliberately absent: the server's measured distance can
     // update it, and re-checking on that write would loop.
   }, [pickup, routeDrop, plat, plng, dlat, dlng, stops, tripType, date, time, returnDate, returnTime, cityId]);
@@ -396,11 +475,18 @@ function ResultsContent() {
     // The search form's own figure is kept for a two-point trip — it is the
     // distance the customer was shown when they clicked search. Once there are
     // stops it is the wrong number by definition, so the measured chain wins.
-    if (distanceParam && stops.length === 0) return;
+    if (distanceParam && stops.length === 0 && !routeEditedRef.current) return;
     if (distanceKm != null && Math.abs(km - distanceKm) < 0.05) return;
     setDistanceKm(km);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripCheck]);
+
+  // Keep pricing in the pickup's actual city when the route is edited. The
+  // server resolves the place name/coords; honour that over a stale city tab.
+  useEffect(() => {
+    const nextCityId = tripCheck?.pickup?.city_id;
+    if (nextCityId && nextCityId !== cityId) setCityId(nextCityId);
+  }, [tripCheck, cityId]);
 
   const effectiveDistance = manualDistance ? Number(manualDistance) : distanceKm;
   const effectiveCityId = cityId;
@@ -426,6 +512,23 @@ function ResultsContent() {
   }, [estimate]);
 
   const usingPackages = (estimate?.packages?.length ?? 0) > 0;
+
+  // Re-attach the chosen cab after a schedule change re-priced the trip. The
+  // total on the card may legitimately move (a night pickup adds the midnight
+  // charge), so the review step re-renders with the server's new figure.
+  useEffect(() => {
+    const key = keepSelection.current;
+    if (!key || !estimate) return;
+    const next = options.find((o) => optionKey(o) === key) ?? null;
+    keepSelection.current = null;
+    if (next) setSelected(next);
+    else {
+      setSelected(null);
+      setReviewOpen(false);
+      toast.error("That cab is no longer available at the new time. Pick another one.");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [options, estimate]);
 
   // The sidebar filter is per bookable category, and several rate classes can
   // share one (six Traveller/Urbania classes are all TEMPO_TRAVELLER). One row
@@ -457,6 +560,14 @@ function ResultsContent() {
   const changeTripType = useCallback((code: string) => {
     if (code === tripType) return;
     setTripType(code);
+    // Close the mismatch modal and discard the verdict from the old type.
+    setTripWarningOpen(false);
+    setTripWarningEditing(false);
+    setRouteDraft(null);
+    setRouteDraftError(null);
+    tripWarningShown.current = null;
+    setTripCheck(null);
+    setTripCheckLoading(false);
     // Close any open booking modal so the user doesn't confirm a card
     // that's about to disappear from the list.
     setAuthOpen(false);
@@ -476,6 +587,156 @@ function ResultsContent() {
     router.replace(`/cabs/results?${sp.toString()}`, { scroll: false });
   }, [tripType, params, router, cities, cityId]);
 
+  // ── Trip-warning route editor ───────────────────────────────────────────
+  const closeTripWarning = () => {
+    setTripWarningOpen(false);
+    setTripWarningEditing(false);
+    setRouteDraft(null);
+    setRouteDraftError(null);
+  };
+
+  const startRouteEdit = () => {
+    setRouteDraft({
+      pickup,
+      drop: tripType === "DAILY" ? "" : drop,
+      date,
+      time,
+      returnDate,
+      returnTime,
+      stops: stops.map((s) => ({ ...s })),
+      newStop: "",
+    });
+    setRouteDraftError(null);
+    setTripWarningEditing(true);
+  };
+
+  const updateRouteDraft = (patch: Partial<RouteDraft>) => {
+    setRouteDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const cancelRouteEdit = () => {
+    setTripWarningEditing(false);
+    setRouteDraft(null);
+    setRouteDraftError(null);
+  };
+
+  const addDraftStop = () => {
+    setRouteDraft((prev) => {
+      if (!prev) return prev;
+      const name = prev.newStop.trim();
+      if (!name) return prev;
+      return { ...prev, stops: [...prev.stops, { name }], newStop: "" };
+    });
+  };
+
+  const saveRouteEdit = () => {
+    if (!routeDraft) return;
+    const nextPickup = routeDraft.pickup.trim();
+    const nextDrop = tripType === "DAILY" ? "" : routeDraft.drop.trim();
+    if (!nextPickup) {
+      setRouteDraftError("Add a pickup location.");
+      return;
+    }
+    if (tripType !== "DAILY" && !nextDrop) {
+      setRouteDraftError("Add a drop location for this booking type.");
+      return;
+    }
+    if (
+      (tripType === "ROUND_TRIP" || tripType === "DAILY") &&
+      (!routeDraft.date || !routeDraft.time)
+    ) {
+      setRouteDraftError("Add the pickup date and time for this booking type.");
+      return;
+    }
+    if (
+      (tripType === "ROUND_TRIP" || tripType === "DAILY") &&
+      (!routeDraft.returnDate || !routeDraft.returnTime)
+    ) {
+      setRouteDraftError(
+        tripType === "ROUND_TRIP"
+          ? "A round trip needs a return date and time."
+          : "A Cab Rent needs the date and time it ends.",
+      );
+      return;
+    }
+    if (
+      routeDraft.date &&
+      routeDraft.time &&
+      routeDraft.returnDate &&
+      routeDraft.returnTime
+    ) {
+      const start = new Date(`${routeDraft.date}T${routeDraft.time}`);
+      const end = new Date(`${routeDraft.returnDate}T${routeDraft.returnTime}`);
+      if (
+        Number.isFinite(start.getTime()) &&
+        Number.isFinite(end.getTime()) &&
+        end <= start
+      ) {
+        setRouteDraftError("The return must be after the pickup.");
+        return;
+      }
+    }
+
+    const endsChanged = nextPickup !== pickup || nextDrop !== routeDrop;
+    const stopsChanged =
+      routeDraft.stops.length !== stops.length ||
+      routeDraft.stops.some((s, i) => s.name !== stops[i]?.name);
+    const routeChanged = endsChanged || stopsChanged;
+    const sp = new URLSearchParams(params.toString());
+    setQueryValue(sp, "pickup", nextPickup);
+    setQueryValue(sp, "drop", nextDrop);
+    setQueryValue(sp, "date", routeDraft.date);
+    setQueryValue(sp, "time", routeDraft.time);
+    setQueryValue(sp, "return_date", routeDraft.returnDate);
+    setQueryValue(sp, "return_time", routeDraft.returnTime);
+    if (endsChanged) {
+      // The old place coordinates describe a different pickup/drop. Drop them
+      // so the server resolves the new names instead of trusting stale points.
+      sp.delete("plat");
+      sp.delete("plng");
+      sp.delete("dlat");
+      sp.delete("dlng");
+    }
+    if (routeChanged) {
+      // The searched distance belongs to the old route; let the server's
+      // measured chain replace it.
+      sp.delete("distance_km");
+    }
+    router.replace(`/cabs/results?${sp.toString()}`, { scroll: false });
+
+    setPickup(nextPickup);
+    setDrop(nextDrop);
+    setDate(routeDraft.date);
+    setTime(routeDraft.time);
+    setReturnDate(routeDraft.returnDate);
+    setReturnTime(routeDraft.returnTime);
+    setStops(routeDraft.stops);
+    if (routeChanged) {
+      routeEditedRef.current = true;
+      if (endsChanged) {
+        setPlat(null);
+        setPlng(null);
+        setDlat(null);
+        setDlng(null);
+      }
+      setDistanceKm(null);
+      setManualDistance("");
+      setSelected(null);
+      setAuthOpen(false);
+      setReviewOpen(false);
+      setCreated(null);
+    }
+    setTripCheck(null);
+    setTripCheckLoading(false);
+    setTripWarningOpen(false);
+    setTripWarningEditing(false);
+    setRouteDraft(null);
+    setRouteDraftError(null);
+    // Allow the next server verdict to open the modal again, even when the
+    // error text is unchanged after the attempted fix.
+    tripWarningShown.current = null;
+  };
+
   // Reset filters to defaults (does NOT touch trip-type, city, or distance).
   const resetFilters = useCallback(() => {
     setSelectedCategories(new Set());
@@ -491,6 +752,12 @@ function ResultsContent() {
     discount_amount?: number,
   ) => {
     if (!selected || !effectiveCityId || !distanceKm) return;
+    // A booking always carries a real pickup time. Never fall back to "now":
+    // the customer sets the schedule in the review step.
+    if (!date || !time) {
+      toast.error("Choose a pickup date and time before booking.");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await cabService.createBooking({
@@ -518,12 +785,12 @@ function ResultsContent() {
         // the distance the customer agreed to.
         ...(stops.length ? { stops } : {}),
         // +05:30 = the wall-clock time the customer chose, as an exact instant.
-        pickup_datetime:
-          date && time ? `${date}T${time}:00+05:30` : new Date().toISOString(),
+        pickup_datetime: `${date}T${time}:00+05:30`,
         return_datetime:
           returnDate && returnTime ? `${returnDate}T${returnTime}:00+05:30` : undefined,
         estimated_distance_km: distanceKm,
         passenger_count: pax,
+        special_instructions: notes.trim() || undefined,
         estimated_amount: Number(selected.total) || 0,
         coupon_code: coupon_code || undefined,
         coupon_discount:
@@ -549,6 +816,35 @@ function ResultsContent() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  // ── Schedule / passengers / notes from the review step ────────────────
+  // Applied to the results page (the estimate depends on it) and mirrored to
+  // the URL so a reload keeps the booked trip. The chosen cab is re-attached
+  // by the keepSelection effect once the new quote arrives.
+  const applyTripDetails = (next: {
+    date: string;
+    time: string;
+    returnDate: string;
+    returnTime: string;
+    passengers: number;
+    notes: string;
+  }) => {
+    setDate(next.date);
+    setTime(next.time);
+    setReturnDate(next.returnDate);
+    setReturnTime(next.returnTime);
+    setPax(next.passengers);
+    setNotes(next.notes);
+    if (selected) keepSelection.current = optionKey(selected);
+    const sp = new URLSearchParams(params.toString());
+    setQueryValue(sp, "date", next.date);
+    setQueryValue(sp, "time", next.time);
+    setQueryValue(sp, "return_date", next.returnDate);
+    setQueryValue(sp, "return_time", next.returnTime);
+    setQueryValue(sp, "pax", String(next.passengers));
+    router.replace(`/cabs/results?${sp.toString()}`, { scroll: false });
+    toast.success("Trip details saved — fare updated for the new time.");
   };
 
   const heading = `Cabs · ${TRIP_LABELS[tripType] ?? tripType}`;
@@ -801,21 +1097,17 @@ function ResultsContent() {
               </div>
 
               {tripErrors.length > 0 && (
-                <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-2.5">
-                  <div className="flex items-start gap-1.5 text-[11px] text-red-700 font-semibold">
-                    <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                    <span>{tripErrors[0]}</span>
-                  </div>
-                  {tripCheck?.detected_type && tripCheck.detected_type !== tripType && (
-                    <button
-                      type="button"
-                      onClick={() => changeTripType(tripCheck.detected_type as BookingType)}
-                      className="mt-2 w-full h-8 rounded-lg bg-red-600 text-white text-[11px] font-bold"
-                    >
-                      Book as {TRIP_LABELS[tripCheck.detected_type] ?? tripCheck.detected_type}
-                    </button>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setTripWarningOpen(true)}
+                  className="mt-3 w-full flex items-start gap-1.5 rounded-xl border border-red-200 bg-red-50 p-2.5 text-left text-[11px] font-semibold text-red-700 transition-colors hover:bg-red-100"
+                >
+                  <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                  <span>
+                    Trip type does not match this route.
+                    <span className="ml-1 underline underline-offset-2">Review</span>
+                  </span>
+                </button>
               )}
               {tripErrors.length === 0 && tripHints.length > 0 && (
                 <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-2.5 space-y-1">
@@ -1045,7 +1337,7 @@ function ResultsContent() {
                   // places (a Local ending in another city). Letting the customer
                   // reach the payment step would only fail at create-booking.
                   if (tripBlocked) {
-                    toast.error(tripErrors[0]);
+                    setTripWarningOpen(true);
                     return;
                   }
                   setSelected(cat);
@@ -1145,9 +1437,15 @@ function ResultsContent() {
           }}
           pickupLabel={pickup}
           dropLabel={routeDrop || undefined}
-          pickupDateLabel={date || undefined}
-          pickupTimeLabel={time || undefined}
+          pickupDate={date}
+          pickupTime={time}
+          returnDate={returnDate}
+          returnTime={returnTime}
+          needsReturn={tripType === "ROUND_TRIP" || tripType === "DAILY"}
           passengerCount={pax}
+          maxPassengers={selected.seating_capacity ?? 7}
+          notes={notes}
+          onTripChange={applyTripDetails}
           submitting={submitting}
           initialCoupon={offerCoupon || undefined}
           offerTitle={offerName || undefined}
@@ -1166,6 +1464,279 @@ function ResultsContent() {
             await submitBooking(token, coupon_code, discount_amount);
           }}
         />
+      )}
+
+      {/* ── Trip-type mismatch warning / route editor ─────── */}
+      {tripWarningOpen && tripErrors.length > 0 && (
+        <div
+          className="fixed inset-0 z-[700] flex items-center justify-center p-4 bg-[#0B1B3B]/60 backdrop-blur-sm"
+          role="presentation"
+          onClick={closeTripWarning}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="trip-warning-title"
+            className={`bg-white rounded-3xl shadow-2xl w-full relative max-h-[92vh] overflow-y-auto ${
+              tripWarningEditing ? "max-w-lg p-5 sm:p-7" : "max-w-md p-6 sm:p-8"
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={closeTripWarning}
+              className="absolute right-4 top-4 h-9 w-9 rounded-xl hover:bg-ink-9 flex items-center justify-center text-ink-4 hover:text-ink transition-colors"
+              aria-label="Close trip warning"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {tripWarningEditing && routeDraft ? (
+              <>
+                <div className="flex items-start gap-3 pr-10">
+                  <div className="h-11 w-11 shrink-0 rounded-xl bg-primary-50 text-primary-600 grid place-items-center">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 id="trip-warning-title" className="text-lg font-extrabold text-ink">
+                      Edit trip details
+                    </h3>
+                    <p className="mt-0.5 text-xs text-ink-4">
+                      Update the route for a {TRIP_LABELS[tripType] ?? tripType} booking.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-relaxed text-red-800">
+                  {tripErrors[0]}
+                </div>
+
+                <div className="mt-4 space-y-3.5">
+                  <label className="block">
+                    <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-ink-4">
+                      Pickup
+                    </span>
+                    <input
+                      value={routeDraft.pickup}
+                      onChange={(e) => updateRouteDraft({ pickup: e.target.value })}
+                      placeholder="Pickup location"
+                      autoComplete="off"
+                      className="h-10 w-full rounded-lg border border-ink-7 bg-ink-9 px-3 text-sm text-ink focus:border-primary-600 focus:outline-none"
+                    />
+                  </label>
+
+                  {tripType !== "DAILY" && (
+                    <label className="block">
+                      <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-ink-4">
+                        {tripType === "ROUND_TRIP" ? "Destination / return from" : "Drop"}
+                      </span>
+                      <input
+                        value={routeDraft.drop}
+                        onChange={(e) => updateRouteDraft({ drop: e.target.value })}
+                        placeholder="Drop location"
+                        autoComplete="off"
+                        className="h-10 w-full rounded-lg border border-ink-7 bg-ink-9 px-3 text-sm text-ink focus:border-primary-600 focus:outline-none"
+                      />
+                    </label>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-ink-4">
+                        Pickup date
+                      </span>
+                      <input
+                        type="date"
+                        value={routeDraft.date}
+                        onChange={(e) => updateRouteDraft({ date: e.target.value })}
+                        className="h-10 w-full rounded-lg border border-ink-7 bg-ink-9 px-2.5 text-xs text-ink focus:border-primary-600 focus:outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider text-ink-4">
+                        Pickup time
+                      </span>
+                      <input
+                        type="time"
+                        value={routeDraft.time}
+                        onChange={(e) => updateRouteDraft({ time: e.target.value })}
+                        className="h-10 w-full rounded-lg border border-ink-7 bg-ink-9 px-2.5 text-xs text-ink focus:border-primary-600 focus:outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  {(tripType === "ROUND_TRIP" || tripType === "DAILY") && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <div className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                        <Clock className="h-3 w-3" />
+                        {tripType === "ROUND_TRIP" ? "Return" : "Rental ends"} (required)
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <input
+                          type="date"
+                          aria-label={tripType === "ROUND_TRIP" ? "Return date" : "Rental end date"}
+                          value={routeDraft.returnDate}
+                          min={routeDraft.date || undefined}
+                          onChange={(e) => updateRouteDraft({ returnDate: e.target.value })}
+                          className="h-10 w-full rounded-lg border border-amber-300 bg-white px-2.5 text-xs text-ink focus:border-amber-500 focus:outline-none"
+                        />
+                        <input
+                          type="time"
+                          aria-label={tripType === "ROUND_TRIP" ? "Return time" : "Rental end time"}
+                          value={routeDraft.returnTime}
+                          onChange={(e) => updateRouteDraft({ returnTime: e.target.value })}
+                          className="h-10 w-full rounded-lg border border-amber-300 bg-white px-2.5 text-xs text-ink focus:border-amber-500 focus:outline-none"
+                        />
+                      </div>
+                      <p className="mt-1.5 text-[10px] leading-snug text-amber-800/80">
+                        {tripType === "ROUND_TRIP"
+                          ? "The return leg and driver allowance are priced from this."
+                          : "A Cab Rent is billed in 24-hour days from pickup to this time."}
+                      </p>
+                    </div>
+                  )}
+
+                  <div>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-ink-4">
+                        Stops <span className="font-medium normal-case tracking-normal text-ink-4">· optional</span>
+                      </span>
+                      {routeDraft.stops.length > 0 && (
+                        <span className="text-[10px] font-semibold text-ink-4">
+                          {routeDraft.stops.length} stop{routeDraft.stops.length > 1 ? "s" : ""}
+                        </span>
+                      )}
+                    </div>
+                    {routeDraft.stops.length > 0 && (
+                      <ul className="mb-2 space-y-1.5">
+                        {routeDraft.stops.map((s, i) => (
+                          <li
+                            key={`${s.name}-${i}`}
+                            className="flex items-center gap-2 rounded-lg border border-ink-8 bg-ink-9 px-2.5 py-1.5 text-xs text-ink-2"
+                          >
+                            <span className="h-5 w-5 shrink-0 rounded-full bg-white text-[10px] font-bold grid place-items-center text-ink-3">
+                              {i + 1}
+                            </span>
+                            <span className="flex-1 truncate">{s.name}</span>
+                            <button
+                              type="button"
+                              aria-label={`Remove stop ${i + 1}`}
+                              onClick={() =>
+                                updateRouteDraft({
+                                  stops: routeDraft.stops.filter((_, j) => j !== i),
+                                })
+                              }
+                              className="text-ink-4 hover:text-red-600 transition-colors"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="flex gap-1.5">
+                      <input
+                        value={routeDraft.newStop}
+                        onChange={(e) => updateRouteDraft({ newStop: e.target.value })}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            addDraftStop();
+                          }
+                        }}
+                        placeholder="Add a stop, e.g. Konark"
+                        className="h-9 flex-1 rounded-lg border border-ink-7 bg-ink-9 px-2.5 text-xs text-ink focus:border-primary-600 focus:outline-none placeholder:text-ink-5"
+                      />
+                      <button
+                        type="button"
+                        disabled={!routeDraft.newStop.trim()}
+                        onClick={addDraftStop}
+                        className="h-9 w-9 shrink-0 grid place-items-center rounded-lg bg-ink text-white disabled:opacity-40"
+                        aria-label="Add stop"
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {routeDraftError && (
+                    <p className="flex items-start gap-1.5 rounded-lg bg-red-50 p-2.5 text-xs font-medium text-red-700">
+                      <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      {routeDraftError}
+                    </p>
+                  )}
+                </div>
+
+                <div className="mt-5 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={cancelRouteEdit}
+                    className="h-11 flex-1 rounded-xl border border-ink-7 text-sm font-semibold text-ink-2 hover:bg-ink-9 transition-colors"
+                  >
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveRouteEdit}
+                    className="h-11 flex-[1.4] rounded-xl text-white font-bold text-sm transition-all hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(240,90,34,0.40)]"
+                    style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
+                  >
+                    Save changes
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="mx-auto mb-4 h-14 w-14 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="h-7 w-7 text-red-600" />
+                </div>
+                <h3
+                  id="trip-warning-title"
+                  className="text-xl font-extrabold text-ink text-center"
+                >
+                  This trip does not match “{TRIP_LABELS[tripType] ?? tripType}”
+                </h3>
+                <p className="mt-2 text-sm text-ink-3 text-center">
+                  Change the booking type or edit the route before you book.
+                </p>
+                <ul className="mt-4 space-y-2">
+                  {tripErrors.map((error) => (
+                    <li
+                      key={error}
+                      className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-xs leading-relaxed text-red-800"
+                    >
+                      <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                      <span>{error}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-6 space-y-3">
+                  {tripCheck?.detected_type && tripCheck.detected_type !== tripType && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTripWarningOpen(false);
+                        changeTripType(tripCheck.detected_type as BookingType);
+                      }}
+                      className="w-full h-12 rounded-xl text-white font-bold text-sm inline-flex items-center justify-center gap-2 transition-all hover:-translate-y-0.5 shadow-[0_4px_20px_rgba(240,90,34,0.40)]"
+                      style={{ background: "linear-gradient(135deg,#F05A22,#E04A12)" }}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      Change to {TRIP_LABELS[tripCheck.detected_type] ?? tripCheck.detected_type}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={startRouteEdit}
+                    className="w-full h-11 rounded-xl border border-ink-7 text-sm font-semibold text-ink-2 hover:bg-ink-9 transition-colors"
+                  >
+                    Edit route
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
 
       {/* ── Success overlay ───────────────────────────────── */}
