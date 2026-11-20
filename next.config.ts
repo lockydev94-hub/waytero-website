@@ -39,8 +39,16 @@ const nextConfig: NextConfig = {
   // ── 301s: the two hand-coded city families retired by the [slug] landing
   // engine. Redirects run before the filesystem, so old inbound links and
   // indexed URLs keep working and hand their equity to the new pages.
+  // Singular service names are common typed/bookmarked URLs, so send them to
+  // the canonical listing routes (and keep their subpaths intact).
   async redirects() {
     return [
+      { source: "/cab", destination: "/cabs", permanent: true },
+      { source: "/cab/:path*", destination: "/cabs/:path*", permanent: true },
+      { source: "/hotel", destination: "/hotels", permanent: true },
+      { source: "/hotel/:path*", destination: "/hotels/:path*", permanent: true },
+      { source: "/tour", destination: "/tours", permanent: true },
+      { source: "/tour/:path*", destination: "/tours/:path*", permanent: true },
       {
         source: "/hotels/city/:slug",
         destination: "/hotel-booking-in-:slug",
