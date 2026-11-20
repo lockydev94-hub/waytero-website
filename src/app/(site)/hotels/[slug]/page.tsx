@@ -4,7 +4,18 @@ import { notFound } from "next/navigation";
 import HotelDetailPage from "./hotel-detail";
 import type { PublicHotelDetails } from "@/services/hotelService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
-import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
+import { citySlug } from "@/lib/citySlug";
+import {
+  STATIC_SEO,
+  toMetadata,
+  appUrl,
+  absoluteImage,
+  type SeoContent,
+} from "@/services/seoService";
+import JsonLd, {
+  breadcrumbList,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
@@ -45,7 +56,7 @@ async function seoForHotel(hotel: PublicHotelDetails | null): Promise<SeoContent
     keywords: hotel.seo_keywords
       ? hotel.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
       : [...fallback.keywords, hotel.hotel_name, hotel.city_name],
-    image: hotel.images[0] ?? null,
+    image: hotel.images[0] ?? "/og-image.png",
   };
 }
 
@@ -95,13 +106,18 @@ export default async function HotelDetailsPage({ params }: Props) {
     ...hotel.room_categories.map((r) => r.base_price).filter((p) => p > 0),
     Number.POSITIVE_INFINITY,
   );
+  const pageUrl = `${appUrl()}/hotels/${slug}`;
+  const images = hotel.images.length
+    ? hotel.images.map((src) => absoluteImage(src))
+    : [absoluteImage(null)];
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Hotel",
+    "@id": `${pageUrl}#hotel`,
     name: hotel.hotel_name,
     description: hotel.short_description || hotel.description || undefined,
-    url: `${appUrl()}/hotels/${slug}`,
-    image: hotel.images.length ? hotel.images : undefined,
+    url: pageUrl,
+    image: images,
     starRating: hotel.star_rating
       ? { "@type": "Rating", ratingValue: hotel.star_rating, bestRating: 5 }
       : undefined,
@@ -118,6 +134,12 @@ export default async function HotelDetailsPage({ params }: Props) {
         ? { "@type": "GeoCoordinates", latitude: hotel.latitude, longitude: hotel.longitude }
         : undefined,
     amenities: hotel.amenities.length ? hotel.amenities : undefined,
+    ...(hotel.policy?.check_in_time
+      ? { checkinTime: hotel.policy.check_in_time }
+      : {}),
+    ...(hotel.policy?.check_out_time
+      ? { checkoutTime: hotel.policy.check_out_time }
+      : {}),
     priceRange:
       Number.isFinite(minPrice) ? `₹${Math.round(minPrice)}+ per night` : undefined,
     aggregateRating:
@@ -132,14 +154,25 @@ export default async function HotelDetailsPage({ params }: Props) {
         : undefined,
   };
 
+  const seo = await seoForHotel(hotel);
+  const webPage = webPageSchema({
+    name: hotel.seo_title?.trim() || hotel.hotel_name,
+    description: seo.description,
+    path: `/hotels/${slug}`,
+    image: images[0],
+  });
+  const crumbs = breadcrumbList([
+    { name: "Home", path: "/" },
+    { name: "Hotels", path: "/hotels" },
+    { name: hotel.city_name, path: `/hotels/in/${citySlug(hotel.city_name)}` },
+    { name: hotel.hotel_name, path: `/hotels/${slug}` },
+  ]);
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
-        }}
-      />
+      <JsonLd data={webPage} />
+      <JsonLd data={jsonLd} />
+      <JsonLd data={crumbs} />
       <Suspense
         fallback={
           <div className="min-h-screen flex items-center justify-center bg-white">

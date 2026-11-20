@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RouteDetail, { type PublicRoute, type RelatedRoute } from "./route-detail";
-import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
+import {
+  STATIC_SEO,
+  toMetadata,
+  appUrl,
+  absoluteImage,
+  type SeoContent,
+} from "@/services/seoService";
+import JsonLd, {
+  breadcrumbList,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 
 // ── Server data ────────────────────────────────────────────────────────────
 // GET /public/routes/{slug} returns the route plus one priced vehicle per
@@ -54,7 +64,7 @@ function seoForRoute(r: PublicRoute | null): SeoContent {
       `${r.destination_label} cab fare`,
       "WayTero intercity cab",
     ],
-    image: r.image_url || null,
+    image: r.image_url || "/og-image.png",
   };
 }
 
@@ -89,25 +99,39 @@ export default async function CabRoutePage({ params }: Props) {
   // Route JSON-LD: identity and coverage only. No price is published here —
   // the fare depends on the vehicle and the pickup window, and a stale
   // number in a crawler feed would be a claim the booking flow can't honour.
-  const jsonLd = {
+  const pageUrl = `${appUrl()}/cabs/routes/${route.slug}`;
+  const description = seoForRoute(route).description;
+  const city = (name: string) => ({ "@type": "City", name });
+  const serviceJsonLd = {
     "@context": "https://schema.org",
     "@type": "Service",
+    "@id": `${pageUrl}#service`,
     serviceType: "Inter-city cab transfer",
     name: routeTitle(route),
-    description: seoForRoute(route).description,
-    url: `${appUrl()}/cabs/routes/${route.slug}`,
-    provider: { "@type": "Organization", name: "WayTero" },
-    areaServed: [route.origin_label, route.destination_label],
+    description,
+    url: pageUrl,
+    ...(route.image_url ? { image: absoluteImage(route.image_url) } : {}),
+    provider: { "@id": `${appUrl()}/#organization` },
+    areaServed: [city(route.origin_label), city(route.destination_label)],
   };
+  const webPage = webPageSchema({
+    name: routeTitle(route),
+    description,
+    path: `/cabs/routes/${route.slug}`,
+    image: route.image_url,
+  });
+  const crumbs = breadcrumbList([
+    { name: "Home", path: "/" },
+    { name: "Cabs", path: "/cabs" },
+    { name: "Routes", path: "/cabs/routes" },
+    { name: routeTitle(route), path: `/cabs/routes/${route.slug}` },
+  ]);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
-        }}
-      />
+      <JsonLd data={webPage} />
+      <JsonLd data={serviceJsonLd} />
+      <JsonLd data={crumbs} />
       <RouteDetail route={route} related={related} />
     </>
   );

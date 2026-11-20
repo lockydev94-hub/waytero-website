@@ -38,11 +38,12 @@ export default function CabRateTable({
   classes,
   rentalType,
   cityName,
-  tripType,
 }: {
   classes: CabPriceClass[];
   rentalType: string;
   cityName?: string | null;
+  /** Kept in the contract for callers that label the product; links now go
+   *  to the city's canonical price page rather than a query-string search. */
   tripType: string;
 }) {
   const rows = classes
@@ -138,10 +139,14 @@ export default function CabRateTable({
                 </td>
                 <td className="px-4 py-4">
                   <Link
-                    href={`/cabs?trip_type=${tripType}${cityName ? `&city=${citySlug(cityName)}` : ""}`}
+                    href={
+                      cityName
+                        ? `/cabs/prices/${citySlug(cityName)}#${rentalType === "OUTSTATION" ? "outstation" : rentalType === "DAILY" ? "daily" : "local"}`
+                        : "/cabs/prices"
+                    }
                     className="inline-flex items-center gap-1 whitespace-nowrap rounded-lg bg-ink px-3 py-2 text-[11px] font-bold text-white transition-colors hover:bg-ink-2"
                   >
-                    Book <ArrowRight className="h-3 w-3" />
+                    View fares <ArrowRight className="h-3 w-3" />
                   </Link>
                 </td>
               </tr>

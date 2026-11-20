@@ -6,7 +6,7 @@ import Providers from "@/components/Providers";
 import { publicCmsService } from "@/services/publicCms";
 import { displayPhone } from "@/lib/supportPhone";
 import { getLandingRefs } from "@/lib/landingIndex";
-import { appUrl } from "@/services/seoService";
+import { absoluteImage, appUrl } from "@/services/seoService";
 import { BRAND } from "@/lib/brand";
 
 // Self-hosted at build time — no render-blocking request to fonts.gstatic.com,
@@ -163,12 +163,22 @@ async function RootJsonLd() {
 
   const root = appUrl();
   const seen = new Set<string>();
+  // Place pages are airports/stations, not cities. Labelling them as City was
+  // a factual schema error; keep them as Place and let the place page itself
+  // describe the Airport/TrainStation subtype.
   const areaServed = refs
     .map((r) => ({
-      "@type": r.scope.kind === "state" ? "State" : "City",
+      "@type":
+        r.scope.kind === "state"
+          ? "State"
+          : r.scope.kind === "city"
+            ? "City"
+            : "Place",
       name: r.scope.display_name,
     }))
     .filter((a) => !seen.has(a.name) && seen.add(a.name));
+  const sameAs = Object.values(profile.social_links).filter(Boolean);
+  const officeAddress = profile.office_address || BRAND.officeAddress;
 
   return (
     <script
@@ -178,16 +188,34 @@ async function RootJsonLd() {
           "@context": "https://schema.org",
           "@graph": [
             {
-              "@type": "Organization",
+              "@type": ["Organization", "TravelAgency"],
               "@id": `${root}/#organization`,
               name: "WayTero",
+              alternateName: "WayTero Travel",
               url: root,
               ...(profile.logo_url
-                ? { logo: { "@type": "ImageObject", url: profile.logo_url } }
+                ? { logo: { "@type": "ImageObject", url: absoluteImage(profile.logo_url) } }
                 : {}),
+              image: absoluteImage(profile.og_image_url),
+              description:
+                "India travel platform for cab booking, hotels and curated tour packages.",
               telephone,
+              email: profile.support_email || BRAND.email,
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: officeAddress,
+                addressCountry: "IN",
+              },
+              contactPoint: {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                telephone,
+                email: profile.support_email || BRAND.email,
+                areaServed: "IN",
+                availableLanguage: "en",
+              },
               ...(areaServed.length ? { areaServed } : {}),
-              sameAs: Object.values(profile.social_links),
+              ...(sameAs.length ? { sameAs } : {}),
             },
             {
               "@type": "WebSite",
@@ -196,6 +224,14 @@ async function RootJsonLd() {
               name: "WayTero",
               publisher: { "@id": `${root}/#organization` },
               inLanguage: "en-IN",
+              potentialAction: {
+                "@type": "SearchAction",
+                target: {
+                  "@type": "EntryPoint",
+                  urlTemplate: `${root}/cabs/routes?q={search_term_string}`,
+                },
+                "query-input": "required name=search_term_string",
+              },
             },
           ],
         })

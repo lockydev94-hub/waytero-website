@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Star, BedDouble, ArrowUpRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { API_BASE } from "@/lib/apiBase";
-import { citySlug } from "@/lib/citySlug";
+import { hotelCityPath } from "@/lib/cityRoutes";
 import type { BandTone } from "@/types/cms";
 
 /* ============================================================
@@ -76,7 +76,7 @@ export default async function TourPartnerHotelsBand({
                 href={
                   h.slug
                     ? `/hotels/${h.slug}`
-                    : `/hotels/results?city=${citySlug(h.city_name)}`
+                    : hotelCityPath(h.city_name)
                 }
                 className="group block border-b border-ink-7 py-2.5 transition-colors hover:text-primary-700"
               >

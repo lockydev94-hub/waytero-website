@@ -5,7 +5,7 @@
  * Used by the prerendered SEO pages (/cabs/{trip}, landing pages, …) so
  * crawlers see the schema in the initial HTML.
  */
-import { appUrl } from "@/services/seoService";
+import { absoluteImage, absoluteUrl, appUrl } from "@/services/seoService";
 
 export default function JsonLd({ data }: { data: Record<string, unknown> }) {
   return (
@@ -50,12 +50,13 @@ export function breadcrumbList(items: Array<{ name: string; path: string }>) {
 }
 
 export function itemList(name: string, items: Array<{ name: string; path: string }>) {
+  const visible = items.slice(0, 10);
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name,
-    numberOfItems: items.length,
-    itemListElement: items.slice(0, 10).map((it, i) => ({
+    numberOfItems: visible.length,
+    itemListElement: visible.map((it, i) => ({
       "@type": "ListItem",
       position: i + 1,
       name: it.name,
@@ -68,6 +69,7 @@ export function citySchema(opts: {
   name: string;
   description: string;
   path: string;
+  regionName?: string | null;
   latitude?: number | null;
   longitude?: number | null;
 }) {
@@ -77,6 +79,9 @@ export function citySchema(opts: {
     name: opts.name,
     description: opts.description,
     url: `${appUrl()}${opts.path}`,
+    ...(opts.regionName
+      ? { containedInPlace: { "@type": "State", name: opts.regionName } }
+      : {}),
     ...(opts.latitude && opts.longitude
       ? {
           geo: {
@@ -101,6 +106,7 @@ export function serviceSchema(opts: {
   path: string;
   areaName: string;
   serviceType: string;
+  areaType?: "City" | "State" | "Country" | "Place";
   offer?: { lowPrice: number; offerCount: number } | null;
 }) {
   const offer = opts.offer
@@ -119,7 +125,12 @@ export function serviceSchema(opts: {
     description: opts.description,
     url: `${appUrl()}${opts.path}`,
     serviceType: opts.serviceType,
-    areaServed: { "@type": opts.path.startsWith("/tour-packages-in") ? "State" : "City", name: opts.areaName },
+    areaServed: {
+      "@type":
+        opts.areaType ??
+        (opts.path.startsWith("/tour-packages-in") ? "State" : "City"),
+      name: opts.areaName,
+    },
     provider: { "@id": `${appUrl()}/#organization` },
     ...(offer ? { offers: offer } : {}),
   };
@@ -204,3 +215,93 @@ export function aggregateRatingSchema(value: number | null, count: number | null
     bestRating: 5,
   };
 }
+
+/**
+ * WebPage/CollectionPage node. Every indexable page should carry one: it is
+ * how the page connects to the site-wide WebSite entity and how Google reads
+ * the page's name/description outside the visual markup.
+ */
+export function webPageSchema(opts: {
+  name: string;
+  description: string;
+  path: string;
+  type?: "WebPage" | "CollectionPage" | "AboutPage" | "ContactPage" | "FAQPage";
+  image?: string | null;
+}) {
+  const url = `${appUrl()}${opts.path}`;
+  const image = opts.image ? absoluteImage(opts.image) : null;
+  return {
+    "@context": "https://schema.org",
+    "@type": opts.type ?? "WebPage",
+    "@id": `${url}#webpage`,
+    url,
+    name: opts.name,
+    description: opts.description,
+    inLanguage: "en-IN",
+    isPartOf: { "@id": `${appUrl()}/#website` },
+    ...(image
+      ? { primaryImageOfPage: { "@type": "ImageObject", url: image } }
+      : {}),
+  };
+}
+
+/**
+ * TouristTrip for a bookable package. This is the entity Google understands
+ * as a trip (itinerary + provider + offer); Product is kept alongside it for
+ * product rich results, but the trip itself should not be modelled as a
+ * generic retail product alone.
+ */
+export function touristTripSchema(opts: {
+  name: string;
+  description: string;
+  path: string;
+  image?: string | null;
+  itinerary?: Array<{ day_number: number; title: string; description?: string | null }>;
+  offer?: { price: number; priceCurrency?: string; availability?: string } | null;
+}) {
+  const url = `${appUrl()}${opts.path}`;
+  const trips = opts.itinerary ?? [];
+  return {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    "@id": `${url}#tourist-trip`,
+    name: opts.name,
+    description: opts.description,
+    url,
+    image: absoluteImage(opts.image),
+    touristType: "Leisure",
+    provider: { "@id": `${appUrl()}/#organization` },
+    ...(trips.length
+      ? {
+          itinerary: {
+            "@type": "ItemList",
+            numberOfItems: trips.length,
+            itemListElement: trips.map((day, i) => ({
+              "@type": "ListItem",
+              position: day.day_number || i + 1,
+              item: {
+                "@type": "TouristAttraction",
+                name: day.title,
+                ...(day.description ? { description: day.description } : {}),
+              },
+            })),
+          },
+        }
+      : {}),
+    ...(opts.offer && opts.offer.price > 0
+      ? {
+          offers: {
+            "@type": "Offer",
+            priceCurrency: opts.offer.priceCurrency ?? "INR",
+            price: opts.offer.price,
+            availability:
+              opts.offer.availability ?? "https://schema.org/InStock",
+            url,
+          },
+        }
+      : {}),
+  };
+}
+
+/** Absolute URL helper re-exported for page modules that build inline graphs. */
+export { absoluteUrl };

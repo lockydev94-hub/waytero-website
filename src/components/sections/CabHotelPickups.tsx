@@ -3,7 +3,7 @@ import { Star, ArrowUpRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { API_BASE } from "@/lib/apiBase";
 import type { CabCityRow } from "@/lib/cabCity";
-import { citySlug } from "@/lib/citySlug";
+import { hotelCityPath } from "@/lib/cityRoutes";
 
 /* ============================================================
    CabHotelPickups — hotel NAMES on the cab page, no cards.
@@ -69,7 +69,7 @@ export default async function CabHotelPickups({
                 href={
                   h.slug
                     ? `/hotels/${h.slug}`
-                    : `/hotels/results?city=${citySlug(city.name)}`
+                    : hotelCityPath(city.name)
                 }
                 className="group block border-b border-ink-7 py-2.5 transition-colors hover:text-primary-700"
               >
@@ -102,7 +102,7 @@ export default async function CabHotelPickups({
         </MotionStagger>
         <div className="mt-5">
           <Link
-            href={`/hotels/results?city=${citySlug(city.name)}`}
+            href={hotelCityPath(city.name)}
             className="inline-flex items-center gap-2 text-sm font-bold text-primary-700 hover:underline"
           >
             See all stays in {city.name}

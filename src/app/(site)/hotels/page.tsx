@@ -13,7 +13,13 @@ import LandingSteps from "@/components/landing/LandingSteps";
 import PopularRoutesSection from "@/components/renderers/PopularRoutesSection";
 import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
 import { CtaSection } from "@/components/renderers";
-import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import JsonLd, {
+  breadcrumbList,
+  faqPageSchema,
+  itemList,
+  serviceSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 import { notFound } from "next/navigation";
 import { resolveSeo, toMetadata, getServiceTypeSeo } from "@/services/seoService";
 import { API_BASE } from "@/lib/apiBase";
@@ -84,6 +90,9 @@ interface HotelCityLite {
 
 interface HotelLite {
   id: number;
+  slug?: string | null;
+  hotel_name?: string;
+  city_name?: string;
   starting_price: number;
   amenities?: string[];
 }
@@ -126,6 +135,47 @@ export default async function HotelsPage() {
 
   return (
     <>
+      <JsonLd
+        data={webPageSchema({
+          name: "Hotel booking — verified stays across India",
+          description:
+            "Browse verified hotels, resorts and homestays in the cities WayTero serves, with real guest ratings and upfront nightly prices.",
+          path: "/hotels",
+          type: "CollectionPage",
+        })}
+      />
+      <JsonLd
+        data={serviceSchema({
+          name: "Hotel booking in India",
+          description:
+            "Verified hotels and stays with published room rates, guest ratings and transparent cancellation terms.",
+          path: "/hotels",
+          areaName: "India",
+          areaType: "Country",
+          serviceType: "Hotel",
+          offer:
+            lowest && hotelRows.length
+              ? { lowPrice: lowest, offerCount: hotelRows.length }
+              : null,
+        })}
+      />
+      {hotelRows.length > 0 && (
+        <JsonLd
+          data={itemList(
+            "Live hotels on WayTero",
+            hotelRows.map((h) => ({
+              name: h.hotel_name ?? `Hotel #${h.id}`,
+              path: `/hotels/${h.slug ?? h.id}`,
+            })),
+          )}
+        />
+      )}
+      <JsonLd
+        data={breadcrumbList([
+          { name: "Home", path: "/" },
+          { name: "Hotels", path: "/hotels" },
+        ])}
+      />
       <JsonLd data={faqPageSchema(HOTEL_FAQS)} />
 
       {/* ── Hero: dark premium backdrop + glass search (same as homepage) ── */}

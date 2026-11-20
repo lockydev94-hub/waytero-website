@@ -10,7 +10,7 @@
 // ============================================================
 
 import type { LandingBlock, LandingBundle } from "@/lib/landingIndex";
-import { citySlug } from "@/lib/citySlug";
+import { tourCityPath } from "@/lib/cityRoutes";
 import LandingProse from "@/components/landing/LandingProse";
 import LandingHighlights from "@/components/landing/LandingHighlights";
 import LandingStatsStrip from "@/components/landing/LandingStatsStrip";
@@ -74,7 +74,8 @@ export default function LandingBlockRenderer({
           title={block.title}
           resultsHref={
             data.scope.kind === "city"
-              ? `/tours?city=${citySlug(data.scope.name)}`
+              ? (data.siblings.find((s) => s.page_type === "CITY_TOURS")?.href ??
+                tourCityPath(data.scope.name))
               : "/tours"
           }
         />

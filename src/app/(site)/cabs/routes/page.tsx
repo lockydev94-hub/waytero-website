@@ -10,6 +10,12 @@ import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { resolveSeo, toMetadata } from "@/services/seoService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { API_BASE } from "@/lib/apiBase";
+import JsonLd, {
+  breadcrumbList,
+  itemList,
+  serviceSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 
 /* ============================================================
    /cabs/routes — the inter-city corridors hub.
@@ -104,6 +110,44 @@ export default async function RoutesHubPage({
 
   return (
     <>
+      <JsonLd
+        data={webPageSchema({
+          name: "Popular inter-city cab routes",
+          description:
+            "Every inter-city cab corridor WayTero runs, with road distance and live fares by vehicle type.",
+          path: "/cabs/routes",
+          type: "CollectionPage",
+        })}
+      />
+      <JsonLd
+        data={serviceSchema({
+          name: "Inter-city cab routes in India",
+          description:
+            "Published inter-city cab corridors with distance and live fares by vehicle type.",
+          path: "/cabs/routes",
+          areaName: "India",
+          areaType: "Country",
+          serviceType: "Inter-city taxi",
+        })}
+      />
+      <JsonLd
+        data={breadcrumbList([
+          { name: "Home", path: "/" },
+          { name: "Cabs", path: "/cabs" },
+          { name: "Routes", path: "/cabs/routes" },
+        ])}
+      />
+      {data && data.items.length > 0 && (
+        <JsonLd
+          data={itemList(
+            "Popular cab routes",
+            data.items.map((r) => ({
+              name: `${r.origin_label} to ${r.destination_label}`,
+              path: `/cabs/routes/${r.slug}`,
+            })),
+          )}
+        />
+      )}
       <Section bg="white" pad="md" overlay="grid" id="routes-head">
         <Container size="lg">
           <Link

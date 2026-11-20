@@ -1,10 +1,11 @@
 // ============================================================
 // citySlug — one canonical spelling for city names in public URLs.
 //
-// Public filters use `/hotels/results?city=bhubaneswar` instead of
-// `?city_id=5`: search-result URLs are noindexed, but the links still
-// get shared, bookmarked and logged, and a number tells a reader (and
-// a crawler) nothing. The numeric id stays an internal API detail.
+// Public city pages use `/hotels/in/bhubaneswar` and
+// `/cabs/prices/bhubaneswar` instead of `?city_id=5`: a path with the city
+// name is readable, shareable and indexable, while the numeric id stays an
+// internal API detail. Interactive search results still use `?city=` for
+// their filter state, but their links are not the canonical city URLs.
 //
 // Must stay stable: renaming a slug breaks any shared link. Only
 // ASCII letters/digits and single hyphens survive.

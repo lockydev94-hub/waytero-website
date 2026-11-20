@@ -124,6 +124,28 @@ export function appUrl(): string {
   return process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
 }
 
+/** Absolute URL for JSON-LD and canonical fields. Schema.org consumers do not
+ *  resolve relative image URLs the way Next's metadataBase does, so every
+ *  image that enters structured data must pass through here. */
+export function absoluteUrl(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  try {
+    return new URL(value, appUrl()).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+/** The site-wide social image, guaranteed absolute. Use this when a page or
+ *  entity has no image of its own — Google's Product/Merchant listings mark
+ *  an absent image as a critical error, not an optional field. */
+export function absoluteImage(
+  value?: string | null,
+  fallback = "/og-image.png",
+): string {
+  return absoluteUrl(value) ?? absoluteUrl(fallback) ?? `${appUrl()}${fallback}`;
+}
+
 export function toMetadata(
   seo: SeoContent,
   path: string,

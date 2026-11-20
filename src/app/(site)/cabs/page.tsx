@@ -11,7 +11,12 @@ import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
 import CabSearchForm from "@/components/sections/CabSearchForm";
 import CabVehicleFares from "@/components/sections/CabVehicleFares";
 import CabHotelPickups from "@/components/sections/CabHotelPickups";
-import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import JsonLd, {
+  breadcrumbList,
+  faqPageSchema,
+  serviceSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 import { API_BASE } from "@/lib/apiBase";
 import { fetchCabCities, pickCabCity } from "@/lib/cabCity";
 import type { LandingStat } from "@/lib/landingIndex";
@@ -109,6 +114,31 @@ export default async function CabsPage() {
 
   return (
     <>
+      <JsonLd
+        data={webPageSchema({
+          name: "Cab booking — outstation, airport and local rides",
+          description:
+            "Book verified outstation, airport and local cabs with upfront fares, live trip status and support across the cities WayTero serves.",
+          path: "/cabs",
+        })}
+      />
+      <JsonLd
+        data={serviceSchema({
+          name: "Cab booking in India",
+          description:
+            "Outstation, airport transfer, local and round-trip cab booking with upfront fares and verified drivers.",
+          path: "/cabs",
+          areaName: "India",
+          areaType: "Country",
+          serviceType: "Taxi",
+        })}
+      />
+      <JsonLd
+        data={breadcrumbList([
+          { name: "Home", path: "/" },
+          { name: "Cabs", path: "/cabs" },
+        ])}
+      />
       <JsonLd data={faqPageSchema(CAB_FAQS)} />
 
       <Section bg="white" pad="home">

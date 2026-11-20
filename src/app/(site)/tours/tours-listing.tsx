@@ -17,6 +17,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container } from "@/components/ui";
 import TourFilters, { readFiltersFromParams, type InclusionLine } from "@/components/tours/TourFilters";
@@ -24,6 +25,7 @@ import TourCard from "@/components/tours/TourCard";
 import { Loader2, SearchX, Search as SearchIcon, RefreshCcw } from "lucide-react";
 import { tourService, type PublicTourPackage, type PublicTourDestination } from "@/services/tourService";
 import { citySlug } from "@/lib/citySlug";
+import { tourCityPath } from "@/lib/cityRoutes";
 
 export default function ToursListingPage({
   destinations = [],
@@ -126,15 +128,9 @@ export default function ToursListingPage({
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {destinations.slice(0, 6).map(d => (
-              <button
+              <Link
                 key={d.city_id}
-                type="button"
-                onClick={() => {
-                  const sp = new URLSearchParams();
-                  sp.set("city", citySlug(d.city_name));
-                  sp.set("destination", d.city_name);
-                  router.push(`/tours?${sp.toString()}`);
-                }}
+                href={tourCityPath(d.city_name)}
                 className="group relative overflow-hidden rounded-2xl bg-white shadow-wt aspect-[4/5] hover:shadow-wt-lg transition-all"
               >
                 {d.hero_image_url ? (
@@ -155,7 +151,7 @@ export default function ToursListingPage({
                     {d.package_count} tour{d.package_count === 1 ? "" : "s"}
                   </div>
                 </div>
-              </button>
+              </Link>
             ))}
           </div>
         </Container>

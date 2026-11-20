@@ -23,7 +23,7 @@ async function seoForPost(slug: string): Promise<SeoContent> {
       keywords: post.seo_keywords
         ? post.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
         : [...fallback.keywords, post.title],
-      image: post.featured_image_url ?? null,
+      image: post.featured_image_url ?? "/og-image.png",
     };
   } catch {
     return fallback;

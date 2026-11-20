@@ -5,6 +5,7 @@ import JsonLd, {
   serviceSchema,
   placeCabSchema,
   itemList,
+  webPageSchema,
 } from "@/components/sections/JsonLd";
 import LandingHero from "@/components/landing/LandingHero";
 import ServiceTypeSelector from "@/components/landing/ServiceTypeSelector";
@@ -36,12 +37,19 @@ function buildJsonLd(data: LandingBundle) {
   crumbs.push({ name: scopeLabel, path: canonical });
 
   const nodes: Record<string, unknown>[] = [
+    webPageSchema({
+      name: data.seo.title,
+      description: data.seo.description,
+      path: canonical,
+      image: data.seo.og_image_url ?? data.hero.image_url,
+    }),
     breadcrumbList(crumbs),
     data.page_type === "CITY_HUB"
       ? citySchema({
           name: scopeLabel,
           description: data.seo.description,
           path: canonical,
+          regionName: data.scope.state_name,
           latitude: data.scope.latitude,
           longitude: data.scope.longitude,
         })
@@ -62,6 +70,7 @@ function buildJsonLd(data: LandingBundle) {
             description: data.seo.description,
             path: canonical,
             areaName: scopeLabel,
+            areaType: data.scope.kind === "state" ? "State" : "City",
             serviceType: data.service_type ?? "Travel",
             offer: offerFrom(data),
           }),

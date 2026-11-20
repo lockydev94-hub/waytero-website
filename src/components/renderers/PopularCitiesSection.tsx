@@ -5,6 +5,7 @@ import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { pick, type BandTone } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 import { getLandingRefs, type LandingRef } from "@/lib/landingIndex";
+import { cabPricesPath } from "@/lib/cityRoutes";
 
 /* ============================================================
    WayTero — homepage "Popular Cities" band
@@ -32,10 +33,9 @@ function cityHref(refs: LandingRef[], city: PublicCity): string {
     const hit = forCity.find((r) => r.page_type === pageType);
     if (hit) return `/${hit.slug}`;
   }
-  // No published landing page for this city yet. The tours list filtered to
-  // the city still means what the pill says; a bare /tours would not.
-  const q = new URLSearchParams({ city_id: String(city.id), destination: city.name });
-  return `/tours?${q.toString()}`;
+  // No published landing page for this city yet. Its canonical cab price
+  // list still means what the pill says, and it is a real path URL.
+  return cabPricesPath(city.name);
 }
 
 export default async function PopularCitiesSection({

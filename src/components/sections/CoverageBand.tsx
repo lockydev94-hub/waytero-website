@@ -4,7 +4,11 @@ import { Container, Section, SectionHeader, MotionStagger, MotionStaggerItem } f
 import { API_BASE } from "@/lib/apiBase";
 import { getAvailability, serviceVisible, type ServiceKey } from "@/lib/availability";
 import { getLandingRefs } from "@/lib/landingIndex";
-import { citySlug } from "@/lib/citySlug";
+import {
+  cabPricesPath,
+  hotelCityPath,
+  tourCityPath,
+} from "@/lib/cityRoutes";
 import type { BandTone } from "@/types/cms";
 
 /* ============================================================
@@ -12,7 +16,7 @@ import type { BandTone } from "@/types/cms";
 
    Three verticals, one fetch each, and a city only appears when that
    vertical's own feed counts supply there. Every chip is also a hand-off:
-   a hotel city opens its results, a tour city opens the filtered listing,
+   a hotel city opens its city page, a tour city opens its city listing,
    and a cab city opens its published landing page when one exists so the
    visitor lands on content instead of a bare search form.
 
@@ -118,7 +122,7 @@ export default async function CoverageBand({
           key: `cab-${c.id}`,
           name: c.name,
           meta: null,
-          href: cabLanding.get(c.name.toLowerCase()) ?? "/cabs",
+          href: cabLanding.get(c.name.toLowerCase()) ?? cabPricesPath(c.name),
         })),
       });
   }
@@ -140,8 +144,7 @@ export default async function CoverageBand({
           name: c.name,
           meta: plural(c.count, "stay", "stays"),
           href:
-            hotelLanding.get(c.name.toLowerCase()) ??
-            `/hotels/results?city=${citySlug(c.name)}`,
+            hotelLanding.get(c.name.toLowerCase()) ?? hotelCityPath(c.name),
         })),
       });
   }
@@ -163,8 +166,7 @@ export default async function CoverageBand({
           name: c.name,
           meta: plural(c.count, "package", "packages"),
           href:
-            tourLanding.get(c.name.toLowerCase()) ??
-            `/tours?city=${citySlug(c.name)}&destination=${encodeURIComponent(c.name)}`,
+            tourLanding.get(c.name.toLowerCase()) ?? tourCityPath(c.name),
         })),
       });
   }

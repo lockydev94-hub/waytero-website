@@ -4,7 +4,18 @@ import { notFound, permanentRedirect } from "next/navigation";
 import TourDetailPage from "./tour-detail";
 import type { PublicTourPackage } from "@/services/tourService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
-import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
+import {
+  STATIC_SEO,
+  toMetadata,
+  appUrl,
+  absoluteImage,
+  type SeoContent,
+} from "@/services/seoService";
+import JsonLd, {
+  breadcrumbList,
+  touristTripSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 
 // ── Page-level SEO (SSR) — derived from the package with static fallback ─
 // Tour packages have no per-package SEO fields in the DB, so the metadata
@@ -33,6 +44,16 @@ export interface TourSeoPayload {
   primary_image_url?: string | null;
   starting_price?: number | null;
   media?: Array<{ media_url: string; is_primary?: boolean }> | null;
+  minimum_persons?: number | null;
+  maximum_persons?: number | null;
+  itinerary?: Array<{
+    day_number: number;
+    title: string;
+    description?: string | null;
+    activities?: string[];
+  }>;
+  inclusions?: Array<{ text: string }>;
+  exclusions?: Array<{ text: string }>;
 }
 
 async function fetchTourPayload(slug: string): Promise<TourSeoPayload | null> {
@@ -69,7 +90,7 @@ async function seoForTour(slug: string): Promise<SeoContent> {
     keywords: tour.seo_keywords?.trim()
       ? tour.seo_keywords.split(",").map((k) => k.trim()).filter(Boolean)
       : generatedKeywords,
-    image: tour.primary_image_url ?? tour.media?.[0]?.media_url ?? null,
+    image: tour.primary_image_url ?? tour.media?.[0]?.media_url ?? "/og-image.png",
   };
 }
 
@@ -115,37 +136,71 @@ export default async function TourDetailsPage({ params }: Props) {
   }
   if (!tour?.package_name) notFound();
 
-  // Product JSON-LD — server-rendered, only with real price data (never
-  // mark up placeholders; SEO audit §4).
+  // Structured data is server-rendered so crawlers see it in the initial
+  // HTML. Product carries the commercial fields Google's product snippets
+  // read; image is never omitted — a missing image is a critical merchant
+  // listing error, so the site-wide OG asset is the honest fallback when a
+  // package has no photo.
+  const pageUrl = `${appUrl()}/tours/${slug}`;
+  const description =
+    tour.short_description ||
+    tour.description?.slice(0, 500) ||
+    `${tour.package_name} — a ${tour.duration_days}-day tour package from WayTero.`;
+  const image = absoluteImage(
+    tour.primary_image_url ?? tour.media?.[0]?.media_url,
+  );
   const price = Number(tour.starting_price ?? 0);
-  const jsonLd: Record<string, unknown> = {
+  const offer =
+    price > 0
+      ? {
+          "@type": "Offer",
+          "@id": `${pageUrl}#offer`,
+          priceCurrency: "INR",
+          price,
+          availability: "https://schema.org/InStock",
+          url: pageUrl,
+          seller: { "@id": `${appUrl()}/#organization` },
+        }
+      : null;
+  const productJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
+    "@id": `${pageUrl}#product`,
     name: tour.package_name,
-    description: tour.short_description || undefined,
-    image: tour.primary_image_url ?? tour.media?.[0]?.media_url ?? undefined,
+    description,
+    image: [image],
+    url: pageUrl,
+    category: "Tour package",
+    ...(tour.package_code ? { sku: tour.package_code } : {}),
     brand: { "@type": "Brand", name: "WayTero" },
-    ...(price > 0
-      ? {
-          offers: {
-            "@type": "Offer",
-            priceCurrency: "INR",
-            price,
-            availability: "https://schema.org/InStock",
-            url: `${appUrl()}/tours/${slug}`,
-          },
-        }
-      : {}),
+    ...(offer ? { offers: offer } : {}),
   };
+  const tripJsonLd = touristTripSchema({
+    name: tour.package_name,
+    description,
+    path: `/tours/${slug}`,
+    image,
+    itinerary: tour.itinerary ?? [],
+    offer: price > 0 ? { price, priceCurrency: "INR" } : null,
+  });
+  const crumbs = breadcrumbList([
+    { name: "Home", path: "/" },
+    { name: "Tours", path: "/tours" },
+    { name: tour.package_name, path: `/tours/${slug}` },
+  ]);
+  const webPage = webPageSchema({
+    name: tour.seo_title?.trim() || tour.package_name,
+    description,
+    path: `/tours/${slug}`,
+    image,
+  });
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
-        }}
-      />
+      <JsonLd data={webPage} />
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={tripJsonLd} />
+      <JsonLd data={crumbs} />
       <Suspense fallback={null}>
         <TourDetailPage initialTour={tour as unknown as PublicTourPackage} />
       </Suspense>

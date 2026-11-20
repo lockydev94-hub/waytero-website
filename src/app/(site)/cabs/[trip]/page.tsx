@@ -15,12 +15,17 @@ import {
 } from "@/lib/cabPrices";
 import { MotionFadeIn, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import PageFaq, { type FaqItem } from "@/components/sections/PageFaq";
-import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import JsonLd, {
+  breadcrumbList,
+  faqPageSchema,
+  serviceSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 import { enumLabel } from "@/components/landing/format";
 import { API_BASE } from "@/lib/apiBase";
-import { appUrl, toMetadata } from "@/services/seoService";
+import { toMetadata } from "@/services/seoService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
-import { citySlug } from "@/lib/citySlug";
+import { cabPricesPath } from "@/lib/cityRoutes";
 import { getLandingRefs } from "@/lib/landingIndex";
 
 // ============================================================
@@ -295,19 +300,40 @@ export default async function CabTripPage({
 
   const faqs = TRIP_FAQS[code] ?? [];
 
-  // FAQPage + BreadcrumbList schema — prerendered into the HTML.
-  const root = appUrl();
+  // FAQPage + Service + BreadcrumbList + WebPage — prerendered into the
+  // initial HTML so the trip page is understood as a bookable service, not
+  // just a set of FAQ snippets.
+  const allPrices = classes.flatMap((c) =>
+    c.packages
+      .map((p) => Number(p.price))
+      .filter((n) => Number.isFinite(n) && n > 0),
+  );
+  const lowPrice = allPrices.length ? Math.min(...allPrices) : null;
+  const offerCount = classes.reduce((n, c) => n + c.packages.length, 0);
   const schemas: Array<Record<string, unknown>> = [
+    webPageSchema({
+      name: `${meta.h1}${cityName ? ` in ${cityName}` : " in India"}`,
+      description: meta.blurb,
+      path: `/cabs/${meta.slug}`,
+    }),
+    serviceSchema({
+      name: `${meta.h1}${cityName ? ` in ${cityName}` : " in India"}`,
+      description: meta.blurb,
+      path: `/cabs/${meta.slug}`,
+      areaName: cityName ?? "India",
+      areaType: cityName ? "City" : "Country",
+      serviceType: "Taxi",
+      offer:
+        lowPrice != null && offerCount > 0
+          ? { lowPrice, offerCount }
+          : null,
+    }),
     faqPageSchema(faqs),
-    {
-      "@context": "https://schema.org",
-      "@type": "BreadcrumbList",
-      itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Home", item: `${root}/` },
-        { "@type": "ListItem", position: 2, name: "Cabs", item: `${root}/cabs` },
-        { "@type": "ListItem", position: 3, name: meta.h1, item: `${root}/cabs/${meta.slug}` },
-      ],
-    },
+    breadcrumbList([
+      { name: "Home", path: "/" },
+      { name: "Cabs", path: "/cabs" },
+      { name: meta.h1, path: `/cabs/${meta.slug}` },
+    ]),
   ];
 
   return (
@@ -475,10 +501,7 @@ export default async function CabTripPage({
               {cities.map((c) => (
                 <Link
                   key={c.id}
-                  href={
-                    cityLanding.get(c.name.toLowerCase()) ??
-                    `/cabs?city=${citySlug(c.name)}&trip_type=${code}`
-                  }
+                  href={cityLanding.get(c.name.toLowerCase()) ?? cabPricesPath(c.name)}
                   className="inline-flex items-center gap-1.5 rounded-full border border-ink-7 bg-white px-4 py-2 text-sm font-semibold text-ink-2 transition-all hover:border-primary-300 hover:text-primary-700"
                 >
                   <MapPin className="h-3.5 w-3.5 text-primary-500" />

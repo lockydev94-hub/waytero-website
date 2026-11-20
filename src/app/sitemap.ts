@@ -49,6 +49,16 @@ interface TripTypeRow {
 interface RouteRow {
   slug: string;
 }
+interface HotelCityRow {
+  name: string;
+  hotel_count?: number;
+}
+interface TourDestinationRow {
+  city_id?: number;
+  name?: string;
+  city_name?: string;
+  package_count?: number;
+}
 
 /** Pages whose body an admin authors in Website → Pages. A slug that has no
  *  published row is not crawled — the URL still serves the built-in copy, but
@@ -89,6 +99,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const cabVisible = serviceVisible(av, "CAB");
   const hotelVisible = serviceVisible(av, "HOTEL");
   const tourVisible = serviceVisible(av, "TOUR");
+  // One crawl-index read, reused by the landing and city-path sections below.
+  const landingRefs = await getLandingRefs();
+  const hasCityLanding = (type: string, city: string) =>
+    landingRefs.some(
+      (r) =>
+        r.page_type === type &&
+        r.scope.kind === "city" &&
+        citySlug(r.scope.display_name) === citySlug(city),
+    );
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: appUrl, lastModified: now, changeFrequency: "daily", priority: 1 },
@@ -132,15 +151,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ? await fetchJson<TripTypeRow[]>(`${API_BASE}/public/cab/trip-types`)
     : null;
   // City-specific price lists — the same published rate card, one crawlable
-  // URL per serviced city (`?city=bhubaneswar`). Their canonical is the city
-  // URL itself, so they can be submitted independently of the national list.
+  // path per serviced city. These used to be `?city=…` query URLs, which are
+  // poor canonical targets; each city now has its own keyword-bearing path.
   const cabCities = cabVisible
     ? await fetchJson<{ name: string }[]>(`${API_BASE}/public/cab/cities`)
     : null;
   const cityPriceUrls: MetadataRoute.Sitemap = (cabCities ?? [])
     .filter((c) => c.name)
     .map((c) => ({
-      url: `${appUrl}/cabs/prices?city=${citySlug(c.name)}`,
+      url: `${appUrl}/cabs/prices/${citySlug(c.name)}`,
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.7,
@@ -187,7 +206,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ── Landing pages — city hubs (0.85), place cab pages (0.82), vertical
   // pages (0.8). The refs endpoint already filters to published, in-window
   // rows; pages of hidden verticals are dropped here. ──
-  const landingRefs = await getLandingRefs();
   const landingUrls: MetadataRoute.Sitemap = landingRefs
     .filter((r) =>
       r.page_type === "PLACE_CABS"
@@ -206,6 +224,59 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority:
         r.page_type === "CITY_HUB" ? 0.85 : r.page_type === "PLACE_CABS" ? 0.82 : 0.8,
+    }));
+
+  // ── City hotel and tour pages that have no published editorial landing
+  // page yet. The path route is the canonical fallback; once an admin
+  // publishes `/hotel-booking-in-{city}` it takes over and the fallback is
+  // omitted from the sitemap (the route 308s to the landing page). ──
+  const hotelCityRaw = hotelVisible
+    ? await fetchJson<HotelCityRow[] | { items?: HotelCityRow[] }>(
+        `${API_BASE}/public/hotel/cities`,
+      )
+    : null;
+  const hotelCityRows = Array.isArray(hotelCityRaw)
+    ? hotelCityRaw
+    : hotelCityRaw?.items ?? [];
+  const hotelCityUrls: MetadataRoute.Sitemap = hotelCityRows
+    .filter(
+      (c) =>
+        c.name &&
+        Number(c.hotel_count ?? 0) > 0 &&
+        !hasCityLanding("CITY_HOTELS", c.name),
+    )
+    .map((c) => ({
+      url: `${appUrl}/hotels/in/${citySlug(c.name)}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    }));
+
+  const tourDestinationRows = tourVisible
+    ? await fetchJson<{ items?: TourDestinationRow[] } | TourDestinationRow[]>(
+        `${API_BASE}/public/tours/popular-destinations`,
+      )
+    : null;
+  const tourCityUrls: MetadataRoute.Sitemap = (
+    Array.isArray(tourDestinationRows)
+      ? tourDestinationRows
+      : tourDestinationRows?.items ?? []
+  )
+    .map((d) => ({
+      name: d.city_name ?? d.name ?? "",
+      count: Number(d.package_count ?? 0),
+    }))
+    .filter(
+      (d) =>
+        d.name &&
+        d.count > 0 &&
+        !hasCityLanding("CITY_TOURS", d.name),
+    )
+    .map((d) => ({
+      url: `${appUrl}/tours/in/${citySlug(d.name)}`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
     }));
 
   // ── Hotels (partner-added; page through the search feed) ──
@@ -266,6 +337,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...cityPriceUrls,
     ...routeUrls,
     ...landingUrls,
+    ...hotelCityUrls,
+    ...tourCityUrls,
     ...hotelUrls,
     ...tourUrls,
     ...blogUrls,

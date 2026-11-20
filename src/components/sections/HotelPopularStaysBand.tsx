@@ -3,7 +3,7 @@ import { BedDouble, MapPin, Star, ArrowUpRight } from "lucide-react";
 import { Container, Section, SectionHeader, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { API_BASE } from "@/lib/apiBase";
-import { citySlug } from "@/lib/citySlug";
+import { hotelCityPath } from "@/lib/cityRoutes";
 import type { BandTone } from "@/types/cms";
 
 /* ============================================================
@@ -75,7 +75,7 @@ export default async function HotelPopularStaysBand({
               <MotionStaggerItem key={c.id}>
                 <MotionGlow color="primary" intensity={0.16} size={240} className="rounded-2xl">
                   <Link
-                    href={`/hotels/results?city=${citySlug(c.name)}`}
+                    href={hotelCityPath(c.name)}
                     className="group flex h-full flex-col rounded-2xl border border-ink-7 bg-white p-5 transition-all duration-300 ease-[var(--ease-wt)] hover:-translate-y-0.5 hover:border-primary-300 hover:bg-primary-50/40 hover:shadow-wt-lg"
                   >
                     <div className="flex items-start gap-3">

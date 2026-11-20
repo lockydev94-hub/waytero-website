@@ -12,7 +12,13 @@ import TourWhatIncludedBand from "@/components/sections/TourWhatIncludedBand";
 import type { InclusionLine } from "@/components/tours/TourFilters";
 import TourPartnerHotelsBand from "@/components/sections/TourPartnerHotelsBand";
 import { CtaSection } from "@/components/renderers";
-import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
+import JsonLd, {
+  breadcrumbList,
+  faqPageSchema,
+  itemList,
+  serviceSchema,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 import ToursListingPage from "./tours-listing";
 import { API_BASE } from "@/lib/apiBase";
 import { resolveSeo, toMetadata, getServiceTypeSeo } from "@/services/seoService";
@@ -85,6 +91,10 @@ interface DestinationRow {
 
 interface TourRow {
   id: number;
+  slug?: string;
+  package_name?: string;
+  destination?: string;
+  city_name?: string;
   duration_days: number;
   duration_nights: number;
   starting_price?: number;
@@ -163,6 +173,50 @@ export default async function ToursPage() {
 
   return (
     <>
+      <JsonLd
+        data={webPageSchema({
+          name: "Tour packages — curated itineraries across India",
+          description:
+            "Explore live tour packages with day-by-day itineraries, clear inclusions and upfront per-package prices.",
+          path: "/tours",
+          type: "CollectionPage",
+          image: heroImage,
+        })}
+      />
+      <JsonLd
+        data={serviceSchema({
+          name: "Tour packages in India",
+          description:
+            "Curated multi-day tour packages from verified operators, with itineraries, inclusions and transparent pricing.",
+          path: "/tours",
+          areaName: "India",
+          areaType: "Country",
+          serviceType: "Tour",
+          offer:
+            lowest && tours.length
+              ? { lowPrice: lowest, offerCount: tours.length }
+              : null,
+        })}
+      />
+      {tours.length > 0 && (
+        <JsonLd
+          data={itemList(
+            "Live tour packages on WayTero",
+            tours
+              .filter((t) => t.slug)
+              .map((t) => ({
+                name: t.package_name ?? `Tour #${t.id}`,
+                path: `/tours/${t.slug}`,
+              })),
+          )}
+        />
+      )}
+      <JsonLd
+        data={breadcrumbList([
+          { name: "Home", path: "/" },
+          { name: "Tours", path: "/tours" },
+        ])}
+      />
       <JsonLd data={faqPageSchema(TOUR_FAQS)} />
 
       {/* ── Hero: dark premium backdrop, same treatment as /hotels ── */}

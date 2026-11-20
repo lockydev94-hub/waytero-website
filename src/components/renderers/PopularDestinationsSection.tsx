@@ -7,6 +7,7 @@ import { pick, type BandTone } from "@/types/cms";
 import { API_BASE } from "@/lib/apiBase";
 import { slugify } from "@/lib/slug";
 import { getLandingRefs } from "@/lib/landingIndex";
+import { tourCityPath } from "@/lib/cityRoutes";
 
 interface PopularDestinationsSectionProps {
   variant: Record<string, unknown>;
@@ -73,7 +74,9 @@ export default async function PopularDestinationsSection({ variant, bg = "white"
             if (!name) return null;
             const image = d.image_url ?? d.hero_image_url ?? null;
             const tourPage = `tour-packages-in-${slugify(name)}`;
-            const href = publishedSlugs.has(tourPage) ? `/${tourPage}` : "/tours";
+            const href = publishedSlugs.has(tourPage)
+              ? `/${tourPage}`
+              : tourCityPath(name);
             return (
               <MotionStaggerItem
                 key={d.city_id}

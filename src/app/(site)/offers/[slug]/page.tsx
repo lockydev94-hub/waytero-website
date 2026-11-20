@@ -1,7 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import OfferDetail, { type PublicOfferDetail } from "./offer-detail";
-import { STATIC_SEO, toMetadata, appUrl, type SeoContent } from "@/services/seoService";
+import {
+  STATIC_SEO,
+  toMetadata,
+  appUrl,
+  absoluteImage,
+  type SeoContent,
+} from "@/services/seoService";
+import JsonLd, {
+  breadcrumbList,
+  webPageSchema,
+} from "@/components/sections/JsonLd";
 
 // ── Server data ────────────────────────────────────────────────────────────
 // Raw fetch (not axios) — this runs in generateMetadata/generateStaticParams
@@ -37,7 +47,7 @@ function seoForOffer(offer: PublicOfferDetail | null): SeoContent {
       `${offer.service_type.toLowerCase()} offer`,
       `coupon ${offer.coupon.code}`,
     ],
-    image: offer.image_url || null,
+    image: offer.image_url || "/og-image.png",
   };
 }
 
@@ -70,33 +80,49 @@ export default async function OfferDetailPage({ params }: Props) {
 
   // Product + Offer JSON-LD — only factual fields the DB backs (no price:
   // coupon discounts have no fixed price; no aggregateRating: no reviews).
-  const jsonLd = {
+  // Image is required for product rich results, so the site OG asset is the
+  // fallback for an offer whose admin did not upload artwork.
+  const pageUrl = `${appUrl()}/offers/${offer.slug}`;
+  const image = absoluteImage(offer.image_url);
+  const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
+    "@id": `${pageUrl}#product`,
     name: offer.title,
     description: offer.short_description || undefined,
-    image: offer.image_url || undefined,
+    image: [image],
+    url: pageUrl,
+    category: `${offer.service_type} offer`,
     brand: { "@type": "Brand", name: "WayTero" },
     offers: {
       "@type": "Offer",
-      url: `${appUrl()}/offers/${offer.slug}`,
+      "@id": `${pageUrl}#offer`,
+      url: pageUrl,
       availability: offer.is_available
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       validFrom: offer.valid_from,
       validThrough: offer.valid_to,
       name: offer.badge,
+      seller: { "@id": `${appUrl()}/#organization` },
     },
   };
+  const webPage = webPageSchema({
+    name: offer.title,
+    description: offer.short_description || `${offer.badge} on ${offer.title}.`,
+    path: `/offers/${offer.slug}`,
+    image,
+  });
+  const crumbs = breadcrumbList([
+    { name: "Home", path: "/" },
+    { name: offer.title, path: `/offers/${offer.slug}` },
+  ]);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c").replace(/>/g, "\\u003e"),
-        }}
-      />
+      <JsonLd data={webPage} />
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={crumbs} />
       <OfferDetail offer={offer} />
     </>
   );

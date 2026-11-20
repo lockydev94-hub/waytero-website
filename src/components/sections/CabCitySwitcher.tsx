@@ -27,7 +27,7 @@ export default function CabCitySwitcher({
         value={cityName ? citySlug(cityName) : ""}
         onChange={(e) => {
           const next = e.target.value;
-          if (next) router.push(`${basePath}?city=${next}`, { scroll: false });
+          if (next) router.push(`${basePath}/${next}`, { scroll: false });
         }}
         className="h-9 min-w-[190px] rounded-lg border border-ink-7 bg-white px-2.5 text-sm font-semibold text-ink focus:border-primary-500 focus:outline-none"
         aria-label="Choose a city to see its cab prices"

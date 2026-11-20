@@ -37,7 +37,7 @@ import {
   type HotelQuoteOut,
 } from "@/services/hotelService";
 import { useAuth } from "@/hooks/useAuth";
-import { citySlug } from "@/lib/citySlug";
+import { hotelCityPath } from "@/lib/cityRoutes";
 
 const INR = (n: number | string) =>
   `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
@@ -280,7 +280,7 @@ function HotelContent({
               onClick={() =>
                 router.push(
                   hotel.city_name
-                    ? `/hotels/results?city=${citySlug(hotel.city_name)}`
+                    ? hotelCityPath(hotel.city_name)
                     : "/hotels/results",
                 )
               }

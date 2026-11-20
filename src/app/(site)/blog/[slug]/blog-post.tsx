@@ -13,6 +13,7 @@ import {
 import { Container, Section, Card, Badge, ButtonLink, Skeleton, MotionGlow, MotionStagger, MotionStaggerItem } from "@/components/ui";
 import { useSupportPhone } from "@/hooks/useSupportPhone";
 import { telHref } from "@/lib/supportPhone";
+import { absoluteImage, appUrl } from "@/services/seoService";
 import { publicBlogService, BlogPostDetail, BlogPostSummary } from "@/services/publicBlog";
 
 const SHARE_OPTIONS = [
@@ -270,6 +271,71 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
   }
 
   const readTime = readTimeOf(post.content);
+  const articleUrl = `${appUrl()}/blog/${post.slug}`;
+  const publisherId = `${appUrl()}/#organization`;
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": ["BlogPosting", "Article"],
+        "@id": `${articleUrl}#article`,
+        headline: post.title,
+        description: post.excerpt || undefined,
+        image: [absoluteImage(post.featured_image_url)],
+        datePublished: post.published_at || post.created_at,
+        dateModified: post.updated_at,
+        author: post.author_name
+          ? {
+              "@type": "Person",
+              name: post.author_name,
+              image: post.author_avatar_url
+                ? absoluteImage(post.author_avatar_url)
+                : undefined,
+            }
+          : { "@type": "Organization", name: "WayTero" },
+        publisher: { "@id": publisherId },
+        mainEntityOfPage: { "@id": `${articleUrl}#webpage` },
+        isPartOf: { "@id": `${appUrl()}/#website` },
+        inLanguage: "en-IN",
+        keywords: post.seo_keywords || post.tags?.join(", ") || undefined,
+      },
+      {
+        "@type": "WebPage",
+        "@id": `${articleUrl}#webpage`,
+        url: articleUrl,
+        name: post.seo_title || post.title,
+        description: post.seo_description || post.excerpt || undefined,
+        isPartOf: { "@id": `${appUrl()}/#website` },
+        primaryImageOfPage: {
+          "@type": "ImageObject",
+          url: absoluteImage(post.featured_image_url),
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: `${appUrl()}/`,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Travel blog",
+            item: `${appUrl()}/blog`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: post.title,
+            item: articleUrl,
+          },
+        ],
+      },
+    ],
+  };
 
   return (
     <>
@@ -280,29 +346,14 @@ const toc = useMemo(() => extractToc(post?.content), [post?.content]);
         aria-hidden
       />
 
-      {/* JSON-LD structured data for SEO */}
+      {/* JSON-LD structured data for SEO — server and client both get an
+          absolute article URL (shareUrl is empty during SSR). */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BlogPosting",
-            headline: post.title,
-            description: post.excerpt || undefined,
-            image: post.featured_image_url || undefined,
-            datePublished: post.published_at || post.created_at,
-            dateModified: post.updated_at,
-            author: post.author_name
-              ? {
-                  "@type": "Person",
-                  name: post.author_name,
-                  image: post.author_avatar_url || undefined,
-                }
-              : { "@type": "Organization", name: "WayTero" },
-            publisher: { "@type": "Organization", name: "WayTero" },
-            mainEntityOfPage: shareUrl,
-            keywords: post.seo_keywords || post.tags?.join(", ") || undefined,
-          }),
+          __html: JSON.stringify(articleJsonLd)
+            .replace(/</g, "\\u003c")
+            .replace(/>/g, "\\u003e"),
         }}
       />
 
