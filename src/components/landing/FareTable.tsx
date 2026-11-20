@@ -39,8 +39,11 @@ export default function FareTable({
   title?: string | null;
   gst: { enabled: boolean; rate_pct: number };
 }) {
-  if (!rows.length) return null;
-  const anyPlatform = rows.some((r) => r.source === "PLATFORM");
+  // A row without a rental type is not a package — render nothing rather than
+  // crash the page on a stale payload from before the card pricing switch.
+  const packages = rows.filter((r) => r && r.rental_type);
+  if (!packages.length) return null;
+  const anyPlatform = packages.some((r) => r.source === "PLATFORM");
 
   return (
     <Section bg="white" pad="md">
@@ -57,7 +60,7 @@ export default function FareTable({
 
         {/* Mobile — stacked cards */}
         <div className="mt-6 grid gap-3 sm:hidden">
-          {rows.map((r, i) => (
+          {packages.map((r, i) => (
             <div
               key={i}
               className="rounded-2xl border border-ink-7 bg-white p-4 shadow-wt-sm"
@@ -109,7 +112,7 @@ export default function FareTable({
               </tr>
             </thead>
             <tbody>
-              {rows.map((r, i) => (
+              {packages.map((r, i) => (
                 <tr
                   key={i}
                   className="border-t border-ink-7 transition-colors hover:bg-primary-1/50"
