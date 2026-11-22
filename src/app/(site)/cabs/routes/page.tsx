@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import {
-  ArrowLeft, ArrowRight, Car, Navigation, Route as RouteIcon, Search,
+  ArrowLeft, ArrowRight, Car, Navigation, Route as RouteIcon,
 } from "lucide-react";
 import { Container, Section, MotionGlow } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
@@ -20,9 +20,16 @@ import JsonLd, {
 /* ============================================================
    /cabs/routes — the inter-city corridors hub.
 
-   Reads GET /public/routes (paginated, `q` searches both endpoints).
-   The list endpoint deliberately carries no fare math: this page shows
-   where we run and how far, and each route page quotes the live prices.
+   Reads GET /public/routes and lists EVERY published corridor on one page:
+   the list is small (admin-authored), so a single crawlable page beats a
+   paginated set that hides routes behind ?page= links.
+
+   NOTE: this page must not read `searchParams`. Awaiting them makes the
+   route dynamic and React then streams <title>/<meta>/canonical into the
+   BODY, where they are not document metadata — which is why this page used
+   to serve no head tags at all. The old GET search form and ?page links are
+   gone for the same reason; all routes are in the DOM, so browser find, and
+   the route cards, are the way to navigate.
    ============================================================ */
 
 interface RouteRow {
@@ -36,39 +43,28 @@ interface RouteRow {
   vehicle_count: number;
 }
 
-const LIMIT = 12;
+const PAGE_SIZE = 60;
 
-async function loadRoutes(
-  q: string,
-  page: number,
-): Promise<{ items: RouteRow[]; total: number } | null> {
-  const params = new URLSearchParams({
-    limit: String(LIMIT),
-    offset: String((page - 1) * LIMIT),
-  });
-  if (q) params.set("q", q);
+async function loadAllRoutes(): Promise<RouteRow[] | null> {
+  const rows: RouteRow[] = [];
   try {
-    const res = await fetch(`${API_BASE}/public/routes?${params.toString()}`, {
-      next: { revalidate: 300 },
-    });
-    if (!res.ok) return null;
-    const data = (await res.json()) as { items: RouteRow[]; total: number };
-    return { items: data.items ?? [], total: Number(data.total ?? 0) };
+    for (let offset = 0; offset < 300; offset += PAGE_SIZE) {
+      const res = await fetch(
+        `${API_BASE}/public/routes?limit=${PAGE_SIZE}&offset=${offset}`,
+        { next: { revalidate: 300 } },
+      );
+      if (!res.ok) return rows.length ? rows : null;
+      const data = (await res.json()) as { items?: RouteRow[] };
+      const items = data.items ?? [];
+      rows.push(...items);
+      if (items.length < PAGE_SIZE) break;
+    }
+    return rows;
   } catch {
-    return null;
+    return rows.length ? rows : null;
   }
 }
 
-type SearchParams = Promise<{ q?: string; page?: string }>;
-
-// NOTE: this MUST NOT await `searchParams`. Reading searchParams here turns
-// the route into a dynamic, suspense-streamed render, and React then flushes
-// <title>/<meta>/<link rel=canonical> into the BODY long after </head> — where
-// search engines do not read them as document metadata. Keeping this function
-// searchParam-free is what puts the head tags back in <head>.
-//
-// Paginated views therefore share the page-1 title and canonical: `page` is a
-// crawl-consolidation parameter, not a separate document.
 export async function generateMetadata(): Promise<Metadata> {
   const seo = await resolveSeo("CAB", {
     title: "Cab Routes from Bhubaneswar",
@@ -84,36 +80,20 @@ export async function generateMetadata(): Promise<Metadata> {
   return toMetadata(seo, "/cabs/routes");
 }
 
-export default async function RoutesHubPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function RoutesHubPage() {
   // Same hard gate as every other cab surface: CAB hidden → the hub 404s.
   const av = await getAvailability();
   if (!serviceVisible(av, "CAB")) notFound();
 
-  const sp = await searchParams;
-  const q = (sp.q ?? "").trim().slice(0, 120);
-  const page = Math.min(1000, Math.max(1, Number(sp.page) || 1));
-  const data = await loadRoutes(q, page);
-
-  const pages = data ? Math.max(1, Math.ceil(data.total / LIMIT)) : 1;
-  const href = (p: number) => {
-    const params = new URLSearchParams();
-    if (q) params.set("q", q);
-    if (p > 1) params.set("page", String(p));
-    const tail = params.toString();
-    return tail ? `/cabs/routes?${tail}` : "/cabs/routes";
-  };
+  const items = await loadAllRoutes();
 
   return (
     <>
       <JsonLd
         data={webPageSchema({
-          name: "Popular inter-city cab routes",
+          name: "Popular inter-city cab routes from Bhubaneswar",
           description:
-            "Every inter-city cab corridor WayTero runs, with road distance and live fares by vehicle type.",
+            "Every inter-city cab corridor WayTero runs from Bhubaneswar, with road distance and live fares by vehicle type.",
           path: "/cabs/routes",
           type: "CollectionPage",
         })}
@@ -136,11 +116,11 @@ export default async function RoutesHubPage({
           { name: "Routes", path: "/cabs/routes" },
         ])}
       />
-      {data && data.items.length > 0 && (
+      {items && items.length > 0 && (
         <JsonLd
           data={itemList(
             "Popular cab routes",
-            data.items.map((r) => ({
+            items.map((r) => ({
               name: `${r.origin_label} to ${r.destination_label}`,
               path: `/cabs/routes/${r.slug}`,
             })),
@@ -161,57 +141,19 @@ export default async function RoutesHubPage({
               <RouteIcon className="h-3.5 w-3.5" /> Inter-city cab
             </span>
             <h1 className="mt-3 text-2xl font-extrabold tracking-tight text-ink sm:text-[34px] sm:leading-tight">
-              Popular cab routes
+              Cab routes from Bhubaneswar
             </h1>
             <p className="mt-2 max-w-2xl text-[15px] leading-relaxed text-ink-3">
               Every corridor we run, with the road distance for each. Open a route to see the
               live fare for every vehicle type — the same numbers the booking flow quotes.
             </p>
           </div>
-
-          {/* Server-rendered GET form: submitting it is just a navigation,
-              so the search costs no client JavaScript. */}
-          <form action="/cabs/routes" method="get" className="mt-7 flex max-w-xl flex-wrap items-center gap-2">
-            <div className="relative min-w-[220px] flex-1">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-4" />
-              <input
-                type="search"
-                name="q"
-                defaultValue={q}
-                placeholder="Search a route, e.g. Puri"
-                className="w-full rounded-full border border-ink-7 bg-ink-9/60 py-2.5 pl-10 pr-4 text-sm text-ink outline-none transition-all placeholder:text-ink-5 focus:border-primary-400 focus:bg-white focus:ring-4 focus:ring-primary-500/10"
-              />
-            </div>
-            <button
-              type="submit"
-              className="rounded-full bg-primary-600 px-5 py-2.5 text-sm font-bold text-white shadow-wt-primary transition-all hover:-translate-y-0.5 hover:bg-primary-700"
-            >
-              Search
-            </button>
-            {q && (
-              <Link
-                href="/cabs/routes"
-                className="rounded-full border border-ink-7 px-4 py-2.5 text-sm font-bold text-ink-3 transition-colors hover:border-ink-5 hover:text-ink"
-              >
-                Clear
-              </Link>
-            )}
-          </form>
-
-          {q && data && (
-            <p className="mt-4 text-sm text-ink-3">
-              <span className="font-bold text-ink">
-                {data.total} route{data.total === 1 ? "" : "s"}
-              </span>{" "}
-              matching “{q}”
-            </p>
-          )}
         </Container>
       </Section>
 
       <Section bg="muted" pad="md" id="routes-list">
         <Container size="lg">
-          {data === null ? (
+          {items === null ? (
             <div className="rounded-2xl border border-dashed border-ink-6 bg-white p-10 text-center">
               <p className="text-sm font-bold text-ink">Routes are unavailable right now</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-ink-3">
@@ -219,15 +161,12 @@ export default async function RoutesHubPage({
                 their fares are unchanged.
               </p>
             </div>
-          ) : data.items.length === 0 ? (
+          ) : items.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-ink-6 bg-white p-10 text-center">
-              <p className="text-sm font-bold text-ink">
-                {q ? `No route matches “${q}”` : "No routes published yet"}
-              </p>
+              <p className="text-sm font-bold text-ink">No routes published yet</p>
               <p className="mx-auto mt-1 max-w-md text-sm text-ink-3">
-                {q
-                  ? "Try a city name — the search matches either end of a corridor."
-                  : "We publish a corridor once its fares are set. In the meantime, tell us where you need to go and support will quote it."}
+                We publish a corridor once its fares are set. In the meantime, tell us where you
+                need to go and support will quote it.
               </p>
               <Link
                 href="/cabs"
@@ -237,85 +176,56 @@ export default async function RoutesHubPage({
               </Link>
             </div>
           ) : (
-            <>
-              <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data.items.map((r) => (
-                  <MotionStaggerItem key={r.id} className="h-full">
-                    <MotionGlow color="primary" intensity={0.18} size={300} className="h-full rounded-2xl">
-                      <Link
-                        href={`/cabs/routes/${r.slug}`}
-                        className="group flex h-full flex-col overflow-hidden rounded-2xl border border-ink-7 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 hover:shadow-wt-xl"
-                      >
-                        <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary-100 via-primary-50 to-accent-50">
-                          {r.image_url ? (
-                            <Image
-                              src={r.image_url}
-                              alt={`${r.origin_label} to ${r.destination_label}`}
-                              fill
-                              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
-                              className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
-                            />
-                          ) : (
-                            <div className="absolute inset-0 grid place-items-center text-primary-300">
-                              <Navigation className="h-8 w-8" />
-                            </div>
-                          )}
-                          <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-primary-700 shadow-wt-sm backdrop-blur">
-                            {Number(r.distance_km).toFixed(0)} km
-                            {r.distance_source === "HAVERSINE" ? " · est." : ""}
-                          </span>
-                        </div>
-
-                        <div className="flex flex-1 flex-col p-4">
-                          <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] font-extrabold leading-snug tracking-tight text-ink group-hover:text-primary-700">
-                            {r.origin_label}
-                            <Navigation className="h-4 w-4 shrink-0 text-primary-500" />
-                            {r.destination_label}
-                          </h2>
-                          <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-4">
-                            <Car className="h-3.5 w-3.5" />
-                            {r.vehicle_count > 0
-                              ? `${r.vehicle_count} vehicle type${r.vehicle_count === 1 ? "" : "s"}`
-                              : "Fares being set"}
-                          </p>
-                          <span className="mt-auto flex items-center justify-center gap-1.5 pt-4 text-[13px] font-bold text-primary-700">
-                            See fares
-                            <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
-                          </span>
-                        </div>
-                      </Link>
-                    </MotionGlow>
-                  </MotionStaggerItem>
-                ))}
-              </MotionStagger>
-
-              {pages > 1 && (
-                <nav
-                  aria-label="Route pages"
-                  className="mt-9 flex flex-wrap items-center justify-center gap-2"
-                >
-                  {page > 1 && (
+            <MotionStagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {items.map((r) => (
+                <MotionStaggerItem key={r.id} className="h-full">
+                  <MotionGlow color="primary" intensity={0.18} size={300} className="h-full rounded-2xl">
                     <Link
-                      href={href(page - 1)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-ink-7 bg-white px-4 py-2 text-[13px] font-bold text-ink-3 transition-colors hover:border-primary-300 hover:text-primary-700"
+                      href={`/cabs/routes/${r.slug}`}
+                      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-ink-7 bg-white transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 hover:shadow-wt-xl"
                     >
-                      <ArrowLeft className="h-3.5 w-3.5" /> Prev
+                      <div className="relative h-32 overflow-hidden bg-gradient-to-br from-primary-100 via-primary-50 to-accent-50">
+                        {r.image_url ? (
+                          <Image
+                            src={r.image_url}
+                            alt={`${r.origin_label} to ${r.destination_label}`}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 360px"
+                            className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 grid place-items-center text-primary-300">
+                            <Navigation className="h-8 w-8" />
+                          </div>
+                        )}
+                        <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-bold text-primary-700 shadow-wt-sm backdrop-blur">
+                          {Number(r.distance_km).toFixed(0)} km
+                          {r.distance_source === "HAVERSINE" ? " · est." : ""}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-1 flex-col p-4">
+                        <h2 className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[15px] font-extrabold leading-snug tracking-tight text-ink group-hover:text-primary-700">
+                          {r.origin_label}
+                          <Navigation className="h-4 w-4 shrink-0 text-primary-500" />
+                          {r.destination_label}
+                        </h2>
+                        <p className="mt-1.5 flex items-center gap-1.5 text-[12px] text-ink-4">
+                          <Car className="h-3.5 w-3.5" />
+                          {r.vehicle_count > 0
+                            ? `${r.vehicle_count} vehicle type${r.vehicle_count === 1 ? "" : "s"}`
+                            : "Fares being set"}
+                        </p>
+                        <span className="mt-auto flex items-center justify-center gap-1.5 pt-4 text-[13px] font-bold text-primary-700">
+                          See fares
+                          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1" />
+                        </span>
+                      </div>
                     </Link>
-                  )}
-                  <span className="rounded-full bg-ink-8 px-4 py-2 text-[13px] font-bold text-ink-2">
-                    Page {page} of {pages}
-                  </span>
-                  {page < pages && (
-                    <Link
-                      href={href(page + 1)}
-                      className="inline-flex items-center gap-1.5 rounded-full border border-ink-7 bg-white px-4 py-2 text-[13px] font-bold text-ink-3 transition-colors hover:border-primary-300 hover:text-primary-700"
-                    >
-                      Next <ArrowRight className="h-3.5 w-3.5" />
-                    </Link>
-                  )}
-                </nav>
-              )}
-            </>
+                  </MotionGlow>
+                </MotionStaggerItem>
+              ))}
+            </MotionStagger>
           )}
         </Container>
       </Section>
