@@ -175,9 +175,9 @@ export default async function ToursPage() {
     <>
       <JsonLd
         data={webPageSchema({
-          name: "Tour packages — curated itineraries across India",
+          name: "Tour packages in Odisha — curated itineraries",
           description:
-            "Explore live tour packages with day-by-day itineraries, clear inclusions and upfront per-package prices.",
+            "Explore live Odisha tour packages with day-by-day itineraries, clear inclusions and upfront per-package prices.",
           path: "/tours",
           type: "CollectionPage",
           image: heroImage,
@@ -185,12 +185,12 @@ export default async function ToursPage() {
       />
       <JsonLd
         data={serviceSchema({
-          name: "Tour packages in India",
+          name: "Tour packages in Odisha",
           description:
-            "Curated multi-day tour packages from verified operators, with itineraries, inclusions and transparent pricing.",
+            "Curated multi-day Odisha tour packages from verified operators, with itineraries, inclusions and transparent pricing.",
           path: "/tours",
-          areaName: "India",
-          areaType: "Country",
+          areaName: "Odisha",
+          areaType: "State",
           serviceType: "Tour",
           offer:
             lowest && tours.length

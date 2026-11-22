@@ -15,6 +15,15 @@ export const BRAND = {
   name: "WayTero",
   tagline: "Explore More. Travel Better.",
   website: "waytero.com",
+  // ── Service area (owner rule) ─────────────────────────────────────────
+  // WayTero sells cab supply in Bhubaneswar only; every other Odisha town is a
+  // DESTINATION we drive to, not a city we serve. Metadata, schema and body
+  // copy use these two literals instead of the old "India" wording, which
+  // made every page compete on national terms it cannot rank — or deliver — for.
+  primaryCity: "Bhubaneswar",
+  primaryState: "Odisha",
+  /** "Bhubaneswar, Odisha" — use where both city and state read naturally. */
+  serviceArea: "Bhubaneswar, Odisha",
   phone: "7978322649",
   email: "support@waytero.com",
   officeAddress: "Avinue Appartment, Gothapatana, Bhubaneswar - 751003",

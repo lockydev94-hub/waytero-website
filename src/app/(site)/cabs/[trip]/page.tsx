@@ -27,6 +27,7 @@ import { toMetadata } from "@/services/seoService";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { cabPricesPath } from "@/lib/cityRoutes";
 import { getLandingRefs } from "@/lib/landingIndex";
+import { BRAND } from "@/lib/brand";
 
 // ============================================================
 // /cabs/[trip] — DB-driven cab trip-type landing pages.
@@ -222,11 +223,14 @@ export async function generateMetadata({
   if (!meta) return { title: "Cab Booking" };
   return toMetadata(
     {
-      title: `${meta.h1} in India — Upfront Fares`,
+      // "in India" made these pages compete nationally on a service we sell
+      // in one city. The service area is the ranking term that also converts.
+      title: `${meta.h1} in ${BRAND.primaryCity}`,
       description: meta.blurb.slice(0, 300),
       keywords: [
-        `${meta.name.toLowerCase()} cab booking`,
-        `${meta.name.toLowerCase()} taxi India`,
+        `${meta.name.toLowerCase()} cab booking ${BRAND.primaryCity}`,
+        `${meta.name.toLowerCase()} taxi ${BRAND.primaryCity}`,
+        `${meta.name.toLowerCase()} cab ${BRAND.primaryState}`,
         "cab booking",
         "upfront fares",
         "verified drivers",
@@ -312,16 +316,16 @@ export default async function CabTripPage({
   const offerCount = classes.reduce((n, c) => n + c.packages.length, 0);
   const schemas: Array<Record<string, unknown>> = [
     webPageSchema({
-      name: `${meta.h1}${cityName ? ` in ${cityName}` : " in India"}`,
+      name: `${meta.h1} in ${cityName ?? BRAND.primaryCity}`,
       description: meta.blurb,
       path: `/cabs/${meta.slug}`,
     }),
     serviceSchema({
-      name: `${meta.h1}${cityName ? ` in ${cityName}` : " in India"}`,
+      name: `${meta.h1} in ${cityName ?? BRAND.primaryCity}`,
       description: meta.blurb,
       path: `/cabs/${meta.slug}`,
-      areaName: cityName ?? "India",
-      areaType: cityName ? "City" : "Country",
+      areaName: cityName ?? BRAND.primaryCity,
+      areaType: "City",
       serviceType: "Taxi",
       offer:
         lowPrice != null && offerCount > 0
@@ -354,7 +358,7 @@ export default async function CabTripPage({
               <Icon className="h-3.5 w-3.5" /> Cab booking
             </span>
             <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-ink sm:text-5xl">
-              {meta.h1} <span className="text-primary-600">in the cities we serve</span>
+              {meta.h1} <span className="text-primary-600">in {cityName ?? BRAND.primaryCity}</span>
             </h1>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-3">{meta.blurb}</p>
             <div className="mt-7 flex flex-wrap gap-3">

@@ -56,7 +56,7 @@ export async function GET() {
   <channel>
     <title>WayTero Travel Blog</title>
     <link>${SITE}/blog</link>
-    <description>Routes, stays, refund hacks, and behind-the-scenes from the WayTero team — written for how India actually travels.</description>
+    <description>Odisha travel guides from the WayTero team — Puri darshan, Konark, Chilika, Bhitarkanika and Bhubaneswar, with routes, seasons and budgets.</description>
     <language>en-in</language>
     <atom:link href="${SITE}/feed" rel="self" type="application/rss+xml" />
     <lastBuildDate>${new Date().toUTCString()}</lastBuildDate>

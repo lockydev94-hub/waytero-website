@@ -61,28 +61,27 @@ async function loadRoutes(
 
 type SearchParams = Promise<{ q?: string; page?: string }>;
 
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}): Promise<Metadata> {
-  const { page } = await searchParams;
-  const pageNum = Math.max(1, Number(page) || 1);
+// NOTE: this MUST NOT await `searchParams`. Reading searchParams here turns
+// the route into a dynamic, suspense-streamed render, and React then flushes
+// <title>/<meta>/<link rel=canonical> into the BODY long after </head> — where
+// search engines do not read them as document metadata. Keeping this function
+// searchParam-free is what puts the head tags back in <head>.
+//
+// Paginated views therefore share the page-1 title and canonical: `page` is a
+// crawl-consolidation parameter, not a separate document.
+export async function generateMetadata(): Promise<Metadata> {
   const seo = await resolveSeo("CAB", {
-    title: "Popular Cab Routes — Inter-city Fares",
+    title: "Cab Routes from Bhubaneswar",
     description:
-      "Every inter-city cab corridor WayTero runs, with the road distance for each. Open a route to see live fares by vehicle type.",
-    keywords: ["cab routes", "intercity cab", "outstation cab fares", "route distance"],
+      "Every inter-city cab corridor WayTero runs from Bhubaneswar, with the road distance for each. Open a route to see live fares by vehicle type.",
+    keywords: [
+      "cab routes from Bhubaneswar",
+      "Bhubaneswar to Puri cab",
+      "Bhubaneswar outstation cab",
+      "intercity cab Odisha",
+    ],
   });
-  // Paginated pages keep the page-1 canonical (toMetadata builds it from the
-  // path, which never carries `page`) so the set can't compete with itself.
-  return toMetadata(
-    {
-      ...seo,
-      title: pageNum > 1 ? `${seo.title} — Page ${pageNum}` : seo.title,
-    },
-    "/cabs/routes",
-  );
+  return toMetadata(seo, "/cabs/routes");
 }
 
 export default async function RoutesHubPage({
@@ -121,12 +120,12 @@ export default async function RoutesHubPage({
       />
       <JsonLd
         data={serviceSchema({
-          name: "Inter-city cab routes in India",
+          name: "Inter-city cab routes from Bhubaneswar",
           description:
-            "Published inter-city cab corridors with distance and live fares by vehicle type.",
+            "Published inter-city cab corridors from Bhubaneswar with distance and live fares by vehicle type.",
           path: "/cabs/routes",
-          areaName: "India",
-          areaType: "Country",
+          areaName: "Bhubaneswar",
+          areaType: "City",
           serviceType: "Inter-city taxi",
         })}
       />

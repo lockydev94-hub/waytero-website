@@ -41,12 +41,12 @@ const BASE_METADATA: Metadata = {
     template: "%s | WayTero",
   },
   description:
-    "Book cabs, hotels, and tour packages in the cities WayTero serves. We connect customers, partners, drivers, and hotels on one seamless travel platform.",
+    "Book cabs, hotels and Odisha tour packages in Bhubaneswar with upfront fares and verified drivers. One platform for customers, partners, drivers and hotels.",
   keywords: [
-    "travel booking India",
-    "cab booking",
-    "hotel booking",
-    "tour packages",
+    "cab booking Bhubaneswar",
+    "Bhubaneswar taxi",
+    "Odisha tour packages",
+    "hotels in Bhubaneswar",
     "WayTero",
   ],
   authors: [{ name: "WayTero", url: appUrl() }],
@@ -58,7 +58,7 @@ const BASE_METADATA: Metadata = {
     siteName: "WayTero",
     title: `WayTero — ${BRAND.tagline}`,
     description:
-      "Book cabs, hotels, and tour packages in the cities WayTero serves, on one seamless travel platform.",
+      "Book cabs, hotels and Odisha tour packages in Bhubaneswar with upfront fares and verified drivers.",
     images: [
       {
         url: "/og-image.png",
@@ -71,7 +71,7 @@ const BASE_METADATA: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `WayTero — ${BRAND.tagline}`,
-    description: "Book cabs, hotels, and tour packages in the cities WayTero serves.",
+    description: "Book cabs, hotels and Odisha tour packages in Bhubaneswar.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -198,7 +198,7 @@ async function RootJsonLd() {
                 : {}),
               image: absoluteImage(profile.og_image_url),
               description:
-                "India travel platform for cab booking, hotels and curated tour packages.",
+                "Travel platform for cab booking in Bhubaneswar, hotels and curated Odisha tour packages.",
               telephone,
               email: profile.support_email || BRAND.email,
               address: {

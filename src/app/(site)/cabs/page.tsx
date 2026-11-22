@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Clock, ShieldCheck, Wallet, MapPin } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, Car, Clock, Plane, Repeat2, Route, ShieldCheck, Wallet, MapPin } from "lucide-react";
 import { Container, IconBox } from "@/components/ui";
 import { Section, SectionHeader } from "@/components/ui";
 import { MotionStagger, MotionStaggerItem } from "@/components/ui";
@@ -116,20 +117,20 @@ export default async function CabsPage() {
     <>
       <JsonLd
         data={webPageSchema({
-          name: "Cab booking — outstation, airport and local rides",
+          name: "Cab booking in Bhubaneswar — outstation, airport and local rides",
           description:
-            "Book verified outstation, airport and local cabs with upfront fares, live trip status and support across the cities WayTero serves.",
+            "Book verified outstation, airport and local cabs in Bhubaneswar with upfront fares, trip status and local support.",
           path: "/cabs",
         })}
       />
       <JsonLd
         data={serviceSchema({
-          name: "Cab booking in India",
+          name: "Cab booking in Bhubaneswar",
           description:
-            "Outstation, airport transfer, local and round-trip cab booking with upfront fares and verified drivers.",
+            "Outstation, airport transfer, local and round-trip cab booking in Bhubaneswar with upfront fares and verified drivers.",
           path: "/cabs",
-          areaName: "India",
-          areaType: "Country",
+          areaName: "Bhubaneswar",
+          areaType: "City",
           serviceType: "Taxi",
         })}
       />
@@ -159,9 +160,9 @@ export default async function CabsPage() {
                 Book a cab <span className="text-primary-600">in 60 seconds</span>
               </h1>
               <p className="mt-4 max-w-2xl text-base sm:text-lg text-ink-3 leading-relaxed">
-                Reliable cabs in Bhubaneswar and the cities we serve — outstation,
-                airport transfers, and local rides. Verified drivers, transparent
-                pricing, and trip status you can check any time.
+                Reliable cabs in Bhubaneswar — outstation, airport transfers and
+                local rides. Verified drivers, upfront pricing, and trip status
+                you can check any time.
               </p>
               <div className="mt-5">
                 <CabSearchForm variant="page" />
@@ -184,6 +185,42 @@ export default async function CabsPage() {
                 />
               </div>
             )}
+          </div>
+        </Container>
+      </Section>
+
+      {/* ── Trip-type hub ───────────────────────────────────────────────
+          These four pages each target a distinct search ("airport cab
+          Bhubaneswar", "outstation cab", …) but were only reachable from the
+          sitemap — no page linked them, so Google treated them as orphans.
+          One link row on the parent hub fixes the crawl path. */}
+      <Section bg="muted" pad="tight">
+        <Container size="wide">
+          <SectionHeader
+            eyebrow="Book by trip type"
+            title="What kind of cab do you need?"
+            accent="primary"
+          />
+          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              { href: "/cabs/local", label: "Local hire", desc: "Hour and kilometre packages for use inside Bhubaneswar.", Icon: Car },
+              { href: "/cabs/airport", label: "Airport transfer", desc: "Fixed-price pickups and drops at Biju Patnaik airport.", Icon: Plane },
+              { href: "/cabs/outstation", label: "Outstation", desc: "One-way drops and round trips to Puri, Konark and beyond.", Icon: Route },
+              { href: "/cabs/round-trip", label: "Round trip", desc: "Same vehicle and driver for the whole return journey.", Icon: Repeat2 },
+            ].map(({ href, label, desc, Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="group flex h-full flex-col rounded-2xl border border-ink-7 bg-white p-5 shadow-wt-sm transition-all hover:-translate-y-0.5 hover:border-primary-300"
+              >
+                <IconBox icon={<Icon />} tone="primary" size="md" gradient />
+                <div className="mt-3 text-base font-bold text-ink">{label}</div>
+                <p className="mt-1 text-sm leading-relaxed text-ink-3">{desc}</p>
+                <span className="mt-3 inline-flex items-center gap-1.5 text-sm font-bold text-primary-700">
+                  See fares <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                </span>
+              </Link>
+            ))}
           </div>
         </Container>
       </Section>

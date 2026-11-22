@@ -16,6 +16,7 @@ import CabCitySwitcher from "@/components/sections/CabCitySwitcher";
 import CabRateTable from "@/components/sections/CabRateTable";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { inr, standardPackage } from "@/lib/cabPrices";
+import { BRAND } from "@/lib/brand";
 
 // ============================================================
 // /cabs/prices — the published cab price list, by city and vehicle class.
@@ -125,11 +126,11 @@ export default async function CabPricesView({
       />
       <JsonLd
         data={serviceSchema({
-          name: cityName ? `Cab booking in ${cityName}` : "Cab booking in India",
+          name: `Cab booking in ${cityName || BRAND.primaryCity}`,
           description: pageDescription,
           path,
-          areaName: cityName || "India",
-          areaType: cityName ? "City" : "Country",
+          areaName: cityName || BRAND.primaryCity,
+          areaType: "City",
           serviceType: "Taxi",
           offer:
             lowPrice != null && offerCount > 0

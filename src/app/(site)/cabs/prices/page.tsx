@@ -1,63 +1,37 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { fetchCabCities, type CabCityRow } from "@/lib/cabCity";
-import { citySlug } from "@/lib/citySlug";
+import { fetchCabCities } from "@/lib/cabCity";
 import { toMetadata } from "@/services/seoService";
 import CabPricesView from "@/components/cabs/CabPricesView";
 
-// /cabs/prices is the national list. A city-specific list has a real path
-// (/cabs/prices/bhubaneswar); this page keeps the old ?city= entry point for
-// bookmarks and canonicalises it to the path, but never advertises the query
-// URL as its canonical.
+// /cabs/prices is the rate-card hub. Each serviced city has its own canonical
+// path (/cabs/prices/bhubaneswar); the `?city=` form is retired because it
+// produced a second URL for the same document.
+//
+// NOTE: no `searchParams` in generateMetadata — see the note in
+// /cabs/routes/page.tsx. Awaiting searchParams streams the metadata into the
+// body, where it stops being the document's title.
 const PAGE_PATH = "/cabs/prices";
 
-function cityFromParam(cities: CabCityRow[], raw?: string): CabCityRow | null {
-  if (!raw) return null;
-  const bySlug = cities.find((c) => citySlug(c.name) === raw.toLowerCase());
-  if (bySlug) return bySlug;
-  const id = Number(raw);
-  return Number.isFinite(id) ? cities.find((c) => c.id === id) ?? null : null;
-}
-
-export async function generateMetadata({
-  searchParams,
-}: {
-  searchParams: Promise<{ city?: string }>;
-}): Promise<Metadata> {
-  const { city: cityParam } = await searchParams;
-  const cities = await fetchCabCities();
-  const selected = cityFromParam(cities, cityParam);
-  const path = selected
-    ? `${PAGE_PATH}/${citySlug(selected.name)}`
-    : PAGE_PATH;
+export async function generateMetadata(): Promise<Metadata> {
   return toMetadata(
     {
-      title: selected
-        ? `Cab Prices in ${selected.name} — Fare List`
-        : "Cab Prices & Fare List",
-      description: selected
-        ? `Published cab prices in ${selected.name} by vehicle class — local packages, outstation trips and daily rentals, with included hours, kilometres and extra charges shown.`
-        : "City-wise cab prices by vehicle class — local packages, outstation trips and daily rentals, with included hours, kilometres and extra charges shown. The same rate card that prices your booking.",
+      title: "Cab Prices in Bhubaneswar — Fare List",
+      description:
+        "Published cab prices in Bhubaneswar by vehicle class — local packages, outstation trips and daily rentals, with included hours, kilometres and extra charges shown.",
       keywords: [
-        selected ? `cab prices ${selected.name}` : "cab prices India",
-        "taxi fare list",
-        "local cab package",
-        "outstation cab fare",
+        "cab prices Bhubaneswar",
+        "Bhubaneswar taxi fare list",
+        "local cab package Bhubaneswar",
+        "outstation cab fare Bhubaneswar",
       ],
     },
-    path,
+    PAGE_PATH,
   );
 }
 
-export default async function CabPricesPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ city?: string }>;
-}) {
-  const { city: cityParam } = await searchParams;
+export default async function CabPricesPage() {
   const cities = await fetchCabCities();
   if (cities.length === 0) notFound();
-  const selected = cityFromParam(cities, cityParam);
-  const path = selected ? `${PAGE_PATH}/${citySlug(selected.name)}` : PAGE_PATH;
-  return <CabPricesView cityParam={selected ? citySlug(selected.name) : undefined} path={path} />;
+  return <CabPricesView path={PAGE_PATH} />;
 }

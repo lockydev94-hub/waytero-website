@@ -150,20 +150,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const tripTypes = cabVisible
     ? await fetchJson<TripTypeRow[]>(`${API_BASE}/public/cab/trip-types`)
     : null;
-  // City-specific price lists — the same published rate card, one crawlable
-  // path per serviced city. These used to be `?city=…` query URLs, which are
-  // poor canonical targets; each city now has its own keyword-bearing path.
+  // City-specific price lists — only for cities that have their OWN rate card.
+  // A city on the platform-default card renders the same table as every other
+  // city with the name swapped, so those URLs are noindex (see
+  // /cabs/prices/[city]) and must not be advertised here either.
   const cabCities = cabVisible
-    ? await fetchJson<{ name: string }[]>(`${API_BASE}/public/cab/cities`)
+    ? await fetchJson<{ id: number; name: string }[]>(`${API_BASE}/public/cab/cities`)
     : null;
-  const cityPriceUrls: MetadataRoute.Sitemap = (cabCities ?? [])
-    .filter((c) => c.name)
-    .map((c) => ({
-      url: `${appUrl}/cabs/prices/${citySlug(c.name)}`,
-      lastModified: now,
-      changeFrequency: "weekly" as const,
-      priority: 0.7,
-    }));
+  const ownCardCities: { id: number; name: string }[] = [];
+  for (const c of cabCities ?? []) {
+    if (!c.name) continue;
+    const card = await fetchJson<{ classes?: { rate_source?: string }[] }>(
+      `${API_BASE}/public/cab/cities/${c.id}/price-list`,
+    );
+    if (card?.classes?.some((k) => k.rate_source === "CITY")) ownCardCities.push(c);
+  }
+  const cityPriceUrls: MetadataRoute.Sitemap = ownCardCities.map((c) => ({
+    url: `${appUrl}/cabs/prices/${citySlug(c.name)}`,
+    lastModified: now,
+    changeFrequency: "weekly" as const,
+    priority: 0.7,
+  }));
 
   const tripUrls: MetadataRoute.Sitemap = (tripTypes ?? [])
     .map((t) => TRIP_SLUGS[t.code])

@@ -35,8 +35,13 @@ import type { LandingStat } from "@/lib/landingIndex";
 const FALLBACK: SeoContent = {
   title: "About Us — WayTero",
   description:
-    "WayTero is India's Travel Operating System — connecting customers, partners, drivers, and hotels on one seamless travel platform.",
-  keywords: ["about WayTero", "travel platform Bhubaneswar", "cabs hotels tours India"],
+    "WayTero is a Bhubaneswar-based travel platform connecting customers, partners, drivers and hotels for cabs, stays and Odisha tours.",
+  keywords: [
+    "about WayTero",
+    "travel platform Bhubaneswar",
+    "Odisha travel company",
+    "Bhubaneswar cab company",
+  ],
 };
 
 export async function generateMetadata(): Promise<import("next").Metadata> {
@@ -127,7 +132,7 @@ export default async function AboutPage() {
                 About WayTero
               </p>
               <h1 className="text-3xl sm:text-4xl lg:text-[2.75rem] font-extrabold text-ink leading-[1.1] tracking-tight">
-                We&apos;re building <span className="text-gradient-primary">India&apos;s Travel Operating System</span>
+                We&apos;re building <span className="text-gradient-primary">Odisha&apos;s Travel Operating System</span>
               </h1>
               <p className="mt-4 max-w-2xl text-base sm:text-lg text-ink-3 leading-relaxed">
                 One platform for cabs, hotels and tour packages — where every price,

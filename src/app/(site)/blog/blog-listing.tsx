@@ -116,12 +116,12 @@ export default function BlogPage() {
               Travel Blog
             </p>
             <h1 className="text-4xl sm:text-5xl lg:text-[3.4rem] font-extrabold text-ink tracking-tight leading-[1.05]">
-              Stories &amp; tips for{" "}
-              <span className="text-gradient-primary">Indian travelers</span>
+              Odisha travel{" "}
+              <span className="text-gradient-primary">guides &amp; itineraries</span>
             </h1>
             <p className="mt-5 text-base sm:text-lg text-ink-3 leading-relaxed max-w-2xl mx-auto">
-              Routes, stays, refund hacks, and behind-the-scenes from the WayTero team —
-              written for how India actually travels.
+              Puri darshan, Konark, Chilika, Bhitarkanika and Bhubaneswar — routes, seasons,
+              budgets and local know-how from the WayTero team.
             </p>
 
             {/* Search */}

@@ -54,7 +54,10 @@ function routeTitle(r: PublicRoute): string {
 function seoForRoute(r: PublicRoute | null): SeoContent {
   if (!r) return STATIC_SEO.home;
   return {
-    title: `${routeTitle(r)} — fares, distance and booking | WayTero`,
+    // Kept short: the root layout appends "| WayTero", and anything past ~60
+    // characters is truncated in the SERP — which was happening on all 28
+    // route pages (69–77 chars).
+    title: `${routeTitle(r)} — fare & distance`,
     description:
       r.description?.trim() ||
       `${routeTitle(r)} is ${Number(r.distance_km).toFixed(0)} km by road. See the distance, the vehicles available and what each one costs under our published fare rules.`,

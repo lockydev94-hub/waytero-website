@@ -39,62 +39,66 @@ export interface SeoContent {
 
 export const STATIC_SEO: Record<string, SeoContent> = {
   home: {
-    title: BRAND.tagline,
+    // The homepage targets the ONE thing the business can deliver: cabs in
+    // Bhubaneswar. The tagline stays as the brand line in the header, not as
+    // the <title> — "Explore More. Travel Better." ranks for nothing.
+    title: "Cab & Tour Booking in Bhubaneswar",
     description:
-      "Book cabs, hotels, and tour packages in the cities WayTero serves. We connect customers, partners, drivers, and hotels on one seamless travel platform.",
+      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and a local support desk. Odisha tour packages and hotels on the same platform.",
     keywords: [
-      "travel booking India",
-      "cab booking",
-      "hotel booking",
-      "tour packages",
-      "WayTero",
+      "cab booking Bhubaneswar",
+      "Bhubaneswar taxi service",
+      "airport cab Bhubaneswar",
+      "outstation cab Bhubaneswar",
+      "Odisha tour packages",
     ],
   },
   CAB: {
-    title: "Book a Cab — Outstation & Local Rides",
+    title: "Cab Booking in Bhubaneswar",
     description:
-      "Book reliable outstation cabs, airport transfers, and local rides in the cities WayTero serves. Transparent pricing, verified drivers, and driver details on every assigned trip.",
+      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and driver details on every assigned trip.",
     keywords: [
-      "cab booking India",
-      "outstation cab",
-      "airport taxi",
-      "local taxi",
-      "rent a car with driver",
+      "cab booking Bhubaneswar",
+      "Bhubaneswar taxi",
+      "airport cab Bhubaneswar",
+      "outstation cab Bhubaneswar",
+      "local cab Bhubaneswar",
+      "rent a car with driver Bhubaneswar",
     ],
   },
   HOTEL: {
-    title: "Hotels — Stays in the Cities WayTero Serves",
+    title: "Hotels in Bhubaneswar & Odisha",
     description:
-      "Book budget to luxury hotels, resorts, and homestays in the cities WayTero serves, with transparent pricing and free cancellation.",
+      "Book verified hotels, resorts and homestays in Bhubaneswar and across Odisha, with transparent pricing and free cancellation.",
     keywords: [
-      "hotel booking India",
-      "resorts",
-      "homestays",
-      "budget hotels",
-      "luxury hotels",
+      "hotels in Bhubaneswar",
+      "hotel booking Odisha",
+      "resorts in Odisha",
+      "homestays Bhubaneswar",
+      "budget hotels Bhubaneswar",
     ],
   },
   TOUR: {
-    title: "Tour Packages — Explore India",
+    title: "Tour Packages in Odisha",
     description:
-      "Tour packages from verified operators — from weekend getaways to temple circuits and heritage tours. Fully managed from booking to return.",
+      "Odisha tour packages with real itineraries and pricing — Puri and Konark temple circuits, Chilika, Bhitarkanika and the tribal belt, departing from Bhubaneswar.",
     keywords: [
-      "tour packages India",
-      "holiday packages",
-      "temples and heritage",
-      "beaches and nature",
-      "custom itineraries",
+      "Odisha tour packages",
+      "Bhubaneswar tour packages",
+      "Puri Konark tour",
+      "Chilika tour package",
+      "Odisha holiday packages",
     ],
   },
   blog: {
-    title: "Travel Blog — Stories & Tips for Indian Travelers",
+    title: "Odisha Travel Blog — Guides & Itineraries",
     description:
-      "Routes, stays, refund hacks, and behind-the-scenes from the WayTero team — written for how India actually travels.",
+      "Odisha travel guides from the WayTero team — Puri darshan, Konark, Chilika, Bhitarkanika and Bhubaneswar, with routes, seasons and budgets.",
     keywords: [
-      "travel blog India",
-      "travel tips",
-      "road trip ideas",
-      "hotel stay guides",
+      "Odisha travel blog",
+      "Bhubaneswar travel guide",
+      "Puri travel tips",
+      "Odisha itinerary",
     ],
   },
 };
@@ -243,7 +247,7 @@ export async function resolveSeo(
     overrides?.title?.trim() ||
     pageSeo?.title?.trim() ||
     db?.seo_title?.trim() ||
-    (page === "home" ? profile.tagline : fallback.title),
+    fallback.title,
   );
   const description =
     overrides?.description?.trim() ||
