@@ -27,6 +27,7 @@ import { getAvailability, serviceVisible } from "@/lib/availability";
 import { getPageBody } from "@/lib/pageBody";
 import { TRIP_SLUGS } from "@/lib/cabTrips";
 import { citySlug } from "@/lib/citySlug";
+import { cityTourContent } from "@/lib/cityTourContent";
 
 // Regenerate periodically rather than only at build time: a page published
 // from the admin goes live immediately (the [slug] engine renders on demand),
@@ -282,6 +283,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       (d) =>
         d.name &&
         d.count > 0 &&
+        // A city tour page without editorial copy is noindexed by the route,
+        // so listing it here would only teach Google about a URL it is told
+        // to ignore.
+        Boolean(cityTourContent(citySlug(d.name))) &&
         !hasCityLanding("CITY_TOURS", d.name),
     )
     .map((d) => ({

@@ -5,6 +5,7 @@ import { ArrowRight, Compass, MapPin } from "lucide-react";
 import { Container, Section, Breadcrumb } from "@/components/ui";
 import JsonLd, {
   breadcrumbList,
+  faqPageSchema,
   itemList,
   serviceSchema,
   webPageSchema,
@@ -13,6 +14,7 @@ import TourCard from "@/components/tours/TourCard";
 import { API_BASE } from "@/lib/apiBase";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { citySlug } from "@/lib/citySlug";
+import { cityTourContent } from "@/lib/cityTourContent";
 import {
   cabPricesPath,
   cityLanding,
@@ -143,6 +145,10 @@ export async function generateMetadata({
       ],
     },
     path,
+    // A city page with no editorial copy is a card grid and a headline: it
+    // competes with the package pages it links to and loses. Those stay
+    // crawlable but out of the index until someone writes the copy.
+    cityTourContent(slug) ? undefined : { robots: { index: false, follow: true } },
   );
 }
 
@@ -188,6 +194,7 @@ export default async function ToursInCityPage({
     null;
   const pageTitle = `Tour packages in ${name}`;
   const pageDescription = `Day-by-day itineraries, clear inclusions and upfront per-package prices for tours in ${name}${city.state_name ? `, ${city.state_name}` : ""}.`;
+  const content = cityTourContent(slug);
 
   return (
     <>
@@ -230,6 +237,7 @@ export default async function ToursInCityPage({
           { name: name, path },
         ])}
       />
+      {content && <JsonLd data={faqPageSchema(content.faqs)} />}
 
       <Section
         bg="white"
@@ -279,6 +287,36 @@ export default async function ToursInCityPage({
         </Container>
       </Section>
 
+      {content && (
+        <Section bg="white" pad="lg">
+          <Container size="lg">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
+              <div className="space-y-4 text-base leading-relaxed text-ink-2">
+                <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+                  Visiting {name}
+                </h2>
+                {content.intro.map((para) => (
+                  <p key={para.slice(0, 40)}>{para}</p>
+                ))}
+              </div>
+              <ul className="space-y-3">
+                {content.highlights.map((h) => (
+                  <li
+                    key={h.title}
+                    className="rounded-2xl border border-ink-7 bg-accent-50/50 p-5"
+                  >
+                    <p className="text-sm font-extrabold text-ink">{h.title}</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-ink-3">
+                      {h.text}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </Container>
+        </Section>
+      )}
+
       <Section bg="white" pad="md">
         <Container size="xl">
           <h2 className="text-2xl font-extrabold tracking-tight text-ink">
@@ -294,6 +332,26 @@ export default async function ToursInCityPage({
           </div>
         </Container>
       </Section>
+
+      {content && (
+        <Section bg="white" pad="md">
+          <Container size="lg">
+            <h2 className="text-2xl font-extrabold tracking-tight text-ink">
+              {name} tours — questions travellers ask
+            </h2>
+            <dl className="mt-5 divide-y divide-ink-7 border-y border-ink-7">
+              {content.faqs.map((f) => (
+                <div key={f.question} className="py-4">
+                  <dt className="text-sm font-extrabold text-ink">{f.question}</dt>
+                  <dd className="mt-1.5 text-sm leading-relaxed text-ink-3">
+                    {f.answer}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </Container>
+        </Section>
+      )}
 
       <Section bg="muted" pad="md">
         <Container size="lg">
