@@ -121,7 +121,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // `/cabs/prices` is not listed: it renders the serviced city's card and
     // canonicalises to /cabs/prices/{city}, which the city block below adds.
     ...(cabVisible
-      ? [{ url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }]
+      ? [
+          { url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 },
+          // The index of every place page — the crawl path that makes the
+          // individual PLACE_CABS pages two clicks from the homepage.
+          ...(landingRefs.some((r) => r.page_type === "PLACE_CABS")
+            ? [{ url: `${appUrl}/places`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 }]
+            : []),
+        ]
       : []),
     ...(hotelVisible ? [{ url: `${appUrl}/hotels`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(tourVisible ? [{ url: `${appUrl}/tours`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 }] : []),

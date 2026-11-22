@@ -30,7 +30,10 @@ export type SectionKey =
   | "FAQ"
   | "NEWSLETTER"
   | "APP_DOWNLOAD"
-  | "BLOG";
+  | "BLOG"
+  // Not a CMS section: the place-pickup strip is injected under the tours
+  // band by HomepageServer, never stored in the homepage layout.
+  | "LANDMARKS";
 
 export interface HomepageSection {
   id: number;

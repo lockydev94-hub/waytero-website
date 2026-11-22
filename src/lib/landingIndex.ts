@@ -225,6 +225,7 @@ const RESERVED_LANDING_SLUGS = new Set([
   "forgot-password",
   "login",
   "partner",
+  "places",
   "press",
   "privacy",
   "profile",

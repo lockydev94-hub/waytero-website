@@ -29,7 +29,13 @@ import {
 import { Skeleton } from "@/components/ui";
 import IntentBanner from "@/components/sections/IntentBanner";
 import HeroStatsStrip from "@/components/renderers/HeroStatsStrip";
+import LandmarksSection from "@/components/renderers/LandmarksSection";
+import { getLandingRefs, type LandingRef } from "@/lib/landingIndex";
 import { getAvailability, hiddenServices, type ServiceKey } from "@/lib/availability";
+
+/** Synthetic band id for the place-pickup strip. Negative so it can never
+ *  collide with a CMS section row. */
+const LANDMARKS_BAND_ID = -1;
 
 /** Section keys whose content is sourced from a single vertical — hidden
  *  site-wide when that vertical is disabled or has zero real supply. */
@@ -122,11 +128,12 @@ function bandWillPaint(
  * down or returns nothing.
  */
 export default async function HomepageServer() {
-  const [data, av, offers, counts] = await Promise.all([
+  const [data, av, offers, counts, landingRefs] = await Promise.all([
     publicCmsService.getHomepage(),
     getAvailability(),
     publicCmsService.getOffers(),
     publicCmsService.getHomepageBandCounts(),
+    getLandingRefs(),
   ]);
   const hidden = hiddenServices(av);
   const sections = (data?.sections?.length ? data.sections : defaultSections()) as HomepageSection[];
@@ -136,12 +143,34 @@ export default async function HomepageServer() {
     (s) => !bandIsHiddenByService(s, hidden) && bandWillPaint(s, hidden, offers, counts),
   );
 
+  // Place pages get a band of their own directly under the tours band — the
+  // one place on the homepage where someone has just been looking at trips
+  // and might reasonably want a pickup point. It only exists when there is at
+  // least one published place page and the cab vertical is on, so the light
+  // alternation below never counts a band that will not paint.
+  const places = landingRefs.filter((r) => r.page_type === "PLACE_CABS");
+  const showLandmarks = places.length > 0 && !hidden.includes("CAB");
+  const bands: HomepageSection[] = [];
+  for (const s of visible) {
+    bands.push(s);
+    if (showLandmarks && s.section_key === "TOUR_PACKAGES") {
+      bands.push({
+        id: LANDMARKS_BAND_ID,
+        section_key: "LANDMARKS",
+        display_order: s.display_order,
+        is_active: true,
+        service_type: "CAB",
+        variant: {},
+      });
+    }
+  }
+
   // Walk the bands that will really render and hand the light ones their
   // background in strict alternation, starting white under the dark hero.
   const tones = new Map<number, BandTone>();
   if (counts) {
     let light = 0;
-    for (const s of visible) {
+    for (const s of bands) {
       if (DARK_BANDS.has(s.section_key)) continue;
       tones.set(s.id, light++ % 2 === 0 ? "white" : "muted");
     }
@@ -149,7 +178,7 @@ export default async function HomepageServer() {
 
   return (
     <>
-      {sections.map((s) => (
+      {bands.map((s) => (
         <SectionSwitch
           key={s.id}
           section={s}
@@ -157,6 +186,7 @@ export default async function HomepageServer() {
           offers={offers}
           bg={tones.get(s.id)}
           storeLinks={storeLinks}
+          places={places}
         />
       ))}
     </>
@@ -179,6 +209,7 @@ function SectionSwitch({
   offers,
   bg,
   storeLinks,
+  places,
 }: {
   section: HomepageSection;
   hidden: ServiceKey[];
@@ -186,6 +217,8 @@ function SectionSwitch({
   bg?: BandTone;
   /** Footer settings' app_store_links — the app band's store badges. */
   storeLinks?: { android?: string; ios?: string };
+  /** Published PLACE_CABS refs — the synthetic places band's rows. */
+  places?: LandingRef[];
 }) {
   const v = section.variant || {};
   // CMS can bind a section to a service type; the section keys above are
@@ -222,6 +255,8 @@ function SectionSwitch({
       return <WhyUsSection variant={v} bg={bg} />;
     case "TOUR_PACKAGES":
       return <TourPackagesSection variant={v} bg={bg} />;
+    case "LANDMARKS":
+      return <LandmarksSection places={places ?? []} bg={bg} />;
     case "TESTIMONIALS":
       return <TestimonialsSection variant={v} bg={bg} />;
     case "STATS":
