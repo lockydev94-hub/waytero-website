@@ -16,7 +16,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeft, CalendarDays, Check, Clock3, MapPin, ShieldCheck, Sparkles, Users,
   ChevronLeft, ChevronRight, X, BadgeCheck, Lock, RefreshCw, Phone, MessageCircle,
@@ -45,15 +45,37 @@ export default function TourDetailPage({
   const router = useRouter();
   const supportPhone = useSupportPhone();
   // Prefill from the hero search: /tours/{slug}?date=YYYY-MM-DD&persons=N
-  const searchParams = useSearchParams();
-  const heroDate = searchParams?.get("date") ?? "";
-  const heroPersons = Number(searchParams?.get("persons") ?? "") || 0;
+  //
+  // Read from window.location instead of useSearchParams(): that hook makes
+  // the whole client subtree bail out of the prerender, so these pages were
+  // shipping with no <h1> and no description in the HTML at all — the entire
+  // package detail existed only after hydration. Query params are a
+  // client-only concern here, so reading them on mount costs nothing.
+  const [query, setQuery] = useState({
+    date: "",
+    persons: 0,
+    offer: "",
+    coupon: "",
+    offerName: "",
+  });
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    setQuery({
+      date: p.get("date") ?? "",
+      persons: Number(p.get("persons") ?? "") || 0,
+      offer: p.get("offer") ?? "",
+      coupon: p.get("coupon") ?? "",
+      offerName: p.get("offer_name") ?? "",
+    });
+  }, []);
+  const heroDate = query.date;
+  const heroPersons = query.persons;
   // Offer ride-through (carried from /offers/{slug} CTAs): slug is the
   // attribution hint sent to the booking; coupon auto-applies in the review
   // modal; name is display-only.
-  const offerSlug = searchParams?.get("offer") ?? "";
-  const offerCoupon = searchParams?.get("coupon") ?? "";
-  const offerName = searchParams?.get("offer_name") ?? "";
+  const offerSlug = query.offer;
+  const offerCoupon = query.coupon;
+  const offerName = query.offerName;
   const auth = useAuth();
   const { accessToken, user } = auth;
   const [tour, setTour] = useState<PublicTourPackage | null>(initialTour ?? null);

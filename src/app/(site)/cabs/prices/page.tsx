@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchCabCities } from "@/lib/cabCity";
 import { toMetadata } from "@/services/seoService";
+import { BRAND } from "@/lib/brand";
 import CabPricesView from "@/components/cabs/CabPricesView";
 
 // /cabs/prices is the rate-card hub. Each serviced city has its own canonical
@@ -14,6 +15,9 @@ import CabPricesView from "@/components/cabs/CabPricesView";
 const PAGE_PATH = "/cabs/prices";
 
 export async function generateMetadata(): Promise<Metadata> {
+  // This hub renders the serviced city's card, so it is the same document as
+  // /cabs/prices/bhubaneswar — canonical there, where the keyword lives. Two
+  // URLs with one table would otherwise split the signal between them.
   return toMetadata(
     {
       title: "Cab Prices in Bhubaneswar — Fare List",
@@ -26,7 +30,7 @@ export async function generateMetadata(): Promise<Metadata> {
         "outstation cab fare Bhubaneswar",
       ],
     },
-    PAGE_PATH,
+    `${PAGE_PATH}/${BRAND.primaryCity.toLowerCase()}`,
   );
 }
 

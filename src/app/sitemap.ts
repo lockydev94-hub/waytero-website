@@ -111,11 +111,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const staticUrls: MetadataRoute.Sitemap = [
     { url: appUrl, lastModified: now, changeFrequency: "daily", priority: 1 },
+    // `/cabs/prices` is not listed: it renders the serviced city's card and
+    // canonicalises to /cabs/prices/{city}, which the city block below adds.
     ...(cabVisible
-      ? [
-          { url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 },
-          { url: `${appUrl}/cabs/prices`, lastModified: now, changeFrequency: "weekly" as const, priority: 0.8 },
-        ]
+      ? [{ url: `${appUrl}/cabs`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }]
       : []),
     ...(hotelVisible ? [{ url: `${appUrl}/hotels`, lastModified: now, changeFrequency: "daily" as const, priority: 0.9 }] : []),
     ...(tourVisible ? [{ url: `${appUrl}/tours`, lastModified: now, changeFrequency: "daily" as const, priority: 0.8 }] : []),
