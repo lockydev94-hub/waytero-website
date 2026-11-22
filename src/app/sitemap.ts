@@ -28,6 +28,12 @@ import { getPageBody } from "@/lib/pageBody";
 import { TRIP_SLUGS } from "@/lib/cabTrips";
 import { citySlug } from "@/lib/citySlug";
 
+// Regenerate periodically rather than only at build time: a page published
+// from the admin goes live immediately (the [slug] engine renders on demand),
+// so a sitemap frozen at build time would keep omitting it until the next
+// deploy — the exact gap that makes a published page wait to be crawled.
+export const revalidate = 900;
+
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://waytero.com";
 
 interface HotelRow {
