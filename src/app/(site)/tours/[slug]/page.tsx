@@ -69,6 +69,21 @@ async function fetchTourPayload(slug: string): Promise<TourSeoPayload | null> {
   }
 }
 
+/** Package names carry an editorial subtitle ("Bhitarkanika Wilderness —
+ *  Mangroves, Crocodiles & Kingfishers"), which pushed every generated tour
+ *  title to 77–92 characters and got it truncated in the SERP. The primary
+ *  clause plus "Tour" fits the ~60-char budget the "| WayTero" template leaves.
+ *  Admin-authored seo_title still wins. */
+function shortTourTitle(name: string): string {
+  let primary = name.split(/\s+[—-]\s+/)[0].trim();
+  const TITLE_BUDGET = 51; // 60 minus " | WayTero"
+  if (primary.length > TITLE_BUDGET) {
+    primary = primary.slice(0, TITLE_BUDGET + 1).replace(/\s+\S*$/, "").trim();
+  }
+  if (/tour$/i.test(primary) || primary.length + 5 > TITLE_BUDGET) return primary;
+  return `${primary} Tour`;
+}
+
 async function seoForTour(slug: string): Promise<SeoContent> {
   const fallback = STATIC_SEO.TOUR;
   const tour = await fetchTourPayload(slug);
@@ -82,7 +97,7 @@ async function seoForTour(slug: string): Promise<SeoContent> {
   ].filter((k): k is string => Boolean(k));
   return {
     // Admin-curated SEO wins; the generated form is the fallback.
-    title: tour.seo_title?.trim() || `${tour.package_name} — Tour Package`,
+    title: tour.seo_title?.trim() || shortTourTitle(tour.package_name),
     description:
       tour.seo_description?.trim() ||
       tour.short_description?.slice(0, 320) ||
