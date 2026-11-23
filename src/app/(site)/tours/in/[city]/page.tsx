@@ -136,7 +136,7 @@ export async function generateMetadata({
   return toMetadata(
     {
       title: `Tour Packages in ${name} — Itineraries & Prices`,
-      description: `Explore ${city.package_count ?? "live"} tour packages in ${name}${city.state_name ? `, ${city.state_name}` : ""}. Day-by-day itineraries, clear inclusions and upfront per-package prices on WayTero.`,
+      description: `Explore ${city.package_count ?? "live"} tour packages in ${name}${city.state_name ? `, ${city.state_name}` : ""}. Day-by-day itineraries, clear inclusions and upfront per-package prices on WayTero, with verified local drivers.`,
       keywords: [
         `tour packages ${name}`,
         `${name} tours`,

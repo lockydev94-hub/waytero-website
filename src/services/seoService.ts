@@ -56,7 +56,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
   CAB: {
     title: "Cab Booking in Bhubaneswar",
     description:
-      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and driver details on every assigned trip.",
+      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and driver details on every assigned trip, day or night.",
     keywords: [
       "cab booking Bhubaneswar",
       "Bhubaneswar taxi",
@@ -93,7 +93,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
   blog: {
     title: "Odisha Travel Blog — Guides & Itineraries",
     description:
-      "Odisha travel guides from the WayTero team — Puri darshan, Konark, Chilika, Bhitarkanika and Bhubaneswar, with routes, seasons and budgets.",
+      "Odisha travel guides from the WayTero team — Puri darshan, Konark, Chilika, Bhitarkanika and Bhubaneswar, with routes, seasons, budgets and practical tips.",
     keywords: [
       "Odisha travel blog",
       "Bhubaneswar travel guide",
