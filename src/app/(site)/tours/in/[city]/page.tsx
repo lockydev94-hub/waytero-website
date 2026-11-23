@@ -143,6 +143,9 @@ export async function generateMetadata({
         `holiday packages ${name}`,
         `${name} sightseeing package`,
       ],
+      // The grid's lead photo, so a shared link shows a package from this
+      // city rather than the generic site card.
+      image: city.hero_image_url ?? city.image_url ?? null,
     },
     path,
     // A city page with no editorial copy is a card grid and a headline: it

@@ -44,6 +44,10 @@ interface HotelRow {
 interface TourRow {
   slug: string;
   updated_at?: string | null;
+  city_id?: number | null;
+  city_name?: string | null;
+  primary_image_url?: string | null;
+  media?: Array<{ media_url?: string | null; is_primary?: boolean | null }> | null;
 }
 interface BlogRow {
   slug: string;
@@ -95,6 +99,39 @@ async function fetchJson<T>(url: string): Promise<T | null> {
 }
 
 const day = (d?: string | null) => (d ? new Date(d) : new Date());
+
+/** Image URLs for the sitemap's <image:image> extension.
+ *
+ *  Google only associates sitemap images with the property they are listed
+ *  under when the URL resolves on that property (images on a third-party CDN
+ *  need the CDN itself verified, which we cannot do for Cloudinary). So an
+ *  external photo is advertised through our own optimizer at a fixed width:
+ *  same domain, real JPEG, cacheable — the identical photograph. Bundled
+ *  /assets files are already same-domain and pass through untouched. */
+const imageLocs = (...raws: Array<string | null | undefined>): string[] => {
+  const seen = new Set<string>();
+  for (const raw of raws) {
+    if (!raw) continue;
+    const abs = /^https?:\/\//i.test(raw)
+      ? raw
+      : `${appUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    seen.add(
+      abs.startsWith(appUrl)
+        ? abs
+        : `${appUrl}/_next/image?url=${encodeURIComponent(abs)}&w=1200&q=75`,
+    );
+  }
+  return [...seen];
+};
+
+/** The photo a tour package leads with — the same one its detail page and
+ *  og:image use, so the sitemap never advertises an image the page lacks. */
+const tourImage = (t: TourRow): string[] =>
+  imageLocs(
+    t.primary_image_url ??
+      t.media?.find((m) => m.is_primary)?.media_url ??
+      t.media?.[0]?.media_url,
+  );
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
@@ -272,6 +309,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.75,
     }));
 
+  // ── Tour packages (clean SEO slugs) + blog posts. Fetched before the city
+  // tour pages so those can list the photos their grids actually render. ──
+  const [tours, blogs] = await Promise.all([
+    tourVisible
+      ? fetchJson<{ items: TourRow[] }>(`${API_BASE}/public/tours/packages?page_size=48`).then(
+          (data) => data?.items ?? [],
+        )
+      : Promise.resolve([] as TourRow[]),
+    fetchJson<{ data: BlogRow[] }>(`${API_BASE}/public/blog?per_page=50`).then(
+      (data) => data?.data ?? [],
+    ),
+  ]);
+
+  // Images per city, so a /tours/in/{city} page lists the photos it actually
+  // renders rather than nothing at all.
+  const cityTourImages = new Map<string, string[]>();
+  for (const t of tours) {
+    if (!t.city_name) continue;
+    const key = citySlug(t.city_name);
+    const imgs = tourImage(t);
+    if (!imgs.length) continue;
+    const list = cityTourImages.get(key) ?? [];
+    if (list.length < 4) list.push(...imgs.slice(0, 1));
+    cityTourImages.set(key, list);
+  }
+
   const tourDestinationRows = tourVisible
     ? await fetchJson<{ items?: TourDestinationRow[] } | TourDestinationRow[]>(
         `${API_BASE}/public/tours/popular-destinations`,
@@ -301,6 +364,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "weekly" as const,
       priority: 0.75,
+      images: cityTourImages.get(citySlug(d.name)) ?? [],
     }));
 
   // ── Hotels (partner-added; page through the search feed) ──
@@ -324,18 +388,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     }));
 
-  // ── Tour packages (clean SEO slugs) + blog posts ──
-  const [tours, blogs] = await Promise.all([
-    tourVisible
-      ? fetchJson<{ items: TourRow[] }>(`${API_BASE}/public/tours/packages?page_size=48`).then(
-          (data) => data?.items ?? [],
-        )
-      : Promise.resolve([] as TourRow[]),
-    fetchJson<{ data: BlogRow[] }>(`${API_BASE}/public/blog?per_page=50`).then(
-      (data) => data?.data ?? [],
-    ),
-  ]);
-
   const tourUrls: MetadataRoute.Sitemap = tours
     .filter((t) => t.slug)
     .map((t) => ({
@@ -343,6 +395,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: day(t.updated_at),
       changeFrequency: "weekly" as const,
       priority: 0.7,
+      images: tourImage(t),
     }));
 
   const blogUrls: MetadataRoute.Sitemap = blogs

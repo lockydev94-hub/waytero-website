@@ -157,6 +157,11 @@ export function toMetadata(
 ): import("next").Metadata {
   const canonical = `${appUrl()}${path === "/" ? "" : path}`;
   const { alternates: extraAlternates, ...rest } = extra ?? {};
+  // Always emit an image. A page-level `openGraph` object replaces the root
+  // layout's outright, so a page that had no photo of its own shipped with no
+  // og:image at all — 25 of 94 URLs were in that state, and a shared link to
+  // any of them rendered bare. Fall back to the site-wide card instead.
+  const socialImage = absoluteImage(seo.image);
   return {
     title: normalizeTitle(seo.title),
     description: seo.description,
@@ -173,14 +178,14 @@ export function toMetadata(
       siteName: "WayTero",
       title: seo.title,
       description: seo.description,
-      ...(seo.image ? { images: [{ url: seo.image }] } : {}),
+      images: [{ url: socialImage, width: 1200, height: 630, alt: seo.title }],
       ...(extra?.openGraph as object | undefined),
     },
     twitter: {
       card: "summary_large_image",
       title: seo.title,
       description: seo.description,
-      ...(seo.image ? { images: [seo.image] } : {}),
+      images: [socialImage],
       ...(extra?.twitter as object | undefined),
     },
     ...rest,
