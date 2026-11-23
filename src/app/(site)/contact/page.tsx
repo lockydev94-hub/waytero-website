@@ -30,6 +30,7 @@ import publicCmsService from "@/services/publicCms";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { BRAND, waHref } from "@/lib/brand";
 import { displayPhone, telHref } from "@/lib/supportPhone";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const SOCIAL_ICONS: Record<string, typeof Facebook> = {
   facebook: Facebook,
@@ -122,6 +123,7 @@ export default async function ContactPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="contact" path="/contact" name="Contact WayTero" crumb="Contact" type="ContactPage" />
       <JsonLd data={faqPageSchema(faqs)} />
 
       <Section bg="white" pad="tight">

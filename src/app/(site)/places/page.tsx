@@ -26,7 +26,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const city = BRAND.primaryCity;
   return toMetadata(
     {
-      title: `Cab Pickup Points in ${city} — Every Place We Serve`,
+      // The root layout appends " | WayTero"; the old "— Every Place We
+      // Serve" tail pushed this past the ~62-character SERP cut.
+      title: `Cab Pickup Points in ${city}`,
       description: `Every pickup point WayTero serves in ${city} — the airport, the railway station and the city's temples, caves and heritage sites, each with a published cab fare.`,
       keywords: [
         `cab pickup points ${city}`,

@@ -31,6 +31,7 @@ import publicCmsService from "@/services/publicCms";
 import { getAvailability, serviceVisible } from "@/lib/availability";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
 import type { LandingStat } from "@/lib/landingIndex";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const FALLBACK: SeoContent = {
   title: "About Us — WayTero",
@@ -121,6 +122,7 @@ export default async function AboutPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="about" path="/about" name="About WayTero" crumb="About" type="AboutPage" />
       <JsonLd data={faqPageSchema(faqs)} />
 
       <Section bg="white" pad="tight">

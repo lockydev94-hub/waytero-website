@@ -96,11 +96,17 @@ const STATIC_ICONS = {
 export async function generateMetadata(): Promise<Metadata> {
   const profile = await publicCmsService.getPlatformProfile();
 
-  // Admin-uploaded favicon (Cloudinary URL) wins over the bundled .ico.
-  // The apple touch icon stays bundled — the admin upload flow is 32×32,
-  // which is too small for the 180×180 apple-touch-icon slot.
+  // Admin-uploaded favicon (Cloudinary URL) wins over the bundled .ico. The
+  // upload slot crops to 96×96: Google refuses to show a site icon in search
+  // results below 48×48, and 96 is a multiple of 48 (it also downsamples
+  // cleanly for the 16/32px browser tab). The apple touch icon stays bundled
+  // — 96 is still short of the 180×180 that iOS wants.
   const icons = profile.favicon_url
-    ? { icon: profile.favicon_url, shortcut: profile.favicon_url, apple: STATIC_ICONS.apple }
+    ? {
+        icon: [{ url: profile.favicon_url, sizes: "96x96", type: "image/png" }],
+        shortcut: profile.favicon_url,
+        apple: STATIC_ICONS.apple,
+      }
     : STATIC_ICONS;
 
   // Admin-uploaded OG image (1200×630) drives social shares site-wide;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import FeedbackFlow from "@/components/capture/FeedbackFlow";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Guest Feedback — WayTero",
@@ -15,5 +16,10 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default function FeedbackPage() {
-  return <FeedbackFlow />;
+  return (
+    <>
+      <StaticPageSeo pageKey="feedback" path="/feedback" name="Guest Feedback" crumb="Feedback" />
+      <FeedbackFlow />
+    </>
+  );
 }

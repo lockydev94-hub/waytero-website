@@ -44,7 +44,7 @@ export const STATIC_SEO: Record<string, SeoContent> = {
     // the <title> — "Explore More. Travel Better." ranks for nothing.
     title: "Cab & Tour Booking in Bhubaneswar",
     description:
-      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and a local support desk. Odisha tour packages and hotels on the same platform.",
+      "Book local, airport and outstation cabs in Bhubaneswar with upfront fares, verified drivers and a local support desk. Odisha tours and hotels on one platform.",
     keywords: [
       "cab booking Bhubaneswar",
       "Bhubaneswar taxi service",

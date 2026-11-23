@@ -8,6 +8,7 @@ import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import { getAvailability, serviceVisible, type ServiceKey } from "@/lib/availability";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Booking Instructions — WayTero",
@@ -32,6 +33,7 @@ export default async function BookingInstructionsPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="booking-instructions" path="/booking-instructions" name="How Booking Works" crumb="Booking" />
       <PageHero
         eyebrow={page.eyebrow ?? "Guide"}
         title={page.title}

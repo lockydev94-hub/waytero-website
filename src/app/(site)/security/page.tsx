@@ -12,6 +12,7 @@ import ProseBand from "@/components/sections/ProseBand";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
 import { getDesk } from "@/lib/desk";
 import type { LegalSection } from "@/services/publicCms";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Security — WayTero",
@@ -57,6 +58,7 @@ export default async function SecurityPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="security" path="/security" name="Security at WayTero" crumb="Security" />
       <PageHero
         eyebrow="Trust & Safety"
         title="Security at WayTero"

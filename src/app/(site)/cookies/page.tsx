@@ -5,6 +5,7 @@ import ProseBand from "@/components/sections/ProseBand";
 import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Cookies & Browser Storage — WayTero",
@@ -45,6 +46,7 @@ export default async function CookiesPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="cookies" path="/cookies" name="Cookie Policy" crumb="Cookies" />
       <PageHero
         eyebrow={page.eyebrow ?? "Legal"}
         title={page.title}

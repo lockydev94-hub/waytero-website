@@ -3,6 +3,7 @@ import PageHero from "@/components/sections/PageHero";
 import SitemapIndex from "@/components/sections/SitemapIndex";
 import { ButtonLink } from "@/components/ui";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Sitemap — WayTero",
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<import("next").Metadata> {
 export default function SitemapPage() {
   return (
     <>
+      <StaticPageSeo pageKey="sitemap" path="/sitemap" name="Sitemap" crumb="Sitemap" />
       <PageHero
         eyebrow="Find your way"
         title="Everything on this site, in one list"

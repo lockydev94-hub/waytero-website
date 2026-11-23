@@ -11,6 +11,7 @@ import { getDesk } from "@/lib/desk";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import type { BandTone } from "@/types/cms";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Careers — WayTero",
@@ -150,6 +151,7 @@ export default async function CareersPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="careers" path="/careers" name="Careers at WayTero" crumb="Careers" />
       <PageHero
         eyebrow={page.eyebrow ?? "Work with us"}
         title={page.title}

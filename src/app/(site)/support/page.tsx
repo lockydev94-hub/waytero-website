@@ -14,6 +14,7 @@ import { getDesk } from "@/lib/desk";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import type { BandTone } from "@/types/cms";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Support — WayTero",
@@ -228,6 +229,7 @@ export default async function SupportPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="support" path="/support" name="Help & Support" crumb="Support" />
       {page.faq.length > 0 && <JsonLd data={faqPageSchema(page.faq)} />}
 
       <PageHero

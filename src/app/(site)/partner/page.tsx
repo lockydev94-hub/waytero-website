@@ -28,6 +28,7 @@ import JsonLd, { faqPageSchema } from "@/components/sections/JsonLd";
 import PartnerApplicationCard from "./partner-application-form";
 import publicCmsService from "@/services/publicCms";
 import type { LandingStat } from "@/lib/landingIndex";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 /* ============================================================
    /partner — the supply side of the same honesty rule used on /about.
@@ -140,6 +141,7 @@ export default async function PartnerPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="partner" path="/partner" name="Partner With WayTero" crumb="Partner" />
       <JsonLd data={faqPageSchema(faqs)} />
 
       <Section bg="white" pad="tight" className="bg-gradient-to-br from-accent-50/60 via-white to-primary-50/40">

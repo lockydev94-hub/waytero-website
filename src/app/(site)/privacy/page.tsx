@@ -5,6 +5,7 @@ import ProseBand from "@/components/sections/ProseBand";
 import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Privacy Policy — WayTero",
@@ -22,6 +23,7 @@ export default async function PrivacyPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="privacy" path="/privacy" name="Privacy Policy" crumb="Privacy" />
       <PageHero
         eyebrow={page.eyebrow ?? "Legal"}
         title={page.title}

@@ -51,16 +51,35 @@ function routeTitle(r: PublicRoute): string {
   return `Cab from ${r.origin_label} to ${r.destination_label}`;
 }
 
+// SERP budgets. The root layout appends " | WayTero" (10 chars), so a title
+// must stay under ~52 characters, and Google cuts descriptions past ~158.
+const TITLE_BUDGET = 52;
+const DESC_BUDGET = 158;
+
+function clamp(text: string, max: number): string {
+  const clean = text.replace(/\s+/g, " ").trim();
+  if (clean.length <= max) return clean;
+  const cut = clean.slice(0, max - 1);
+  const at = cut.lastIndexOf(" ");
+  const head = at > max * 0.6 ? cut.slice(0, at) : cut;
+  return `${head.replace(/[,;:.\s]+$/, "")}…`;
+}
+
 function seoForRoute(r: PublicRoute | null): SeoContent {
   if (!r) return STATIC_SEO.home;
+  const title = routeTitle(r);
+  // Long route names (Bhubaneswar → Bhawanipatna) overflow once the template
+  // appends the brand, so the descriptive tail only rides along when it fits.
+  const suffix = title.length <= TITLE_BUDGET - " — fare & distance".length
+    ? " — fare & distance"
+    : " — fare";
   return {
-    // Kept short: the root layout appends "| WayTero", and anything past ~60
-    // characters is truncated in the SERP — which was happening on all 28
-    // route pages (69–77 chars).
-    title: `${routeTitle(r)} — fare & distance`,
-    description:
+    title: `${title}${suffix}`,
+    description: clamp(
       r.description?.trim() ||
-      `${routeTitle(r)} is ${Number(r.distance_km).toFixed(0)} km by road. See the distance, the vehicles available and what each one costs under our published fare rules.`,
+        `${title} is ${Number(r.distance_km).toFixed(0)} km by road. See the distance, the vehicles available and what each one costs under our published fare rules.`,
+      DESC_BUDGET,
+    ),
     keywords: [
       routeTitle(r).toLowerCase(),
       `${r.origin_label} to ${r.destination_label} taxi`,

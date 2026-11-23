@@ -13,6 +13,7 @@ import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
 import { getDesk } from "@/lib/desk";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Safety — WayTero",
@@ -159,6 +160,7 @@ export default async function SafetyPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="safety" path="/safety" name="Travel Safety" crumb="Safety" />
       {page.faq.length > 0 && <JsonLd data={faqPageSchema(page.faq)} />}
 
       <PageHero

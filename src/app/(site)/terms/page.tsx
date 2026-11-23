@@ -5,6 +5,7 @@ import ProseBand from "@/components/sections/ProseBand";
 import { getPageBody, resolvePage, sourceNote } from "@/lib/pageBody";
 import { PAGE_BODIES } from "@/content/pageBodies";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Terms of Service — WayTero",
@@ -22,6 +23,7 @@ export default async function TermsPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="terms" path="/terms" name="Terms of Service" crumb="Terms" />
       <PageHero
         eyebrow={page.eyebrow ?? "Legal"}
         title={page.title}

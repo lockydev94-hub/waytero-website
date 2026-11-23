@@ -13,6 +13,7 @@ import publicCmsService from "@/services/publicCms";
 import type { LandingStat } from "@/lib/landingIndex";
 import type { BandTone } from "@/types/cms";
 import { pageMetadata, type SeoContent } from "@/services/seoService";
+import StaticPageSeo from "@/components/sections/StaticPageSeo";
 
 const META_FALLBACK: SeoContent = {
   title: "Press & Media — WayTero",
@@ -78,6 +79,7 @@ export default async function PressPage() {
 
   return (
     <>
+      <StaticPageSeo pageKey="press" path="/press" name="Press & Media" crumb="Press" />
       {page.description && (
         <JsonLd
           data={{
