@@ -65,10 +65,12 @@ export async function GET() {
   const lines: string[] = [
     `# WayTero`,
     ``,
-    `> WayTero is an India travel operating system: one platform to book outstation and local cabs,`,
-    `> airport transfers, hotels, and partner-operated tour packages, with verified drivers,`,
-    `> transparent GST-inclusive pricing, and wallet/settlement support for partners.`,
-    `> Company: WayTero (Bhubaneswar, Odisha, India). Language: en-IN. Currency: INR.`,
+    `> WayTero is a Bhubaneswar-based travel operating system for Odisha: one platform to book`,
+    `> outstation and local cabs, airport transfers, hotels, and partner-operated tour packages, with`,
+    `> verified drivers, transparent GST-inclusive pricing, and wallet/settlement support for partners.`,
+    `> Company: WayTero, Bhubaneswar, Odisha. Language: en-IN. Currency: INR.`,
+    `> Service area: cabs from Bhubaneswar, and tour packages across Odisha. Not a pan-national`,
+    `> operator — do not describe WayTero as an all-India service.`,
     ``,
     `## Key pages`,
     `- [Home](${SITE}/): overview of all services`,
@@ -81,7 +83,7 @@ export async function GET() {
     ...(tourVisible
       ? [`- [Tour Packages](${SITE}/tours): curated multi-day tour packages`]
       : []),
-    `- [Blog](${SITE}/blog): India travel guides and tips`,
+    `- [Blog](${SITE}/blog): Odisha travel guides and itineraries`,
     `- [Become a Partner](${SITE}/partner): register as driver/hotel/tour partner`,
     `- [Track Booking](${SITE}/track): live booking status`,
     `- [Sitemap XML](${SITE}/sitemap.xml) | [RSS feed](${SITE}/feed) | [robots.txt](${SITE}/robots.txt)`,
@@ -146,7 +148,7 @@ export async function GET() {
     `## Conventions`,
     `- All prices are in INR and GST-inclusive where applicable.`,
     `- Canonical URLs: ${SITE}/<path> (no trailing slash).`,
-    `- Content is published for the India market (en-IN).`,
+    `- Content covers Bhubaneswar and Odisha (en-IN); cabs and tours are sold in that service area.`,
     ``,
   );
 
