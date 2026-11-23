@@ -197,6 +197,25 @@ async function loadTripPage(code: string) {
   };
 }
 
+// ── SERP helpers ───────────────────────────────────────────────────────────
+
+const DESC_BUDGET = 158;
+
+/**
+ * Keep the DB blurb, but never ship a description far under the ~155
+ * characters a SERP snippet can use. The OUTSTATION blurb is 117 characters
+ * on its own, so those pages were showing half an empty snippet.
+ */
+function serpDescription(blurb: string, filler: string): string {
+  const base = blurb.trim();
+  const full = base.length >= 140 ? base : `${base.replace(/[.\s]+$/, ".")} ${filler}`;
+  if (full.length <= DESC_BUDGET) return full;
+  const cut = full.slice(0, DESC_BUDGET - 1);
+  const at = cut.lastIndexOf(" ");
+  const head = at > DESC_BUDGET * 0.6 ? cut.slice(0, at) : cut;
+  return `${head.replace(/[,;:.\s]+$/, "")}…`;
+}
+
 export function generateStaticParams() {
   // Prerender the canonical set; the page 404s at request time for codes
   // without active pricing rules.
@@ -226,7 +245,10 @@ export async function generateMetadata({
       // "in India" made these pages compete nationally on a service we sell
       // in one city. The service area is the ranking term that also converts.
       title: `${meta.h1} in ${BRAND.primaryCity}`,
-      description: meta.blurb.slice(0, 300),
+      description: serpDescription(
+        meta.blurb,
+        `Published fares, verified drivers and driver details on every ${BRAND.primaryCity} trip.`,
+      ),
       keywords: [
         `${meta.name.toLowerCase()} cab booking ${BRAND.primaryCity}`,
         `${meta.name.toLowerCase()} taxi ${BRAND.primaryCity}`,

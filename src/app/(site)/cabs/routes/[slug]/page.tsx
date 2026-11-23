@@ -73,13 +73,18 @@ function seoForRoute(r: PublicRoute | null): SeoContent {
   const suffix = title.length <= TITLE_BUDGET - " — fare & distance".length
     ? " — fare & distance"
     : " — fare";
+  // Route rows carry a one-line blurb ("Kalahandi's district town, west of the
+  // Eastern Ghats."), which is a 80–100 character description on its own — far
+  // under the ~155 a SERP snippet can use. Keep the blurb, then top it up with
+  // the distance/fare sentence so the snippet is not half-empty.
+  const blurb = r.description?.trim() || "";
+  const fareSentence = `${title} is ${Number(r.distance_km).toFixed(0)} km by road. See the distance, the vehicles available and what each one costs under our published fare rules.`;
+  const full = blurb
+    ? `${blurb.replace(/[.\s]+$/, ".")} ${fareSentence}`
+    : fareSentence;
   return {
     title: `${title}${suffix}`,
-    description: clamp(
-      r.description?.trim() ||
-        `${title} is ${Number(r.distance_km).toFixed(0)} km by road. See the distance, the vehicles available and what each one costs under our published fare rules.`,
-      DESC_BUDGET,
-    ),
+    description: clamp(full, DESC_BUDGET),
     keywords: [
       routeTitle(r).toLowerCase(),
       `${r.origin_label} to ${r.destination_label} taxi`,
