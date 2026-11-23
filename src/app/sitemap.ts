@@ -102,23 +102,36 @@ const day = (d?: string | null) => (d ? new Date(d) : new Date());
 
 /** Image URLs for the sitemap's <image:image> extension.
  *
- *  Google only associates sitemap images with the property they are listed
- *  under when the URL resolves on that property (images on a third-party CDN
- *  need the CDN itself verified, which we cannot do for Cloudinary). So an
- *  external photo is advertised through our own optimizer at a fixed width:
- *  same domain, real JPEG, cacheable — the identical photograph. Bundled
- *  /assets files are already same-domain and pass through untouched. */
+ *  Google uses a sitemap image from another domain only when that domain is
+ *  verified in Search Console, and `res.cloudinary.com` is not ours to verify.
+ *  So Cloudinary photos are re-advertised on our own host through the `/img`
+ *  pass-through, which serves the identical bytes on a clean path.
+ *
+ *  That route exists because the obvious alternative — Next's optimizer,
+ *  `/_next/image?url=…&w=1200&q=75` — puts a bare `&` inside <image:loc>.
+ *  Next writes image URLs into the sitemap verbatim, never XML-escaping them,
+ *  so the query string makes the document malformed and Search Console
+ *  refuses to read the whole file (\"XML Parsing Error: not well-formed\").
+ *  No query string, no escaping problem. Bundled /assets files are already
+ *  same-domain and pass through untouched. */
+const CLOUDINARY = /^https:\/\/res\.cloudinary\.com\/([^/]+)\/image\/upload\/(.+)$/i;
+
 const imageLocs = (...raws: Array<string | null | undefined>): string[] => {
   const seen = new Set<string>();
   for (const raw of raws) {
     if (!raw) continue;
-    const abs = /^https?:\/\//i.test(raw)
-      ? raw
-      : `${appUrl}${raw.startsWith("/") ? "" : "/"}${raw}`;
+    // Sitemap locations are plain URLs: never carry a query or fragment over,
+    // since anything after `?` needs escaping the generator does not do.
+    const clean = raw.split(/[?#]/)[0];
+    const cloud = CLOUDINARY.exec(clean);
+    if (cloud) {
+      seen.add(`${appUrl}/img/${cloud[1]}/${cloud[2]}`);
+      continue;
+    }
     seen.add(
-      abs.startsWith(appUrl)
-        ? abs
-        : `${appUrl}/_next/image?url=${encodeURIComponent(abs)}&w=1200&q=75`,
+      /^https?:\/\//i.test(clean)
+        ? clean
+        : `${appUrl}${clean.startsWith("/") ? "" : "/"}${clean}`,
     );
   }
   return [...seen];
