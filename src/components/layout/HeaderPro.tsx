@@ -252,6 +252,13 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
     ? "text-white border-white/30 hover:bg-white/15 hover:border-white/50"
     : "text-ink-3 border-ink-7 hover:text-primary-600 hover:border-primary-300";
 
+  // Signed-in notification/profile chips sit on the hero photo with no bar
+  // behind them, so plain white text disappeared whenever the image under it
+  // was pale (white cars, sky). They get the same dark glass pill as the nav.
+  const authChipColor = overHeroUnscrolled
+    ? "border-white/25 bg-black/45 backdrop-blur-md text-white hover:bg-black/60 hover:border-white/50"
+    : "border-ink-7 hover:border-primary-300 hover:bg-primary-50/40 text-ink-2";
+
   const logoTextColor   = overHeroUnscrolled ? "text-white"     : "text-ink";
   const logoAccentColor = overHeroUnscrolled ? "text-accent-400" : "text-primary-600";
   const logoSubColor    = overHeroUnscrolled ? "text-white/55"  : "text-ink-4";
@@ -543,9 +550,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                 className={`
                   relative inline-flex h-10 w-10 items-center justify-center rounded-xl border
                   transition-all duration-200 cursor-pointer
-                  ${overHeroUnscrolled
-                    ? "border-white/30 hover:bg-white/15 hover:border-white/50 text-white"
-                    : "border-ink-7 hover:border-primary-300 hover:bg-primary-50/40 text-ink-2"}
+                  ${authChipColor}
                 `}
               >
                 <Bell className="h-[18px] w-[18px]" />
@@ -568,9 +573,7 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                   className={`
                     inline-flex items-center gap-2 pl-1.5 pr-2 h-10 rounded-xl border
                     transition-all duration-200 cursor-pointer
-                    ${overHeroUnscrolled
-                      ? "border-white/30 hover:bg-white/15 hover:border-white/50 text-white"
-                      : "border-ink-7 hover:border-primary-300 hover:bg-primary-50/40 text-ink-2"}
+                    ${authChipColor}
                   `}
                 >
                   <span
@@ -589,7 +592,10 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
                       initials
                     )}
                   </span>
-                  <span className="hidden lg:inline text-[13px] font-semibold max-w-[120px] truncate">
+                  <span
+                    className="hidden lg:inline text-[13px] font-semibold max-w-[120px] truncate"
+                    style={navTextShadow}
+                  >
                     {displayName}
                   </span>
                   <ChevronUp
