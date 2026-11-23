@@ -97,13 +97,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const profile = await publicCmsService.getPlatformProfile();
 
   // Admin-uploaded favicon (Cloudinary URL) wins over the bundled .ico. The
-  // upload slot crops to 96×96: Google refuses to show a site icon in search
-  // results below 48×48, and 96 is a multiple of 48 (it also downsamples
-  // cleanly for the 16/32px browser tab). The apple touch icon stays bundled
-  // — 96 is still short of the 180×180 that iOS wants.
+  // upload slot now crops to 96×96 because Google refuses to show a site icon
+  // below 48×48 (96 is a multiple of 48) — but an asset stored before that
+  // change is still 32×32, so no `sizes` is declared here: claiming a size the
+  // file does not have is worse than letting the browser read the file.
   const icons = profile.favicon_url
     ? {
-        icon: [{ url: profile.favicon_url, sizes: "96x96", type: "image/png" }],
+        icon: profile.favicon_url,
         shortcut: profile.favicon_url,
         apple: STATIC_ICONS.apple,
       }
