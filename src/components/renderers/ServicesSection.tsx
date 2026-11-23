@@ -37,7 +37,7 @@ interface ServicesSectionProps {
 const DEFAULT: ServiceItem[] = [
   { title: "Cab Booking", desc: "Local, airport, one-way, outstation and round-trip cabs at best prices.", link: "/cabs", tone: "primary" },
   { title: "Hotel Booking", desc: "Handpicked hotels & homestays with transparent pricing.", link: "/hotels", tone: "accent" },
-  { title: "Tour Packages", desc: "Discover India with curated tours, scenic trips and complete travel experiences.", link: "/tours", tone: "success" },
+  { title: "Tour Packages", desc: "Discover Odisha with curated tours, scenic trips and complete travel experiences.", link: "/tours", tone: "success" },
   { title: "Booking Tracking", desc: "Follow any booking by number — status, driver and vehicle once assigned.", link: "/track", tone: "info" },
 ];
 
@@ -61,7 +61,7 @@ const DESIGN: Record<
   },
   "/tours": {
     badge: "Tour Packages",
-    headline: "Discover India with Curated Tours",
+    headline: "Discover Odisha with Curated Tours",
     cta: "Explore Packages",
     image: "/assets/homepage/02-services/sunlit-temple-coast-tour-packages.webp",
   },

@@ -37,7 +37,7 @@ import type { PublicOfferSlide } from "@/services/publicCms";
  *
  * Every visible string and asset is admin-authored (CMS → Homepage → Hero):
  *   variant_tag        → badge text
- *   headline           → "Explore India with|WayTero" — the part after the pipe
+ *   headline           → "Explore Odisha with|WayTero" — the part after the pipe
  *                        prints in the accent colour
  *   subheadline        → paragraph under it
  *   cta_text/link      → the strip's second tab (defaults to tour packages)
@@ -71,10 +71,13 @@ interface TrustItem {
 const DEFAULT_BG = "/assets/homepage/01-hero/sunset-coastal-highway-and-temple.webp";
 const DEFAULT_CAR = "/assets/homepage/01-hero/glossy-white-sedan-with-waytero-badge.webp";
 
-const DEFAULT_HEADLINE = "Explore India with|WayTero";
+// Defaults are Bhubaneswar-first like the rest of the site: the business sells
+// cabs from the city and tours inside Odisha, so the fallback must not outrank
+// the CMS copy for a national query it cannot serve.
+const DEFAULT_HEADLINE = "Explore Odisha with|WayTero";
 const DEFAULT_SUBHEADLINE =
-  "Book reliable cabs for every journey and discover handpicked tour packages across India.";
-const DEFAULT_EYEBROW = "India's Travel Operating System";
+  "Book reliable cabs for every journey and discover handpicked tour packages across Odisha.";
+const DEFAULT_EYEBROW = "Odisha's Travel Operating System";
 const DEFAULT_ACCENT = "#F05A22";
 
 const DEFAULT_TRUST: TrustItem[] = [
@@ -121,7 +124,7 @@ function DiscoverCard({
   );
 }
 
-/** "Explore India with|WayTero" → lead + accent segment. */
+/** "Explore Odisha with|WayTero" → lead + accent segment. */
 function splitHeadline(raw: string): [string, string] {
   const at = raw.indexOf("|");
   if (at === -1) return [raw.trim(), ""];

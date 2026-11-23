@@ -105,7 +105,7 @@ export default async function PopularDestinationsSection({ variant, bg = "white"
                           </div>
                           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                             <div className="text-xs text-white/70 mb-1 inline-flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> Odisha, India
+                              <MapPin className="h-3 w-3" /> Odisha
                             </div>
                             <h3 className="text-lg font-bold group-hover:text-accent-200 transition-colors">{name}</h3>
                           </div>

@@ -36,7 +36,7 @@ export default function PartnerCtaSection({ variant, bg = "white" }: PartnerCtaS
   const subtitle = pick<string>(
     variant,
     "subheadline",
-    pick<string>(variant, "subtitle", "Grow your business with India's growing travel platform."),
+    pick<string>(variant, "subtitle", "Grow your business with Odisha's growing travel platform."),
   );
   const ctaText = pick<string>(variant, "cta_text", "Register as Partner");
   const ctaLink = pick<string>(variant, "cta_link", "/partner");

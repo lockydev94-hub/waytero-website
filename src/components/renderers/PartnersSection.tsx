@@ -20,7 +20,7 @@ function initials(name: string) {
 }
 
 /**
- * PartnersSection — "Backed by India's Best".
+ * PartnersSection — "Backed by Odisha's Best".
  *
  * A row of partner chips rather than a logo marquee: the CMS holds names, not
  * logos, and the old marquee duplicated whatever it was given, so a single
@@ -32,7 +32,7 @@ function initials(name: string) {
  * still hides the band entirely.
  */
 export default function PartnersSection({ variant, bg = "muted" }: PartnersSectionProps) {
-  const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Backed by India's Best"));
+  const title = pick<string>(variant, "headline", pick<string>(variant, "title", "Backed by Odisha's Best"));
   const subtitle = pick<string>(
     variant,
     "subheadline",

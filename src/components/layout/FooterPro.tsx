@@ -64,7 +64,7 @@ const SOCIAL_META = [
 ];
 
 const DEFAULT_DESCRIPTION =
-  "India's Travel Operating System — connecting customers, partners, drivers, hotels, and tour operators on one seamless platform.";
+  "Odisha's Travel Operating System — connecting customers, partners, drivers, hotels, and tour operators on one seamless platform.";
 const DEFAULT_COPYRIGHT = `© ${new Date().getFullYear()} WayTero · waytero.com · All rights reserved.`;
 
 interface Props {
