@@ -248,8 +248,11 @@ export default function Header({ cmsData, heroHasMedia = false, hiddenServices =
     ? "text-white hover:text-white"
     : "text-ink-3 hover:text-ink";
 
+  // Login sits on the hero photo with no bar behind it. A bare white outline
+  // disappeared whenever the image under it was pale (the homepage sky and the
+  // white cars), so it borrows the same dark glass pill as the nav.
   const loginColor = overHeroUnscrolled
-    ? "text-white border-white/30 hover:bg-white/15 hover:border-white/50"
+    ? "text-white border-white/25 bg-black/45 backdrop-blur-md hover:bg-black/60 hover:border-white/50"
     : "text-ink-3 border-ink-7 hover:text-primary-600 hover:border-primary-300";
 
   // Signed-in notification/profile chips sit on the hero photo with no bar
